@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { ShoppingBag, MapPin, Phone, Clock, ChevronDown, Check, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { STORES, SOCIAL_LINKS } from '../data/stores';
+import { TikTokIcon } from './icons/TikTokIcon';
+import { FacebookIcon } from './icons/FacebookIcon';
 import { OrderMode } from '../types';
 
 export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStoreModal }) => {
@@ -109,18 +111,18 @@ export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStore
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Follow us on TikTok"
-                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all text-xs font-black"
+                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all hover:border-white/20"
               >
-                TT
+                <TikTokIcon className="w-4 h-4" />
               </a>
               <a
                 href={SOCIAL_LINKS.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Like us on Facebook"
-                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all text-xs font-black"
+                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all hover:border-white/20"
               >
-                FB
+                <FacebookIcon className="w-4 h-4" />
               </a>
             </div>
 
@@ -211,17 +213,19 @@ export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStore
                 href={SOCIAL_LINKS.tiktok}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300"
+                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 flex items-center gap-2.5 hover:text-white hover:bg-zinc-800"
               >
-                🎵 TikTok Profile
+                <TikTokIcon className="w-4 h-4 text-zinc-400" />
+                <span>TikTok Profile</span>
               </a>
               <a
                 href={SOCIAL_LINKS.facebook}
                 target="_blank"
                 rel="noreferrer"
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300"
+                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 flex items-center gap-2.5 hover:text-white hover:bg-zinc-800"
               >
-                👍 Facebook Page
+                <FacebookIcon className="w-4 h-4 text-zinc-400" />
+                <span>Facebook Page</span>
               </a>
             </div>
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import { STORES, SOCIAL_LINKS } from '../data/stores';
+import { TikTokIcon } from './icons/TikTokIcon';
+import { FacebookIcon } from './icons/FacebookIcon';
 import { useCart } from '../context/CartContext';
 import { MapPin, Clock, Phone, Navigation, Check, Sparkles, X } from 'lucide-react';
 import { StoreLocation } from '../types';
@@ -232,17 +234,19 @@ export const StoreLocatorSection: React.FC = () => {
                   href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-black text-white border border-white/10 transition-colors"
+                  className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-colors flex items-center gap-2"
                 >
-                  TikTok
+                  <TikTokIcon className="w-3.5 h-3.5" />
+                  <span>TikTok</span>
                 </a>
                 <a
                   href={SOCIAL_LINKS.facebook}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-black text-white border border-white/10 transition-colors"
+                  className="px-3.5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-colors flex items-center gap-2"
                 >
-                  Facebook
+                  <FacebookIcon className="w-3.5 h-3.5" />
+                  <span>Facebook</span>
                 </a>
               </div>
             </div>

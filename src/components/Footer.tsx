@@ -1,5 +1,7 @@
 import React from 'react';
 import { SOCIAL_LINKS, STORES } from '../data/stores';
+import { TikTokIcon } from './icons/TikTokIcon';
+import { FacebookIcon } from './icons/FacebookIcon';
 import { MapPin, Phone, Clock, Heart, ShieldCheck } from 'lucide-react';
 import { LegalTab } from './LegalModal';
 
@@ -37,23 +39,25 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
                 href={SOCIAL_LINKS.tiktok}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-black text-white transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
               >
+                <TikTokIcon className="w-3.5 h-3.5" />
                 <span>TikTok</span>
               </a>
               <a
                 href={SOCIAL_LINKS.facebook}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-black text-white transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors flex items-center gap-2"
               >
+                <FacebookIcon className="w-3.5 h-3.5" />
                 <span>Facebook</span>
               </a>
               <a
                 href={SOCIAL_LINKS.whatsappDirect}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-black text-emerald-400 transition-colors flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5"
               >
                 <span>WhatsApp</span>
               </a>
