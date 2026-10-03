@@ -46,8 +46,8 @@ export const STORES: StoreLocation[] = [
 ];
 
 export const SOCIAL_LINKS = {
-  tiktok: 'https://www.tiktok.com/@wrapandwingco',
-  facebook: 'https://www.facebook.com/wrapandwingco',
+  tiktok: 'https://www.tiktok.com/@wrapwings.co',
+  facebook: 'https://www.facebook.com/wrapandwingsco',
   whatsappDirect: 'https://wa.me/27688863892',
   phoneDirect: 'tel:0688863892',
 };
