@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { ChickenWingIcon } from './icons/ChickenWingIcon';
 
 interface CartDrawerProps {
   onOpenCheckout: () => void;
@@ -82,8 +83,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
           {items.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-500">
-              <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-3">
-                🍗
+              <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-3">
+                <ChickenWingIcon className="w-8 h-8" />
               </div>
               <h3 className="text-base font-extrabold text-zinc-300">Your basket is empty</h3>
               <p className="text-xs text-zinc-500 mt-1 max-w-xs">

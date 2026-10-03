@@ -1,3 +1,5 @@
+import React from 'react';
+
 export type FlavourId = 'lemony' | 'mild' | 'bbq' | 'sweet_chilli' | 'hot';
 
 export interface Flavour {
@@ -24,7 +26,7 @@ export type CategoryId =
 export interface MenuCategory {
   id: CategoryId;
   name: string;
-  icon: string;
+  icon: string | React.ReactNode;
   description: string;
 }
 
@@ -51,7 +53,7 @@ export interface CartCustomization {
 }
 
 export interface CartItem {
-  id: string; // unique cart line item id
+  id: string;
   menuItem: MenuItem;
   quantity: number;
   customization?: CartCustomization;

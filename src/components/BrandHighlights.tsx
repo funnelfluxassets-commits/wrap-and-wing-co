@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flame, ShieldCheck, Heart, Zap, Sparkles } from 'lucide-react';
 import { FLAVOURS } from '../data/menuData';
+import { ChickenWingIcon } from './icons/ChickenWingIcon';
 
 export const BrandHighlights: React.FC = () => {
   return (
@@ -40,8 +41,8 @@ export const BrandHighlights: React.FC = () => {
           </div>
 
           <div className="p-6 rounded-3xl bg-zinc-900/90 border border-white/10 shadow-lg space-y-3 hover:border-emerald-500/40 transition-colors">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center text-xl font-black">
-              🍗
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
+              <ChickenWingIcon className="w-6 h-6" />
             </div>
             <h3 className="text-base font-black text-white">100% Fresh Poultry</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">

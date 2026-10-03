@@ -1,4 +1,6 @@
+import React from 'react';
 import { Flavour, MenuCategory, MenuItem } from '../types';
+import { ChickenWingIcon } from '../components/icons/ChickenWingIcon';
 
 export const FLAVOURS: Flavour[] = [
   {
@@ -50,7 +52,7 @@ export const FLAVOURS: Flavour[] = [
 
 export const CATEGORIES: MenuCategory[] = [
   { id: 'wraps', name: 'Wraps', icon: '🌯', description: 'Fresh toasted wraps bursting with grilled chicken and savoury sauce' },
-  { id: 'wings', name: 'Flame Grilled Wings', icon: '🍗', description: 'Charred to perfection in your choice of 5 signature flavours' },
+  { id: 'wings', name: 'Flame Grilled Wings', icon: React.createElement(ChickenWingIcon, { className: 'w-4.5 h-4.5' }), description: 'Charred to perfection in your choice of 5 signature flavours' },
   { id: 'chicken', name: 'Flame Grilled Chicken', icon: '🔥', description: 'Tender chicken steeped in marinade and flame-grilled' },
   { id: 'burgers', name: 'Burgers', icon: '🍔', description: 'Succulent chicken burgers (grilled or crispy fried) with seasoned chips' },
   { id: 'sandwiches', name: 'Toasted Sandwiches', icon: '🥪', description: 'Golden toasted bread served with small chips or side salad' },

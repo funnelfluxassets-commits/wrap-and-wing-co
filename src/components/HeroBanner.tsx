@@ -2,6 +2,7 @@ import React from 'react';
 import { Flame, Clock, MapPin, Phone, ArrowDown, Sparkles } from 'lucide-react';
 import { SOCIAL_LINKS } from '../data/stores';
 import { FLAVOURS } from '../data/menuData';
+import { ChickenWingIcon } from './icons/ChickenWingIcon';
 
 export const HeroBanner: React.FC = () => {
   return (
@@ -131,8 +132,8 @@ export const HeroBanner: React.FC = () => {
 
               {/* Floating Floating Wing Tag */}
               <div className="absolute -top-4 -left-4 sm:-top-6 sm:-left-6 p-3 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-xl backdrop-blur-md flex items-center gap-3 animate-bounce [animation-duration:4s]">
-                <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-lg">
-                  🍗
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <ChickenWingIcon className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-zinc-400 uppercase">Flame-Grilled Wings</div>
