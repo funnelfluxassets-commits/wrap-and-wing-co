@@ -12,6 +12,7 @@ import { StoreModal, StoreLocatorSection } from './components/StoreLocator';
 import { BrandHighlights } from './components/BrandHighlights';
 import { Footer } from './components/Footer';
 import { LegalModal, LegalTab } from './components/LegalModal';
+import { CookieBanner } from './components/CookieBanner';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem } from './types';
 import { CheckoutPayload } from './services/payment';
@@ -163,6 +164,14 @@ const MainContent: React.FC = () => {
         isOpen={isLegalModalOpen}
         initialTab={legalTab}
         onClose={() => setIsLegalModalOpen(false)}
+      />
+
+      {/* Cookie & POPIA Privacy Notice */}
+      <CookieBanner
+        onOpenPrivacyPolicy={(tab) => {
+          setLegalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
       />
 
       {/* Mobile Floating Bottom Cart Bar */}
