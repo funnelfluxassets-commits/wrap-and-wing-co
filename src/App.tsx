@@ -11,6 +11,7 @@ import { DriverTicketModal } from './components/DriverTicketModal';
 import { StoreModal, StoreLocatorSection } from './components/StoreLocator';
 import { BrandHighlights } from './components/BrandHighlights';
 import { Footer } from './components/Footer';
+import { LegalModal, LegalTab } from './components/LegalModal';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem } from './types';
 import { CheckoutPayload } from './services/payment';
@@ -24,6 +25,8 @@ const MainContent: React.FC = () => {
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CheckoutPayload | null>(null);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab>('privacy');
 
   // Filter items by category & search query
   const filteredItems = useMemo(() => {
@@ -127,8 +130,13 @@ const MainContent: React.FC = () => {
       {/* Store Location & Hours Section */}
       <StoreLocatorSection />
 
-      {/* Footer */}
-      <Footer />
+      {/* Footer with Legal Links */}
+      <Footer
+        onOpenLegal={(tab) => {
+          setLegalTab(tab);
+          setIsLegalModalOpen(true);
+        }}
+      />
 
       {/* Modals & Drawers */}
       <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
@@ -149,6 +157,12 @@ const MainContent: React.FC = () => {
       <StoreModal
         isOpen={isStoreModalOpen}
         onClose={() => setIsStoreModalOpen(false)}
+      />
+
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        initialTab={legalTab}
+        onClose={() => setIsLegalModalOpen(false)}
       />
 
       {/* Mobile Floating Bottom Cart Bar */}

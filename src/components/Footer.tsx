@@ -1,8 +1,13 @@
 import React from 'react';
 import { SOCIAL_LINKS, STORES } from '../data/stores';
 import { MapPin, Phone, Clock, Heart, ShieldCheck } from 'lucide-react';
+import { LegalTab } from './LegalModal';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenLegal: (tab: LegalTab) => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
   const store = STORES[0];
 
   return (
@@ -107,11 +112,29 @@ export const Footer: React.FC = () => {
 
         </div>
 
-        {/* Bottom Bar */}
+        {/* Bottom Bar with POPIA & Terms Links */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-          <div>
-            © {new Date().getFullYear()} Wrap and Wing Co. All Rights Reserved.
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+            <div>© {new Date().getFullYear()} Wrap and Wing Co. All Rights Reserved.</div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenLegal('privacy')}
+                className="text-zinc-400 hover:text-white transition-colors underline-offset-4 hover:underline cursor-pointer"
+              >
+                Privacy Policy (POPIA)
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('terms')}
+                className="text-zinc-400 hover:text-white transition-colors underline-offset-4 hover:underline cursor-pointer"
+              >
+                Terms of Service
+              </button>
+            </div>
           </div>
+
           <div className="flex items-center gap-1">
             <span>Crafted with</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
