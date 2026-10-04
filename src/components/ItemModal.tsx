@@ -62,7 +62,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
       >
         
         {/* Header Image & Close Button */}
-        <div className="relative aspect-[16/9] w-full shrink-0 bg-zinc-950 overflow-hidden">
+        <div className="relative aspect-[4/3] max-h-64 sm:max-h-80 w-full shrink-0 bg-zinc-950 overflow-hidden">
           {item.image ? (
             <img src={item.image} alt={item.name} className="w-full h-full object-cover object-center" />
           ) : (

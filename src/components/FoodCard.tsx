@@ -16,7 +16,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
     >
       <div>
         {/* Food Image Container */}
-        <div className="relative aspect-[16/10] w-full overflow-hidden bg-zinc-950">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-zinc-950">
           {item.image ? (
             <img
               src={item.image}
