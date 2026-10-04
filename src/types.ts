@@ -74,6 +74,8 @@ export interface StoreLocation {
   hours: string;
   isOpen: boolean;
   mapQuery: string;
+  mapEmbedUrl?: string;
+  googleMapsUrl?: string;
   status: 'active' | 'coming_soon';
 }
 

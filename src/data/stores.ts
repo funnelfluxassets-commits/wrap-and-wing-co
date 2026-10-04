@@ -12,7 +12,10 @@ export const STORES: StoreLocation[] = [
     whatsapp: '27688863892',
     hours: 'Monday – Sunday: 9:00 AM – 6:00 PM',
     isOpen: true,
-    mapQuery: 'Uniland+Centre+Pinetown+KwaZulu-Natal',
+    mapQuery: 'Wrap+and+Wing+Co+Pinetown',
+    mapEmbedUrl:
+      'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1163.082511830803!2d30.85500734324751!3d-29.811872099023525!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1ef6ff609bbeefc7%3A0xb1b982704527f3d7!2sWrap%20and%20Wing%20Co!5e1!3m2!1sen!2sza!4v1791152071878!5m2!1sen!2sza',
+    googleMapsUrl: 'https://maps.google.com/?cid=12806509971261314007',
     status: 'active',
   },
   {
