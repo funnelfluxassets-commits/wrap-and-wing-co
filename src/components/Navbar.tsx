@@ -4,9 +4,15 @@ import { useCart } from '../context/CartContext';
 import { STORES, SOCIAL_LINKS } from '../data/stores';
 import { TikTokIcon } from './icons/TikTokIcon';
 import { FacebookIcon } from './icons/FacebookIcon';
-import { OrderMode } from '../types';
+import { OrderMode, PageView } from '../types';
 
-export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStoreModal }) => {
+export interface NavbarProps {
+  onOpenStoreModal: () => void;
+  currentView: PageView;
+  onNavigate: (view: PageView) => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, onNavigate }) => {
   const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode, selectedStore } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -41,15 +47,56 @@ export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStore
       <header className="sticky top-0 z-40 bg-[#121217]/95 backdrop-blur-md border-b border-white/10 transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           
-          {/* Brand Logo */}
-          <div className="flex items-center gap-3">
-            <a href="#" className="flex items-center gap-2 group">
+          {/* Brand Logo & Main Nav Tabs */}
+          <div className="flex items-center gap-3 sm:gap-6">
+            <button
+              type="button"
+              onClick={() => onNavigate('menu')}
+              className="flex items-center gap-2 group text-left cursor-pointer"
+            >
               <img
                 src="/images/logo/logo-trans.png"
                 alt="Wrap and Wing Co"
                 className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105"
               />
-            </a>
+            </button>
+
+            {/* Desktop Page Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1 bg-zinc-900/90 border border-white/10 rounded-full p-1 shadow-inner">
+              <button
+                type="button"
+                onClick={() => onNavigate('menu')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  currentView === 'menu'
+                    ? 'bg-rose-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                🔥 Menu
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('story')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  currentView === 'story'
+                    ? 'bg-rose-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                📖 Our Story
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('team')}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
+                  currentView === 'team'
+                    ? 'bg-rose-600 text-white shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                👥 Our Team
+              </button>
+            </nav>
           </div>
 
           {/* Desktop Order Mode Selector (Collection vs Delivery) */}
@@ -193,22 +240,60 @@ export const Navbar: React.FC<{ onOpenStoreModal: () => void }> = ({ onOpenStore
         {/* Mobile Slide-down Menu Drawer */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-[#18181f] border-b border-white/10 px-4 py-4 space-y-3">
-            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Quick Links</div>
+            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Navigate</div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <a
-                href="#menu-section"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold hover:text-rose-400"
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('menu');
+                  setMobileMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
+                  currentView === 'menu'
+                    ? 'bg-rose-600 text-white border-rose-500'
+                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                }`}
               >
                 🔥 Food Menu
-              </a>
-              <a
-                href="#store-locator"
-                onClick={() => setMobileMenuOpen(false)}
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold hover:text-rose-400"
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('story');
+                  setMobileMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
+                  currentView === 'story'
+                    ? 'bg-rose-600 text-white border-rose-500'
+                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                }`}
+              >
+                📖 Our Story
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('team');
+                  setMobileMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
+                  currentView === 'team'
+                    ? 'bg-rose-600 text-white border-rose-500'
+                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                }`}
+              >
+                👥 Our Team
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenStoreModal();
+                  setMobileMenuOpen(false);
+                }}
+                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-left hover:text-rose-400 text-zinc-200 cursor-pointer"
               >
                 📍 Store Locator
-              </a>
+              </button>
               <a
                 href={SOCIAL_LINKS.tiktok}
                 target="_blank"

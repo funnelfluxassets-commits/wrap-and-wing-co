@@ -13,13 +13,16 @@ import { BrandHighlights } from './components/BrandHighlights';
 import { Footer } from './components/Footer';
 import { LegalModal, LegalTab } from './components/LegalModal';
 import { CookieBanner } from './components/CookieBanner';
+import { StoryView } from './components/StoryView';
+import { TeamView } from './components/TeamView';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
-import { CategoryId, MenuItem } from './types';
+import { CategoryId, MenuItem, PageView } from './types';
 import { CheckoutPayload } from './services/payment';
 import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 
 const MainContent: React.FC = () => {
   const { totalItemCount, grandTotal, setIsCartOpen } = useCart();
+  const [currentView, setCurrentView] = useState<PageView>('menu');
   const [activeCategory, setActiveCategory] = useState<CategoryId | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -28,6 +31,11 @@ const MainContent: React.FC = () => {
   const [completedOrder, setCompletedOrder] = useState<CheckoutPayload | null>(null);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>('privacy');
+
+  const handleNavigate = (view: PageView) => {
+    setCurrentView(view);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Filter items by category & search query
   const filteredItems = useMemo(() => {
@@ -45,25 +53,46 @@ const MainContent: React.FC = () => {
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white pb-16 lg:pb-0">
       
       {/* Navigation */}
-      <Navbar onOpenStoreModal={() => setIsStoreModalOpen(true)} />
-
-      {/* Hero Banner */}
-      <HeroBanner />
-
-      {/* Sticky Category Tabs */}
-      <CategoryNav
-        activeCategory={activeCategory}
-        onSelectCategory={(id) => {
-          setActiveCategory(id);
-          const menuElem = document.getElementById('menu-section');
-          if (menuElem) {
-            menuElem.scrollIntoView({ behavior: 'smooth' });
-          }
-        }}
+      <Navbar
+        onOpenStoreModal={() => setIsStoreModalOpen(true)}
+        currentView={currentView}
+        onNavigate={handleNavigate}
       />
 
-      {/* ── Main Menu Section ──────────────────────────────────────────────── */}
-      <main id="menu-section" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
+      {/* ── View Routing ────────────────────────────────────────────────────── */}
+      {currentView === 'story' && (
+        <StoryView
+          onNavigate={handleNavigate}
+          onOpenStoreModal={() => setIsStoreModalOpen(true)}
+        />
+      )}
+
+      {currentView === 'team' && (
+        <TeamView
+          onNavigate={handleNavigate}
+          onOpenStoreModal={() => setIsStoreModalOpen(true)}
+        />
+      )}
+
+      {currentView === 'menu' && (
+        <>
+          {/* Hero Banner */}
+          <HeroBanner />
+
+          {/* Sticky Category Tabs */}
+          <CategoryNav
+            activeCategory={activeCategory}
+            onSelectCategory={(id) => {
+              setActiveCategory(id);
+              const menuElem = document.getElementById('menu-section');
+              if (menuElem) {
+                menuElem.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          />
+
+          {/* ── Main Menu Section ──────────────────────────────────────────────── */}
+          <main id="menu-section" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
         
         {/* Search & Filter Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
@@ -125,11 +154,13 @@ const MainContent: React.FC = () => {
 
       </main>
 
-      {/* Brand Highlights & Flavour Meter */}
-      <BrandHighlights />
+          {/* Brand Highlights & Flavour Meter */}
+          <BrandHighlights />
 
-      {/* Store Location & Hours Section */}
-      <StoreLocatorSection />
+          {/* Store Location & Hours Section */}
+          <StoreLocatorSection />
+        </>
+      )}
 
       {/* Footer with Legal Links */}
       <Footer
@@ -137,6 +168,7 @@ const MainContent: React.FC = () => {
           setLegalTab(tab);
           setIsLegalModalOpen(true);
         }}
+        onNavigate={handleNavigate}
       />
 
       {/* Modals & Drawers */}

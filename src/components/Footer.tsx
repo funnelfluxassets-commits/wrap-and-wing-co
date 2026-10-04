@@ -4,28 +4,43 @@ import { TikTokIcon } from './icons/TikTokIcon';
 import { FacebookIcon } from './icons/FacebookIcon';
 import { MapPin, Phone, Clock, Heart, ShieldCheck } from 'lucide-react';
 import { LegalTab } from './LegalModal';
+import { PageView } from '../types';
 
 interface FooterProps {
   onOpenLegal: (tab: LegalTab) => void;
+  onNavigate?: (view: PageView) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
   const store = STORES[0];
+
+  const handleNav = (view: PageView) => {
+    if (onNavigate) {
+      onNavigate(view);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <footer className="bg-zinc-950 border-t border-white/10 text-zinc-400 pt-14 pb-8 sm:pt-16 sm:pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         
         {/* Top Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 pb-12 border-b border-white/10">
           
           {/* Col 1: Brand Info */}
-          <div className="lg:col-span-5 space-y-4">
-            <img
-              src="/images/logo/logo-trans.png"
-              alt="Wrap and Wing Co"
-              className="h-16 w-auto object-contain"
-            />
+          <div className="lg:col-span-4 space-y-4">
+            <button
+              type="button"
+              onClick={() => handleNav('menu')}
+              className="text-left cursor-pointer"
+            >
+              <img
+                src="/images/logo/logo-trans.png"
+                alt="Wrap and Wing Co"
+                className="h-16 w-auto object-contain"
+              />
+            </button>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-sm leading-relaxed">
               Wrap & Wing Co. Bold flavour, flame-grilled chicken, handcrafted wraps, and charred wings basted in our 5 signature sauces.
             </p>
@@ -64,8 +79,44 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
             </div>
           </div>
 
-          {/* Col 2: Flagship Store Details */}
-          <div className="lg:col-span-4 space-y-3">
+          {/* Col 2: About & Story Navigation */}
+          <div className="lg:col-span-2 space-y-3">
+            <h4 className="text-xs font-black text-white uppercase tracking-wider">
+              About Us
+            </h4>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('menu')}
+                  className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  🔥 Food Menu
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('story')}
+                  className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  📖 Our Story (Nonto's Vision)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('team')}
+                  className="text-zinc-400 hover:text-white transition-colors cursor-pointer text-left font-medium"
+                >
+                  👥 Our Team & Kitchen
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 3: Flagship Store Details */}
+          <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-black text-white uppercase tracking-wider">
               Flagship Kitchen
             </h4>

@@ -88,3 +88,5 @@ export interface DeliveryDetails {
 }
 
 export type PaymentGatewayType = 'payfast' | 'yoco' | 'whatsapp' | 'cod';
+
+export type PageView = 'menu' | 'story' | 'team';
