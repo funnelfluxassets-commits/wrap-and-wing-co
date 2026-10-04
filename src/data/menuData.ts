@@ -188,6 +188,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Toasted Cheese Sandwich',
     description: 'Thick white bread toasted to golden perfection with melted mature cheddar, served with a small portion of chips or side salad.',
     price: 34.90,
+    image: '/images/menu/toasted-cheese.webp',
     sideOptions: ['Small Chips', 'Side Salad'],
   },
   {
@@ -196,6 +197,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Toasted Cheese & Tomato',
     description: 'Golden toasted bread layered with melted cheddar cheese and juicy fresh tomato slices, served with chips or salad.',
     price: 34.90,
+    image: '/images/menu/toasted-cheese-tomato.webp',
     sideOptions: ['Small Chips', 'Side Salad'],
   },
   {
@@ -204,6 +206,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Toasted Chicken & Mayo',
     description: 'Shredded roasted chicken tossed in creamy seasoned mayonnaise on golden toasted bread, served with chips or salad.',
     price: 35.90,
+    image: '/images/menu/toasted-chicken-mayo.webp',
     popular: true,
     sideOptions: ['Small Chips', 'Side Salad'],
     badge: 'POPULAR',
@@ -214,6 +217,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Toasted Bacon & Cheese',
     description: 'Crispy savoury bacon rashers melted under rich cheddar cheese between toasted bread, served with chips or salad.',
     price: 35.90,
+    image: '/images/menu/toasted-bacon-cheese.webp',
     sideOptions: ['Small Chips', 'Side Salad'],
   },
 
