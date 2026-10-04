@@ -228,6 +228,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Hot Golden Chips',
     description: 'Crispy on the outside, fluffy on the inside potato chips dusted in our signature spice seasoning.',
     price: 29.00,
+    image: '/images/menu/chips.webp',
   },
   {
     id: 'side-rice',
@@ -235,6 +236,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Spicy Savoury Rice',
     description: 'Fragrant yellow rice tossed with peppers, herbs, and warm South African peri-spices.',
     price: 29.00,
+    image: '/images/menu/spicy-rice.webp',
   },
   {
     id: 'side-coleslaw',
@@ -242,6 +244,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Creamy Coleslaw',
     description: 'Fresh shredded red and white cabbage and crisp carrots folded in our house creamy dressing.',
     price: 29.00,
+    image: '/images/menu/coleslaw.webp',
   },
 
   // ── KIDS MENU ──────────────────────────────────────────────────────────────
@@ -251,6 +254,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Kids Chicken Nuggets & Chips',
     description: 'Tender golden-fried chicken breast nuggets served with a small portion of chips and sweet dip.',
     price: 39.90,
+    image: '/images/menu/kids-nuggets.webp',
     badge: 'KIDS MEAL',
   },
   {
@@ -259,6 +263,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Kids Fish Fingers & Chips',
     description: 'Crispy breaded fish fingers served with hot golden chips and tartar dip.',
     price: 39.90,
+    image: '/images/menu/kids-fish-fingers.webp',
     badge: 'KIDS MEAL',
   },
 
