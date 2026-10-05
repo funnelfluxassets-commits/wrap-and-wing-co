@@ -4,7 +4,8 @@ import {
   getAllOrders,
   subscribeToOrders,
   updateOrderStatus,
-  playKitchenChime
+  playKitchenChime,
+  syncOrdersFromCloud
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
@@ -39,6 +40,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed'>('active');
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeToOrders((newOrders) => {
@@ -264,9 +266,27 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           </button>
         </div>
 
-        <div className="text-xs text-zinc-400 flex items-center gap-1.5">
-          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-          <span>Real-time tablet sync active</span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={async () => {
+              setIsSyncing(true);
+              const fresh = await syncOrdersFromCloud();
+              setOrders(fresh);
+              setTimeout(() => setIsSyncing(false), 600);
+            }}
+            disabled={isSyncing}
+            className="p-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+            title="Fetch latest orders from cloud"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+          </button>
+
+          <div className="text-xs text-zinc-400 flex items-center gap-1.5">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="hidden sm:inline">Live Cloud Sync</span>
+          </div>
         </div>
       </div>
 
@@ -279,8 +299,24 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             </div>
             <h3 className="text-lg font-black text-zinc-300">No orders in this column</h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-              When customers place orders on the website, they will appear here with an instant audio chime!
+              When customers place orders on the website from their phones, they will appear here live with an instant audio chime!
             </p>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsSyncing(true);
+                  const fresh = await syncOrdersFromCloud();
+                  setOrders(fresh);
+                  setTimeout(() => setIsSyncing(false), 600);
+                }}
+                disabled={isSyncing}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-colors border border-white/10"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>Fetch Past Orders From Cloud</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

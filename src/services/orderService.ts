@@ -4,11 +4,15 @@ import { CheckoutPayload } from './payment';
 const STORAGE_KEY = 'wrap_wing_live_orders';
 const CURRENT_ORDER_KEY = 'wrap_wing_current_order_id';
 const CHANNEL_NAME = 'wrap_wing_orders_channel';
+const CLOUD_TOPIC = 'wrap_and_wing_live_orders_shop1';
+const NTFY_BASE_URL = 'https://ntfy.sh';
 
 // Web Audio API Ding-Dong Chime for Kitchen Display
 export function playKitchenChime() {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
 
@@ -48,7 +52,7 @@ export function playKitchenChime() {
   }
 }
 
-// Broadcast Channel for live multi-tab & multi-window instant sync
+// In-tab Broadcast Channel for same-device cross-tab sync
 let broadcastChannel: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -64,12 +68,12 @@ function notifySubscribers() {
       broadcastChannel.postMessage({ type: 'ORDERS_UPDATED', timestamp: Date.now() });
     } catch {}
   }
-  // Dispatch local window custom event
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('wrap_wing_orders_change'));
   }
 }
 
+// Local Storage helpers
 export function getAllOrders(): LiveOrder[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -81,11 +85,13 @@ export function getAllOrders(): LiveOrder[] {
   }
 }
 
-export function saveOrders(orders: LiveOrder[]) {
+export function saveOrders(orders: LiveOrder[], notify = true) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-    notifySubscribers();
+    if (notify) {
+      notifySubscribers();
+    }
   } catch (err) {
     console.error('Failed to save orders:', err);
   }
@@ -105,6 +111,208 @@ export function setCurrentOrderId(orderId: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(CURRENT_ORDER_KEY, orderId);
 }
+
+// -------------------------------------------------------------
+// CLOUD MULTI-DEVICE SYNCHRONIZATION (via ntfy.sh SSE + REST)
+// -------------------------------------------------------------
+
+export interface CloudOrderEvent {
+  type: 'ORDER_CREATED' | 'ORDER_UPDATED';
+  senderDeviceId?: string;
+  order?: LiveOrder;
+  orderId?: string;
+  newStatus?: OrderStatus;
+  note?: string;
+  timelineEvent?: OrderTimelineEvent;
+  timestamp: number;
+}
+
+// Unique random device ID to prevent echoing back self-generated chimes
+const DEVICE_ID =
+  typeof window !== 'undefined'
+    ? window.sessionStorage?.getItem('wrap_wing_device_id') ||
+      (() => {
+        const id = 'dev_' + Math.random().toString(36).slice(2, 9);
+        try {
+          window.sessionStorage?.setItem('wrap_wing_device_id', id);
+        } catch {}
+        return id;
+      })()
+    : 'server';
+
+let isCloudSyncing = false;
+let cloudEventSource: EventSource | null = null;
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+// Publish an event to the cloud topic
+async function publishCloudEvent(event: CloudOrderEvent) {
+  try {
+    event.senderDeviceId = DEVICE_ID;
+    const bodyText = JSON.stringify(event);
+
+    await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Title:
+          event.type === 'ORDER_CREATED'
+            ? `New Order #${event.order?.orderId}`
+            : `Order #${event.orderId} ${event.newStatus}`,
+        Priority: 'high',
+      },
+      body: bodyText,
+    });
+  } catch (err) {
+    console.warn('Could not publish event to cloud order topic:', err);
+  }
+}
+
+// Handle an incoming cloud event from another phone/tablet/computer
+function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false) {
+  if (!event || !event.type) return;
+
+  const currentOrders = getAllOrders();
+
+  if (event.type === 'ORDER_CREATED' && event.order) {
+    const existingIndex = currentOrders.findIndex((o) => o.orderId === event.order!.orderId);
+    if (existingIndex === -1) {
+      // New order discovered from cloud!
+      const updated = [event.order, ...currentOrders];
+      saveOrders(updated, true);
+
+      // Play chime if this was a real-time event from another device
+      if (isRealtimePush && event.senderDeviceId !== DEVICE_ID) {
+        playKitchenChime();
+      }
+    } else {
+      // If cloud order is more up to date, merge
+      const existing = currentOrders[existingIndex];
+      if (
+        event.order.timeline &&
+        event.order.timeline.length > (existing.timeline ? existing.timeline.length : 0)
+      ) {
+        currentOrders[existingIndex] = event.order;
+        saveOrders(currentOrders, true);
+      }
+    }
+  } else if (event.type === 'ORDER_UPDATED' && event.orderId && event.newStatus) {
+    const existingIndex = currentOrders.findIndex((o) => o.orderId === event.orderId);
+    if (existingIndex !== -1) {
+      const existing = currentOrders[existingIndex];
+      // Only update if status is actually different or we have a new timeline event
+      if (existing.status !== event.newStatus || event.timelineEvent) {
+        const hasTimeline = event.timelineEvent
+          ? [...existing.timeline, event.timelineEvent]
+          : existing.timeline;
+
+        const updated: LiveOrder = {
+          ...existing,
+          status: event.newStatus,
+          timeline: hasTimeline,
+        };
+        currentOrders[existingIndex] = updated;
+        saveOrders(currentOrders, true);
+      }
+    }
+  }
+}
+
+// Pull historical orders from cloud (last 24h) to catch up when screen opens
+export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
+  if (isCloudSyncing) return getAllOrders();
+  isCloudSyncing = true;
+
+  try {
+    // 1. Fetch recent messages from cloud channel
+    const response = await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/json?poll=1&since=24h`, {
+      cache: 'no-store',
+    });
+
+    if (response.ok) {
+      const text = await response.text();
+      const lines = text.trim().split('\n');
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const raw = JSON.parse(line);
+          if (raw.event === 'message' && raw.message) {
+            const cloudEvent = JSON.parse(raw.message) as CloudOrderEvent;
+            handleIncomingCloudEvent(cloudEvent, false);
+          }
+        } catch {
+          // ignore malformed line
+        }
+      }
+    }
+
+    // 2. Upload any local orders that might have been created while offline or before sync was enabled
+    const localOrders = getAllOrders();
+    for (const order of localOrders) {
+      // Check if order is fresh (within last 4 hours)
+      publishCloudEvent({
+        type: 'ORDER_CREATED',
+        order,
+        timestamp: Date.now(),
+      });
+    }
+  } catch (err) {
+    console.warn('Cloud catch-up sync encountered an error:', err);
+  } finally {
+    isCloudSyncing = false;
+  }
+
+  return getAllOrders();
+}
+
+// Start continuous Real-Time SSE listener
+export function initCloudSyncListener() {
+  if (typeof window === 'undefined') return;
+
+  // Initial catch up from cloud
+  syncOrdersFromCloud();
+
+  // Initialize Server-Sent Events (SSE) for sub-second push across all devices
+  if (!cloudEventSource && typeof EventSource !== 'undefined') {
+    try {
+      cloudEventSource = new EventSource(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/sse`);
+
+      cloudEventSource.onmessage = (e) => {
+        try {
+          const raw = JSON.parse(e.data);
+          if (raw.event === 'message' && raw.message) {
+            const event = JSON.parse(raw.message) as CloudOrderEvent;
+            handleIncomingCloudEvent(event, true);
+          }
+        } catch (parseErr) {
+          console.warn('Error parsing cloud SSE message:', parseErr);
+        }
+      };
+
+      cloudEventSource.onerror = () => {
+        // EventSource will auto-reconnect, but we ensure local state isn't affected
+      };
+    } catch (err) {
+      console.warn('Could not establish EventSource:', err);
+    }
+  }
+
+  // Backup heartbeat polling every 12 seconds in case mobile browser puts SSE to sleep
+  if (!pollInterval) {
+    pollInterval = setInterval(() => {
+      syncOrdersFromCloud();
+    }, 12000);
+  }
+}
+
+// Automatically start listener once in browser environment
+if (typeof window !== 'undefined') {
+  initCloudSyncListener();
+}
+
+// -------------------------------------------------------------
+// ORDER LIFECYCLE MANAGEMENT
+// -------------------------------------------------------------
 
 export function createLiveOrder(payload: CheckoutPayload): LiveOrder {
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -142,7 +350,14 @@ export function createLiveOrder(payload: CheckoutPayload): LiveOrder {
   saveOrders([newOrder, ...existing]);
   setCurrentOrderId(newOrder.orderId);
 
-  // Play kitchen notification chime
+  // Broadcast to cloud so Kitchen display on PC/counter tablet chimes immediately!
+  publishCloudEvent({
+    type: 'ORDER_CREATED',
+    order: newOrder,
+    timestamp: Date.now(),
+  });
+
+  // Play local chime
   playKitchenChime();
 
   return newOrder;
@@ -181,6 +396,16 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
   orders[index] = updatedOrder;
   saveOrders(orders);
 
+  // Broadcast status change to cloud so customer's mobile tracker updates immediately!
+  publishCloudEvent({
+    type: 'ORDER_UPDATED',
+    orderId,
+    newStatus,
+    note,
+    timelineEvent,
+    timestamp: Date.now(),
+  });
+
   return updatedOrder;
 }
 
@@ -200,6 +425,11 @@ export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () =
 
   // Initial emit
   callback(getAllOrders());
+
+  // Also trigger cloud sync to make sure we're up to date
+  syncOrdersFromCloud().then((fresh) => {
+    callback(fresh);
+  });
 
   return () => {
     window.removeEventListener('wrap_wing_orders_change', handleUpdate);
@@ -226,6 +456,11 @@ export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOr
 
   // Initial emit
   callback(getOrderById(orderId));
+
+  // Also trigger cloud sync to check if this order is in the cloud
+  syncOrdersFromCloud().then(() => {
+    callback(getOrderById(orderId));
+  });
 
   return () => {
     window.removeEventListener('wrap_wing_orders_change', handleUpdate);
