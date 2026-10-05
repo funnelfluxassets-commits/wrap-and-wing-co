@@ -24,6 +24,7 @@ import {
   Sparkles,
   PartyPopper
 } from 'lucide-react';
+import { LiveDriverMap } from './LiveDriverMap';
 
 interface OrderTrackerViewProps {
   orderId: string;
@@ -313,6 +314,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Live Interactive Driver GPS Map & Delivery Telemetry */}
+        {isDelivery && (
+          <LiveDriverMap order={order} />
+        )}
 
         {/* Delivery Workflow Explanation */}
         {isDelivery && (
