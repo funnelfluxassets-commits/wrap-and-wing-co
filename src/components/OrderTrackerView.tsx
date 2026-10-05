@@ -76,7 +76,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     };
     window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
 
-    // Active 3-second tracker radar to check for kitchen status progression
+    // Active 2-second tracker radar to check for kitchen status progression
     const trackerRadar = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
       const current = freshOrders.find((o) => o.orderId === effectiveOrderId);
@@ -87,7 +87,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         setLastStatus(current.status);
         setOrder(current);
       }
-    }, 3000);
+    }, 2000);
 
     return () => {
       unsubscribe();

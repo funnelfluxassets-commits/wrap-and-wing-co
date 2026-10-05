@@ -192,19 +192,38 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-// Publish an event to the cloud topic
+// Publish an event to the cloud topic and same-domain Vercel API
 async function publishCloudEvent(event: CloudOrderEvent) {
-  try {
-    event.senderDeviceId = DEVICE_ID;
-    const bodyText = JSON.stringify(event);
+  event.senderDeviceId = DEVICE_ID;
+  const bodyText = JSON.stringify(event);
 
-    await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
+  // 1. Primary: Same-Domain Vercel Serverless Function (/api/orders) - Zero CORS, 100% reliable
+  try {
+    fetch('/api/orders', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: bodyText,
-      mode: 'cors',
-    });
-  } catch (err) {
-    console.warn('Could not publish event to cloud order topic:', err);
+    }).catch(() => {});
+  } catch {}
+
+  // 2. Secondary: Fallback Cloud Relays with short timeout
+  const relays = [
+    'https://ntfy.sh/wrap_and_wing_live_orders_shop1',
+    'https://ntfy.m1k.eu/wrap_and_wing_live_orders_shop1',
+  ];
+  for (const relay of relays) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      fetch(relay, {
+        method: 'POST',
+        body: bodyText,
+        mode: 'cors',
+        signal: controller.signal,
+      })
+        .then(() => clearTimeout(timeoutId))
+        .catch(() => clearTimeout(timeoutId));
+    } catch {}
   }
 }
 
@@ -221,7 +240,7 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
       const updated = [event.order, ...currentOrders];
       saveOrders(updated, true);
 
-      // Play chime if this was a real-time event from another device
+      // Play chime
       if (isRealtimePush && event.senderDeviceId !== DEVICE_ID) {
         playKitchenChime();
       }
@@ -240,7 +259,6 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
     const existingIndex = currentOrders.findIndex((o) => o.orderId === event.orderId);
     if (existingIndex !== -1) {
       const existing = currentOrders[existingIndex];
-      // Only update if status is actually different or we have a new timeline event
       if (existing.status !== event.newStatus || event.timelineEvent) {
         const hasTimeline = event.timelineEvent
           ? [...existing.timeline, event.timelineEvent]
@@ -254,7 +272,6 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         currentOrders[existingIndex] = updated;
         saveOrders(currentOrders, true);
 
-        // Notify client app with a dedicated event for customer alerts & sounds
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
             new CustomEvent('wrap_wing_order_status_updated', {
@@ -273,38 +290,72 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull historical orders from cloud (last 24h) to catch up when screen opens
+// Pull historical orders from /api/orders and fallback cloud relays
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
-  if (isCloudSyncing) return getAllOrders();
-  isCloudSyncing = true;
-
   try {
-    // 1. Fetch recent messages from cloud channel
-    const response = await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/json?poll=1&since=24h`, {
-      cache: 'no-store',
-    });
+    // 1. Primary: Check same-domain /api/orders
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const apiResp = await fetch('/api/orders', {
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (apiResp.ok) {
+        const cloudOrders = await apiResp.json();
+        if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+          const currentOrders = getAllOrders();
+          const mergedMap = new Map<string, LiveOrder>();
 
-    if (response.ok) {
-      const text = await response.text();
-      const lines = text.trim().split('\n');
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const raw = JSON.parse(line);
-          if (raw.event === 'message' && raw.message) {
-            const cloudEvent = JSON.parse(raw.message) as CloudOrderEvent;
-            handleIncomingCloudEvent(cloudEvent, false);
+          for (const o of cloudOrders) {
+            if (o && o.orderId) mergedMap.set(o.orderId, o);
           }
-        } catch {
-          // ignore malformed line
+          for (const o of currentOrders) {
+            if (!mergedMap.has(o.orderId)) {
+              mergedMap.set(o.orderId, o);
+            }
+          }
+
+          const combined = Array.from(mergedMap.values());
+          saveOrders(combined, true);
         }
       }
+    } catch {}
+
+    // 2. Secondary: Fallback Cloud Relays with short timeout
+    const relays = [
+      'https://ntfy.sh/wrap_and_wing_live_orders_shop1/json?poll=1&since=24h',
+      'https://ntfy.m1k.eu/wrap_and_wing_live_orders_shop1/json?poll=1&since=24h',
+    ];
+    for (const relayUrl of relays) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const resp = await fetch(relayUrl, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (resp.ok) {
+          const text = await resp.text();
+          const lines = text.trim().split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const raw = JSON.parse(line);
+              if (raw.event === 'message' && raw.message) {
+                const cloudEvent = JSON.parse(raw.message) as CloudOrderEvent;
+                handleIncomingCloudEvent(cloudEvent, false);
+              }
+            } catch {}
+          }
+          break;
+        }
+      } catch {}
     }
   } catch (err) {
-    console.warn('Cloud catch-up sync encountered an error:', err);
-  } finally {
-    isCloudSyncing = false;
+    console.warn('Sync error:', err);
   }
 
   return getAllOrders();

@@ -51,7 +51,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
 
-    // Active 3-second live kitchen radar to guarantee instant detection across devices
+    // Active 2-second live kitchen radar to guarantee instant detection across devices
     const radarTimer = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
       setOrders((prev) => {
@@ -62,7 +62,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         }
         return freshOrders;
       });
-    }, 3000);
+    }, 2000);
 
     return () => {
       unsubscribe();
