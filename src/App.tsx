@@ -7,7 +7,6 @@ import { FoodCard } from './components/FoodCard';
 import { ItemModal } from './components/ItemModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
-import { OrderConfirmationModal } from './components/OrderConfirmationModal';
 import { StoreModal, StoreLocatorSection } from './components/StoreLocator';
 import { BrandHighlights } from './components/BrandHighlights';
 import { Footer } from './components/Footer';
@@ -40,7 +39,6 @@ const MainContent: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [completedOrder, setCompletedOrder] = useState<CheckoutPayload | null>(null);
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(getCurrentOrderId());
   const [activeOrder, setActiveOrder] = useState<LiveOrder | null>(null);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
@@ -108,7 +106,7 @@ const MainContent: React.FC = () => {
         />
       ) : currentView === 'track' ? (
         <OrderTrackerView
-          orderId={trackedOrderId || activeOrder?.orderId || completedOrder?.orderId || ''}
+          orderId={trackedOrderId || activeOrder?.orderId || ''}
           onBackToMenu={() => handleNavigate('menu')}
           onOpenKitchen={() => handleNavigate('kitchen')}
         />
@@ -243,15 +241,9 @@ const MainContent: React.FC = () => {
     isOpen={isCheckoutOpen}
     onClose={() => setIsCheckoutOpen(false)}
     onOrderSuccess={(payload) => {
-      setCompletedOrder(payload);
       setTrackedOrderId(payload.orderId);
       handleNavigate('track');
     }}
-  />
-
-  <OrderConfirmationModal
-    order={completedOrder}
-    onClose={() => setCompletedOrder(null)}
   />
 
   <StoreModal

@@ -52,6 +52,51 @@ export function playKitchenChime() {
   }
 }
 
+// Web Audio API Customer Update Ding (Upbeat C-E-G chime)
+export function playCustomerUpdateChime() {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const now = ctx.currentTime;
+    const playNote = (freq: number, start: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.35, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur);
+    };
+
+    playNote(523.25, now, 0.25);        // C5
+    playNote(659.25, now + 0.12, 0.25); // E5
+    playNote(783.99, now + 0.24, 0.65); // G5
+  } catch (err) {
+    console.warn('Customer chime could not play:', err);
+  }
+}
+
+// Trigger haptic vibration for mobile phones
+export function triggerHapticFeedback() {
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([180, 80, 180]);
+    }
+  } catch {}
+}
+
 // In-tab Broadcast Channel for same-device cross-tab sync
 let broadcastChannel: BroadcastChannel | null = null;
 try {
@@ -215,6 +260,21 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         };
         currentOrders[existingIndex] = updated;
         saveOrders(currentOrders, true);
+
+        // Notify client app with a dedicated event for customer alerts & sounds
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wrap_wing_order_status_updated', {
+              detail: {
+                orderId: event.orderId,
+                newStatus: event.newStatus,
+                note: event.note,
+                isRealtimePush,
+                senderDeviceId: event.senderDeviceId,
+              },
+            })
+          );
+        }
       }
     }
   }
@@ -247,17 +307,6 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
           // ignore malformed line
         }
       }
-    }
-
-    // 2. Upload any local orders that might have been created while offline or before sync was enabled
-    const localOrders = getAllOrders();
-    for (const order of localOrders) {
-      // Check if order is fresh (within last 4 hours)
-      publishCloudEvent({
-        type: 'ORDER_CREATED',
-        order,
-        timestamp: Date.now(),
-      });
     }
   } catch (err) {
     console.warn('Cloud catch-up sync encountered an error:', err);

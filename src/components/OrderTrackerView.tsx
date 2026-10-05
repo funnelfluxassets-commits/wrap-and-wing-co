@@ -4,7 +4,9 @@ import {
   subscribeToSingleOrder,
   getCurrentOrderId,
   getAllOrders,
-  syncOrdersFromCloud
+  syncOrdersFromCloud,
+  playCustomerUpdateChime,
+  triggerHapticFeedback
 } from '../services/orderService';
 import { getWhatsAppOrderUrl, generateGoogleMapsUrl } from '../services/payment';
 import {
@@ -35,19 +37,50 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   onOpenKitchen,
 }) => {
   const [order, setOrder] = useState<LiveOrder | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [lastStatus, setLastStatus] = useState<OrderStatus | null>(null);
 
   const effectiveOrderId = orderId || getCurrentOrderId() || getAllOrders()[0]?.orderId || '';
+
+  const triggerStatusAlert = (status: OrderStatus) => {
+    playCustomerUpdateChime();
+    triggerHapticFeedback();
+    if (status === 'cooking') {
+      setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');
+    } else if (status === 'ready') {
+      setToastMessage('🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.');
+    } else if (status === 'dispatched') {
+      setToastMessage('🚗 Driver Update: Hot meal handed to delivery driver and heading to your door!');
+    } else if (status === 'completed') {
+      setToastMessage('🎉 Handed Over: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+    }
+  };
 
   useEffect(() => {
     if (!effectiveOrderId) return;
     const unsubscribe = subscribeToSingleOrder(effectiveOrderId, (liveOrder) => {
-      setOrder(liveOrder);
+      if (liveOrder) {
+        if (lastStatus && liveOrder.status !== lastStatus) {
+          triggerStatusAlert(liveOrder.status);
+        }
+        setLastStatus(liveOrder.status);
+        setOrder(liveOrder);
+      }
     });
+
+    const handleCustomStatusEvent = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.orderId === effectiveOrderId) {
+        triggerStatusAlert(detail.newStatus || detail.status);
+      }
+    };
+    window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
 
     return () => {
       unsubscribe();
+      window.removeEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
     };
-  }, [effectiveOrderId]);
+  }, [effectiveOrderId, lastStatus]);
 
   if (!order) {
     return (
@@ -146,6 +179,23 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       {/* Main Content Container */}
       <main className="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6">
         
+        {/* Real-Time Kitchen Update Toast Alert */}
+        {toastMessage && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-600 to-red-600 text-white font-extrabold text-xs sm:text-sm shadow-2xl flex items-center justify-between gap-3 animate-slideDown border border-amber-300/40">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl animate-bounce">🔔</span>
+              <span>{toastMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToastMessage(null)}
+              className="px-2 py-1 rounded-lg bg-black/40 hover:bg-black/60 text-white text-xs cursor-pointer font-bold"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Dynamic Status Highlight Card */}
         <div
           className={`p-6 rounded-3xl border shadow-2xl relative overflow-hidden transition-all ${
@@ -249,6 +299,54 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Delivery Workflow Explanation */}
+        {isDelivery && (
+          <div className="p-4 sm:p-5 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                <Truck className="w-4 h-4 text-rose-500" />
+                <span>How Your Delivery Order Works</span>
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Live Kitchen Dispatch
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <div className="font-black text-white flex items-center gap-1">
+                  <span>1. Ticket to Grill</span>
+                </div>
+                <div className="text-[11px] text-zinc-400 leading-relaxed">
+                  Pinetown kitchen accepts your ticket & flame-grills your order fresh with your chosen baste.
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <div className="font-black text-white flex items-center gap-1">
+                  <span>2. Thermal Packing</span>
+                </div>
+                <div className="text-[11px] text-zinc-400 leading-relaxed">
+                  Meals are packed in insulated bags and handed directly to our local delivery driver.
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
+                <div className="font-black text-white flex items-center gap-1">
+                  <span>3. Doorstep Arrival</span>
+                </div>
+                <div className="text-[11px] text-zinc-400 leading-relaxed">
+                  Driver navigates via GPS straight to your delivery address in {order.customer.suburb}.
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-zinc-400 pt-1 italic text-center">
+              💡 Keep this screen open or return anytime — updates from the kitchen will appear here automatically in real time!
+            </p>
+          </div>
+        )}
 
         {/* Pickup Location or Delivery Details Card */}
         <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">

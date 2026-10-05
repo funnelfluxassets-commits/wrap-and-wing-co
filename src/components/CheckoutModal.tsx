@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
-import { createLiveOrder } from '../services/orderService';
+import { createLiveOrder, playCustomerUpdateChime } from '../services/orderService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -22,7 +22,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [gateCode, setGateCode] = useState('');
   const [notes, setNotes] = useState('');
   const [preferredTime, setPreferredTime] = useState('ASAP');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('whatsapp');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
@@ -73,6 +73,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     // Save to real-time order service for kitchen display & live tracking
     createLiveOrder(payload);
 
+    // Warm up audio context on user gesture so subsequent kitchen chimes play automatically on mobile
+    playCustomerUpdateChime();
+
     // If customer chose WhatsApp confirmation, open WhatsApp
     if (paymentMethod === 'whatsapp') {
       openWhatsAppOrder(payload);
@@ -83,7 +86,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       clearCart();
       onOrderSuccess(payload);
       onClose();
-    }, 400);
+    }, 300);
   };
 
   return (
