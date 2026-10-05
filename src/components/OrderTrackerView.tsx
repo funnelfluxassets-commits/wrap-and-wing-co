@@ -76,9 +76,23 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     };
     window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
 
+    // Active 3-second tracker radar to check for kitchen status progression
+    const trackerRadar = setInterval(async () => {
+      const freshOrders = await syncOrdersFromCloud();
+      const current = freshOrders.find((o) => o.orderId === effectiveOrderId);
+      if (current) {
+        if (lastStatus && current.status !== lastStatus) {
+          triggerStatusAlert(current.status);
+        }
+        setLastStatus(current.status);
+        setOrder(current);
+      }
+    }, 3000);
+
     return () => {
       unsubscribe();
       window.removeEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
+      clearInterval(trackerRadar);
     };
   }, [effectiveOrderId, lastStatus]);
 

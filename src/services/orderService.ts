@@ -200,15 +200,8 @@ async function publishCloudEvent(event: CloudOrderEvent) {
 
     await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Title:
-          event.type === 'ORDER_CREATED'
-            ? `New Order #${event.order?.orderId}`
-            : `Order #${event.orderId} ${event.newStatus}`,
-        Priority: 'high',
-      },
       body: bodyText,
+      mode: 'cors',
     });
   } catch (err) {
     console.warn('Could not publish event to cloud order topic:', err);

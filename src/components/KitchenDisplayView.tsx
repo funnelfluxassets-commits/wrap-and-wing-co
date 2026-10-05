@@ -51,11 +51,25 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
 
+    // Active 3-second live kitchen radar to guarantee instant detection across devices
+    const radarTimer = setInterval(async () => {
+      const freshOrders = await syncOrdersFromCloud();
+      setOrders((prev) => {
+        const prevIds = new Set(prev.map((o) => o.orderId));
+        const newIncoming = freshOrders.filter((o) => !prevIds.has(o.orderId));
+        if (newIncoming.length > 0 && soundEnabled) {
+          playKitchenChime();
+        }
+        return freshOrders;
+      });
+    }, 3000);
+
     return () => {
       unsubscribe();
       clearInterval(clockTimer);
+      clearInterval(radarTimer);
     };
-  }, []);
+  }, [soundEnabled]);
 
   const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
     updateOrderStatus(orderId, nextStatus);
