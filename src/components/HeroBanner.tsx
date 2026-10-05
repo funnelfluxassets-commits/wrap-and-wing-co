@@ -106,7 +106,7 @@ export const HeroBanner: React.FC = () => {
 
           {/* Right Column: Hero Visual Showcase */}
           <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none">
+            <div className="relative mx-auto max-w-md lg:max-w-none pb-8 sm:pb-10 lg:pb-4">
               
               {/* Main Featured Food Plate Frame */}
               <div className="relative rounded-3xl overflow-hidden border-2 border-white/15 shadow-2xl bg-zinc-900 group">
@@ -115,23 +115,23 @@ export const HeroBanner: React.FC = () => {
                   alt="Wrap It Like A Shwarma Combo"
                   className="w-full h-80 sm:h-96 object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
-                
-                {/* Overlay Badge */}
-                <div className="absolute bottom-4 left-4 right-4 p-3.5 rounded-2xl bg-black/80 backdrop-blur-md border border-white/15 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">SIGNATURE SPECIAL</span>
-                    <h3 className="text-sm font-extrabold text-white">Wrap It Like A Shwarma + Side</h3>
-                    <p className="text-[11px] text-zinc-300">Served with hot chips or spicy rice</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs text-zinc-400 line-through">R79</span>
-                    <div className="text-lg font-black text-amber-400">R69.90</div>
-                  </div>
+              </div>
+
+              {/* Floating Signature Special Badge (straddling the bottom edge) */}
+              <div className="absolute bottom-8 sm:bottom-10 lg:bottom-4 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md flex items-center justify-between z-20">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">SIGNATURE SPECIAL</span>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white">Wrap It Like A Shwarma + Side</h3>
+                  <p className="text-[11px] text-zinc-300">Served with hot chips or spicy rice</p>
+                </div>
+                <div className="text-right shrink-0 pl-3">
+                  <span className="text-xs text-zinc-400 line-through">R79</span>
+                  <div className="text-lg sm:text-xl font-black text-amber-400">R69.90</div>
                 </div>
               </div>
 
-              {/* Floating Floating Wing Tag */}
-              <div className="absolute -top-4 -left-4 sm:-top-6 sm:-left-6 p-3 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-xl backdrop-blur-md flex items-center gap-3 animate-bounce [animation-duration:4s]">
+              {/* Floating Wing Tag */}
+              <div className="absolute -top-4 -left-4 sm:-top-6 sm:-left-6 p-3 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-xl backdrop-blur-md flex items-center gap-3 animate-bounce [animation-duration:4s] z-20">
                 <div className="w-10 h-10 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
                   <ChickenWingIcon className="w-6 h-6" />
                 </div>
