@@ -87,6 +87,8 @@ export interface DeliveryDetails {
   complexOrUnit?: string;
   gateCode?: string;
   notes?: string;
+  preferredTime?: string;
+  createdAt?: string;
 }
 
 export type PaymentGatewayType = 'payfast' | 'yoco' | 'whatsapp' | 'cod';

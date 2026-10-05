@@ -1,4 +1,5 @@
 import { CartItem, DeliveryDetails, OrderMode, StoreLocation } from '../types';
+import { ORDER_WHATSAPP_NUMBER } from '../data/stores';
 
 export interface CheckoutPayload {
   orderId: string;
@@ -10,6 +11,8 @@ export interface CheckoutPayload {
   customer: DeliveryDetails;
   store: StoreLocation;
   paymentMethod: 'payfast' | 'yoco' | 'whatsapp' | 'cod';
+  preferredTime?: string;
+  createdAt: string;
 }
 
 // ── Google Maps & Waze Deep-link Generators ──────────────────────────────────
@@ -25,13 +28,16 @@ export function generateWazeUrl(address: string, suburb: string): string {
 
 // ── WhatsApp Order Message Formatter ─────────────────────────────────────────
 export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
-  const { orderId, orderMode, items, subtotal, deliveryFee, grandTotal, customer, store, paymentMethod } = payload;
+  const { orderId, orderMode, items, subtotal, deliveryFee, grandTotal, customer, store, paymentMethod, preferredTime } = payload;
   const isDelivery = orderMode === 'delivery';
 
   let msg = `🔥 *NEW ORDER - WRAP & WINGS CO.*\n`;
   msg += `*Order Ref:* #${orderId}\n`;
   msg += `*Type:* ${isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
   msg += `*Store:* ${store.name} (${store.mall})\n`;
+  if (preferredTime) {
+    msg += `*Requested Time:* ⏰ ${preferredTime}\n`;
+  }
   msg += `─────────────────────────\n`;
   msg += `*CUSTOMER DETAILS:*\n`;
   msg += `👤 *Name:* ${customer.customerName}\n`;
@@ -43,7 +49,7 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
     if (customer.complexOrUnit) msg += `🏢 *Unit/Complex:* ${customer.complexOrUnit}\n`;
     if (customer.gateCode) msg += `🔑 *Gate Code:* ${customer.gateCode}\n`;
     if (customer.notes) msg += `📝 *Notes:* ${customer.notes}\n`;
-    msg += `\n🚗 *DRIVER MAP LINK:* \n${generateGoogleMapsUrl(customer.address, customer.suburb)}\n`;
+    msg += `\n🚗 *DRIVER GPS LINK:* \n${generateGoogleMapsUrl(customer.address, customer.suburb)}\n`;
   }
 
   msg += `─────────────────────────\n`;
@@ -56,8 +62,11 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
     if (item.customization?.side) {
       msg += `   • Side: *${item.customization.side}*\n`;
     }
+    if (item.customization?.extras && item.customization.extras.length > 0) {
+      msg += `   • Extras: ${item.customization.extras.map((e) => e.name).join(', ')}\n`;
+    }
     if (item.customization?.notes) {
-      msg += `   • Special instructions: _${item.customization.notes}_\n`;
+      msg += `   • Notes: _${item.customization.notes}_\n`;
     }
   });
 
@@ -66,25 +75,29 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
   if (isDelivery) {
     msg += `*Delivery Fee:* R${deliveryFee.toFixed(2)}\n`;
   }
-  msg += `*TOTAL AMOUNT:* *R${grandTotal.toFixed(2)}*\n`;
+  msg += `*TOTAL DUE:* *R${grandTotal.toFixed(2)}*\n`;
   msg += `*Payment:* ${
     paymentMethod === 'payfast'
       ? '✅ Paid via PayFast (Instant EFT / Card)'
       : paymentMethod === 'yoco'
       ? '✅ Paid via Yoco (Card / Apple Pay)'
       : paymentMethod === 'cod'
-      ? '💵 Cash / Speedpoint on Delivery/Collection'
+      ? '💵 Pay on Handover (Cash / Speedpoint)'
       : '💬 Direct WhatsApp Confirmation'
   }\n`;
   msg += `─────────────────────────\n`;
-  msg += `_Thank you for choosing Wrap & Wings Co.!_`;
+  msg += `_Thank you for ordering with Wrap & Wings Co.!_`;
 
   return msg;
 }
 
-export function openWhatsAppOrder(payload: CheckoutPayload) {
+export function getWhatsAppOrderUrl(payload: CheckoutPayload): string {
   const text = buildWhatsAppOrderMessage(payload);
-  const targetNumber = payload.store.whatsapp || '27688863892';
-  const url = `https://wa.me/${targetNumber}?text=${encodeURIComponent(text)}`;
+  const targetNumber = payload.store.whatsapp || ORDER_WHATSAPP_NUMBER;
+  return `https://wa.me/${targetNumber}?text=${encodeURIComponent(text)}`;
+}
+
+export function openWhatsAppOrder(payload: CheckoutPayload) {
+  const url = getWhatsAppOrderUrl(payload);
   window.open(url, '_blank');
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -20,7 +20,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [complexOrUnit, setComplexOrUnit] = useState('');
   const [gateCode, setGateCode] = useState('');
   const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('payfast');
+  const [preferredTime, setPreferredTime] = useState('ASAP');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('whatsapp');
   const [isProcessing, setIsProcessing] = useState(false);
 
   if (!isOpen) return null;
@@ -48,6 +49,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       complexOrUnit: complexOrUnit.trim() || undefined,
       gateCode: gateCode.trim() || undefined,
       notes: notes.trim() || undefined,
+      preferredTime: preferredTime === 'ASAP'
+        ? (orderMode === 'collection' ? 'ASAP (15–20 mins)' : 'ASAP (35–45 mins)')
+        : preferredTime,
+      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     const payload: CheckoutPayload = {
@@ -60,20 +65,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       customer: deliveryDetails,
       store: selectedStore,
       paymentMethod,
+      preferredTime: deliveryDetails.preferredTime,
+      createdAt: deliveryDetails.createdAt || 'Just now',
     };
 
-    // Simulate payment gateway handshake or dispatch
+    // Open WhatsApp directly for instant kitchen dispatch
+    openWhatsAppOrder(payload);
+
     setTimeout(() => {
       setIsProcessing(false);
       clearCart();
       onOrderSuccess(payload);
-
-      // If WhatsApp or cash chosen, open WhatsApp confirmation automatically
-      if (paymentMethod === 'whatsapp' || paymentMethod === 'cod') {
-        openWhatsAppOrder(payload);
-      }
       onClose();
-    }, 1200);
+    }, 600);
   };
 
   return (
@@ -212,11 +216,53 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             </div>
           )}
 
+          {/* Order Timing / Pickup Schedule */}
+          <div className="space-y-2 pt-3 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                <span>Preparation Timing</span>
+              </label>
+              <span className="text-[10px] text-emerald-400 font-bold">
+                {orderMode === 'collection' ? '⚡ Ready in ~15–20 mins' : '⚡ Delivery in ~35–45 mins'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'ASAP', desc: orderMode === 'collection' ? '15–20 mins' : '35–45 mins' },
+                { label: 'In 45 Mins', desc: 'Pre-order' },
+                { label: 'In 1.5 Hours', desc: 'Later Today' },
+              ].map((opt) => (
+                <button
+                  key={opt.label}
+                  type="button"
+                  onClick={() => setPreferredTime(opt.label)}
+                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                    preferredTime === opt.label
+                      ? 'bg-rose-500/20 border-rose-500 text-white ring-1 ring-rose-500'
+                      : 'bg-zinc-900 border-white/10 text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <div className="text-xs font-black">{opt.label}</div>
+                  <div className="text-[10px] text-zinc-500">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Kitchen WhatsApp Live Dispatch Banner */}
+          <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-zinc-300">
+            <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>
+              Orders are dispatched straight to our test kitchen WhatsApp (<strong className="text-emerald-300">+27 83 276 3273</strong>) for instant confirmation.
+            </span>
+          </div>
+
           {/* Payment Method Selector */}
           <div className="space-y-3 pt-3 border-t border-white/10">
             <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
               <CreditCard className="w-4 h-4 text-rose-500" />
-              <span>{orderMode === 'delivery' ? '3. Payment Method' : '2. Payment Method'}</span>
+              <span>Payment Method</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">

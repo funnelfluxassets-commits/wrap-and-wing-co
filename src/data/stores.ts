@@ -1,5 +1,8 @@
 import { StoreLocation } from '../types';
 
+// Testing WhatsApp number for order dispatch (+27 83 276 3273)
+export const ORDER_WHATSAPP_NUMBER = '27832763273';
+
 export const STORES: StoreLocation[] = [
   {
     id: 'store-pinetown-flagship',
@@ -9,7 +12,7 @@ export const STORES: StoreLocation[] = [
     city: 'Pinetown, Durban, KZN',
     landmark: 'Behind Hollywoodbets',
     phone: '068 886 3892',
-    whatsapp: '27688863892',
+    whatsapp: ORDER_WHATSAPP_NUMBER,
     hours: 'Monday – Sunday: 9:00 AM – 6:00 PM',
     isOpen: true,
     mapQuery: 'Wrap+and+Wing+Co+Pinetown',

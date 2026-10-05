@@ -7,7 +7,7 @@ import { FoodCard } from './components/FoodCard';
 import { ItemModal } from './components/ItemModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
-import { DriverTicketModal } from './components/DriverTicketModal';
+import { OrderConfirmationModal } from './components/OrderConfirmationModal';
 import { StoreModal, StoreLocatorSection } from './components/StoreLocator';
 import { BrandHighlights } from './components/BrandHighlights';
 import { Footer } from './components/Footer';
@@ -182,7 +182,7 @@ const MainContent: React.FC = () => {
         onOrderSuccess={(payload) => setCompletedOrder(payload)}
       />
 
-      <DriverTicketModal
+      <OrderConfirmationModal
         order={completedOrder}
         onClose={() => setCompletedOrder(null)}
       />
