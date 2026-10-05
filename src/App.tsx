@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
@@ -18,25 +18,67 @@ import { TeamView } from './components/TeamView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
-import { CategoryId, MenuItem, PageView } from './types';
+import { CategoryId, MenuItem, PageView, LiveOrder } from './types';
 import { CheckoutPayload } from './services/payment';
+import { subscribeToOrders, getCurrentOrderId } from './services/orderService';
 import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
+
+const getInitialView = (): PageView => {
+  if (typeof window === 'undefined') return 'menu';
+  const hash = window.location.hash.toLowerCase().replace('#', '');
+  if (['menu', 'story', 'team', 'kitchen', 'track'].includes(hash)) {
+    return hash as PageView;
+  }
+  return 'menu';
+};
 
 const MainContent: React.FC = () => {
   const { totalItemCount, grandTotal, setIsCartOpen } = useCart();
-  const [currentView, setCurrentView] = useState<PageView>('menu');
+  const [currentView, setCurrentView] = useState<PageView>(getInitialView());
   const [activeCategory, setActiveCategory] = useState<CategoryId | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CheckoutPayload | null>(null);
-  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
+  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(getCurrentOrderId());
+  const [activeOrder, setActiveOrder] = useState<LiveOrder | null>(null);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>('privacy');
 
+  // Sync hash routing and active orders
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.toLowerCase().replace('#', '');
+      if (['menu', 'story', 'team', 'kitchen', 'track'].includes(hash)) {
+        setCurrentView(hash as PageView);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+
+    const unsub = subscribeToOrders((orders) => {
+      const active = orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled');
+      if (active) {
+        setActiveOrder(active);
+        if (!trackedOrderId) {
+          setTrackedOrderId(active.orderId);
+        }
+      } else if (orders.length > 0) {
+        setActiveOrder(orders[0]);
+      }
+    });
+
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      unsub();
+    };
+  }, [trackedOrderId]);
+
   const handleNavigate = (view: PageView) => {
     setCurrentView(view);
+    if (typeof window !== 'undefined') {
+      window.location.hash = view === 'menu' ? '' : view;
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -66,7 +108,7 @@ const MainContent: React.FC = () => {
         />
       ) : currentView === 'track' ? (
         <OrderTrackerView
-          orderId={trackedOrderId || completedOrder?.orderId || ''}
+          orderId={trackedOrderId || activeOrder?.orderId || completedOrder?.orderId || ''}
           onBackToMenu={() => handleNavigate('menu')}
           onOpenKitchen={() => handleNavigate('kitchen')}
         />
@@ -230,6 +272,51 @@ const MainContent: React.FC = () => {
       setIsLegalModalOpen(true);
     }}
   />
+
+  {/* Persistent Active Order Floating Banner (Pedros / Uber Eats style) */}
+  {activeOrder &&
+    activeOrder.status !== 'completed' &&
+    activeOrder.status !== 'cancelled' &&
+    currentView !== 'kitchen' &&
+    currentView !== 'track' && (
+      <div
+        className={`fixed z-30 animate-slideUp transition-all ${
+          totalItemCount > 0
+            ? 'bottom-18 lg:bottom-6 left-3 right-3 lg:left-auto lg:right-6 lg:w-96'
+            : 'bottom-4 lg:bottom-6 left-3 right-3 lg:left-auto lg:right-6 lg:w-96'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setTrackedOrderId(activeOrder.orderId);
+            handleNavigate('track');
+          }}
+          className="w-full p-3 sm:p-3.5 rounded-2xl bg-[#14141c]/95 border-2 border-rose-500 shadow-2xl flex items-center justify-between gap-3 text-white backdrop-blur-md cursor-pointer hover:border-amber-400 transition-colors"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="flex h-3 w-3 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            <div className="text-left truncate">
+              <div className="text-xs font-black truncate flex items-center gap-1.5">
+                <span>Order #{activeOrder.orderId}</span>
+                <span className="text-[10px] font-bold text-amber-300">
+                  {activeOrder.preferredTime}
+                </span>
+              </div>
+              <div className="text-[11px] text-zinc-300 truncate">
+                {activeOrder.status === 'received' && '📝 Kitchen preparing ticket'}
+                {activeOrder.status === 'cooking' && '🔥 On The Flame Grill'}
+                {activeOrder.status === 'ready' && '🛍️ Hot & ready for collection'}
+                {activeOrder.status === 'dispatched' && '🚗 Out for delivery with driver'}
+              </div>
+            </div>
+          </div>
+          <div className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-extrabold text-xs shrink-0 shadow-md">
+            Track ➔
+          </div>
+        </button>
+      </div>
+    )}
 
   {/* Mobile Floating Bottom Cart Bar */}
   {totalItemCount > 0 && currentView !== 'kitchen' && currentView !== 'track' && (

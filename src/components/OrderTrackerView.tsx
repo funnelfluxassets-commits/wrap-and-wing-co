@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { LiveOrder, OrderStatus } from '../types';
-import { subscribeToSingleOrder } from '../services/orderService';
+import {
+  subscribeToSingleOrder,
+  getCurrentOrderId,
+  getAllOrders,
+  syncOrdersFromCloud
+} from '../services/orderService';
 import { getWhatsAppOrderUrl, generateGoogleMapsUrl } from '../services/payment';
 import {
   CheckCircle,
@@ -31,15 +36,18 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 }) => {
   const [order, setOrder] = useState<LiveOrder | null>(null);
 
+  const effectiveOrderId = orderId || getCurrentOrderId() || getAllOrders()[0]?.orderId || '';
+
   useEffect(() => {
-    const unsubscribe = subscribeToSingleOrder(orderId, (liveOrder) => {
+    if (!effectiveOrderId) return;
+    const unsubscribe = subscribeToSingleOrder(effectiveOrderId, (liveOrder) => {
       setOrder(liveOrder);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [orderId]);
+  }, [effectiveOrderId]);
 
   if (!order) {
     return (
@@ -47,17 +55,33 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-4">
           🔍
         </div>
-        <h2 className="text-xl font-black">Looking for Order #{orderId}...</h2>
+        <h2 className="text-xl font-black">
+          {effectiveOrderId ? `Looking for Order #${effectiveOrderId}...` : 'No Active Order Found'}
+        </h2>
         <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-          If this order was placed recently, it will appear in a moment.
+          Connecting to live restaurant kitchen feed to check your order status.
         </p>
-        <button
-          type="button"
-          onClick={onBackToMenu}
-          className="mt-6 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs"
-        >
-          Return to Menu
-        </button>
+        <div className="flex gap-3 mt-6">
+          <button
+            type="button"
+            onClick={async () => {
+              const orders = await syncOrdersFromCloud();
+              if (orders.length > 0) {
+                setOrder(orders[0]);
+              }
+            }}
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer"
+          >
+            ↻ Check Cloud Feed
+          </button>
+          <button
+            type="button"
+            onClick={onBackToMenu}
+            className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs cursor-pointer"
+          >
+            Return to Menu
+          </button>
+        </div>
       </div>
     );
   }

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, MapPin, Phone, Clock, ChevronDown, Check, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { STORES, SOCIAL_LINKS } from '../data/stores';
 import { TikTokIcon } from './icons/TikTokIcon';
 import { FacebookIcon } from './icons/FacebookIcon';
 import { OrderMode, PageView } from '../types';
+import { subscribeToOrders, getCurrentOrderId } from '../services/orderService';
 
 export interface NavbarProps {
   onOpenStoreModal: () => void;
@@ -15,6 +16,15 @@ export interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, onNavigate }) => {
   const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode, selectedStore } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(getCurrentOrderId());
+
+  useEffect(() => {
+    const unsub = subscribeToOrders((orders) => {
+      const active = orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled');
+      setActiveOrderId(active ? active.orderId : (orders[0]?.orderId || null));
+    });
+    return unsub;
+  }, []);
 
   return (
     <>
@@ -108,6 +118,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               >
                 <span>🍳 Kitchen</span>
               </button>
+              {activeOrderId && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('track')}
+                  className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    currentView === 'track'
+                      ? 'bg-rose-600 text-white shadow-md'
+                      : 'bg-zinc-800 text-zinc-300 hover:text-white border border-rose-500/30'
+                  }`}
+                  title="Track Live Order"
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>📦 Track Order</span>
+                </button>
+              )}
             </nav>
           </div>
 
@@ -184,6 +209,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 <FacebookIcon className="w-4 h-4" />
               </a>
             </div>
+
+            {/* Active Order Pill on Mobile */}
+            {activeOrderId && currentView !== 'track' && (
+              <button
+                type="button"
+                onClick={() => onNavigate('track')}
+                className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[11px] flex items-center gap-1.5 shadow-md shadow-rose-950/40 cursor-pointer animate-pulse"
+                title="View your active order"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Track</span>
+              </button>
+            )}
 
             {/* Cart Trigger Button */}
             <button
@@ -319,6 +357,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 }`}
               >
                 🍳 Kitchen Screen
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('track');
+                  setMobileMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer flex items-center justify-between ${
+                  currentView === 'track'
+                    ? 'bg-rose-600 text-white border-rose-500'
+                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                }`}
+              >
+                <span>📦 Track Order</span>
+                {activeOrderId && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30">
+                    Active
+                  </span>
+                )}
               </button>
               <a
                 href={SOCIAL_LINKS.tiktok}

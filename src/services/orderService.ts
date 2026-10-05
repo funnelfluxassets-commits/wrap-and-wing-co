@@ -104,7 +104,10 @@ export function getOrderById(orderId: string): LiveOrder | null {
 
 export function getCurrentOrderId(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem(CURRENT_ORDER_KEY);
+  const direct = localStorage.getItem(CURRENT_ORDER_KEY);
+  if (direct) return direct;
+  const orders = getAllOrders();
+  return orders.length > 0 ? orders[0].orderId : null;
 }
 
 export function setCurrentOrderId(orderId: string) {
