@@ -107,7 +107,7 @@ const MainContent: React.FC = () => {
             </div>
             <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
               {activeCategory === 'all'
-                ? 'All flame-grilled chicken, wraps, wings, burgers, and sides.'
+                ? 'All flame-grilled chicken, wraps, wings, burgers, sides, and ice-cold drinks.'
                 : CATEGORIES.find((c) => c.id === activeCategory)?.description}
             </p>
           </div>
@@ -119,7 +119,7 @@ const MainContent: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search chicken, wrap, wings..."
+              placeholder="Search chicken, wrap, wings, drinks..."
               className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500 transition-colors"
             />
           </div>
