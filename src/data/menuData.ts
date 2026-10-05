@@ -280,15 +280,6 @@ export const MENU_ITEMS: MenuItem[] = [
     badge: '440ML BUDDY',
   },
   {
-    id: 'drink-coke-no-sugar-440ml',
-    categoryId: 'drinks',
-    name: 'Coca-Cola No Sugar (440ml)',
-    description: 'Real Coca-Cola taste with zero sugar and zero calories in a refreshing chilled 440ml buddy bottle.',
-    price: 18.00,
-    image: '/images/menu/drinks/coke-no-sugar-440ml.webp',
-    badge: 'ZERO SUGAR',
-  },
-  {
     id: 'drink-coke-zero-440ml',
     categoryId: 'drinks',
     name: 'Coca-Cola Zero Sugar (440ml)',
@@ -384,6 +375,15 @@ export const MENU_ITEMS: MenuItem[] = [
     image: '/images/menu/drinks/coke-original-15l.webp',
     popular: true,
     badge: '1.5L SHARING',
+  },
+  {
+    id: 'drink-coke-no-sugar-15l',
+    categoryId: 'drinks',
+    name: 'Coca-Cola No Sugar (1.5L)',
+    description: 'Large 1.5 Litre sharing bottle of refreshing Coca-Cola with real taste, zero sugar and zero calories.',
+    price: 25.00,
+    image: '/images/menu/drinks/coke-no-sugar-15l.webp',
+    badge: 'ZERO SUGAR',
   },
   {
     id: 'drink-fanta-orange-15l',
