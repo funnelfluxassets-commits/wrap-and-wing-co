@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
+import { createLiveOrder } from '../services/orderService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -69,15 +70,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       createdAt: deliveryDetails.createdAt || 'Just now',
     };
 
-    // Open WhatsApp directly for instant kitchen dispatch
-    openWhatsAppOrder(payload);
+    // Save to real-time order service for kitchen display & live tracking
+    createLiveOrder(payload);
+
+    // If customer chose WhatsApp confirmation, open WhatsApp
+    if (paymentMethod === 'whatsapp') {
+      openWhatsAppOrder(payload);
+    }
 
     setTimeout(() => {
       setIsProcessing(false);
       clearCart();
       onOrderSuccess(payload);
       onClose();
-    }, 600);
+    }, 400);
   };
 
   return (

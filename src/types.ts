@@ -93,4 +93,32 @@ export interface DeliveryDetails {
 
 export type PaymentGatewayType = 'payfast' | 'yoco' | 'whatsapp' | 'cod';
 
-export type PageView = 'menu' | 'story' | 'team';
+export type OrderStatus = 'received' | 'cooking' | 'ready' | 'dispatched' | 'completed' | 'cancelled';
+
+export interface OrderTimelineEvent {
+  status: OrderStatus;
+  timestamp: string;
+  label: string;
+  note?: string;
+}
+
+export interface LiveOrder {
+  orderId: string;
+  orderMode: OrderMode;
+  status: OrderStatus;
+  items: CartItem[];
+  subtotal: number;
+  deliveryFee: number;
+  grandTotal: number;
+  customer: DeliveryDetails;
+  store: StoreLocation;
+  paymentMethod: PaymentGatewayType;
+  paymentStatus: 'paid' | 'pending';
+  preferredTime: string;
+  createdAt: string;
+  estimatedMinutes: number;
+  timeline: OrderTimelineEvent[];
+}
+
+export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'track';
+

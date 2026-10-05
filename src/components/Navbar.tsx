@@ -96,6 +96,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               >
                 👥 Our Team
               </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('kitchen')}
+                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                  currentView === 'kitchen'
+                    ? 'bg-amber-500 text-zinc-950 shadow-md font-black'
+                    : 'text-zinc-400 hover:text-amber-300'
+                }`}
+                title="Kitchen Order Display Screen"
+              >
+                <span>🍳 Kitchen</span>
+              </button>
             </nav>
           </div>
 
@@ -293,6 +305,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-left hover:text-rose-400 text-zinc-200 cursor-pointer"
               >
                 📍 Store Locator
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('kitchen');
+                  setMobileMenuOpen(false);
+                }}
+                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
+                  currentView === 'kitchen'
+                    ? 'bg-amber-500 text-zinc-950 border-amber-400'
+                    : 'bg-zinc-800/70 border-white/5 text-amber-300 hover:text-amber-200'
+                }`}
+              >
+                🍳 Kitchen Screen
               </button>
               <a
                 href={SOCIAL_LINKS.tiktok}

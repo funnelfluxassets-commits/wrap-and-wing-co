@@ -15,6 +15,8 @@ import { LegalModal, LegalTab } from './components/LegalModal';
 import { CookieBanner } from './components/CookieBanner';
 import { StoryView } from './components/StoryView';
 import { TeamView } from './components/TeamView';
+import { KitchenDisplayView } from './components/KitchenDisplayView';
+import { OrderTrackerView } from './components/OrderTrackerView';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView } from './types';
 import { CheckoutPayload } from './services/payment';
@@ -29,6 +31,7 @@ const MainContent: React.FC = () => {
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<CheckoutPayload | null>(null);
+  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>('privacy');
 
@@ -52,32 +55,48 @@ const MainContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white pb-16 lg:pb-0">
       
-      {/* Navigation */}
-      <Navbar
-        onOpenStoreModal={() => setIsStoreModalOpen(true)}
-        currentView={currentView}
-        onNavigate={handleNavigate}
-      />
-
       {/* ── View Routing ────────────────────────────────────────────────────── */}
-      {currentView === 'story' && (
-        <StoryView
-          onNavigate={handleNavigate}
-          onOpenStoreModal={() => setIsStoreModalOpen(true)}
+      {currentView === 'kitchen' ? (
+        <KitchenDisplayView
+          onBackToMenu={() => handleNavigate('menu')}
+          onViewOrderTracker={(orderId) => {
+            setTrackedOrderId(orderId);
+            handleNavigate('track');
+          }}
         />
-      )}
-
-      {currentView === 'team' && (
-        <TeamView
-          onNavigate={handleNavigate}
-          onOpenStoreModal={() => setIsStoreModalOpen(true)}
+      ) : currentView === 'track' ? (
+        <OrderTrackerView
+          orderId={trackedOrderId || completedOrder?.orderId || ''}
+          onBackToMenu={() => handleNavigate('menu')}
+          onOpenKitchen={() => handleNavigate('kitchen')}
         />
-      )}
-
-      {currentView === 'menu' && (
+      ) : (
         <>
-          {/* Hero Banner */}
-          <HeroBanner />
+          {/* Navigation */}
+          <Navbar
+            onOpenStoreModal={() => setIsStoreModalOpen(true)}
+            currentView={currentView}
+            onNavigate={handleNavigate}
+          />
+
+          {currentView === 'story' && (
+            <StoryView
+              onNavigate={handleNavigate}
+              onOpenStoreModal={() => setIsStoreModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'team' && (
+            <TeamView
+              onNavigate={handleNavigate}
+              onOpenStoreModal={() => setIsStoreModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'menu' && (
+            <>
+              {/* Hero Banner */}
+              <HeroBanner />
 
           {/* Sticky Category Tabs */}
           <CategoryNav
@@ -170,45 +189,51 @@ const MainContent: React.FC = () => {
         }}
         onNavigate={handleNavigate}
       />
+    </>
+  )}
 
-      {/* Modals & Drawers */}
-      <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
-      
-      <CartDrawer onOpenCheckout={() => setIsCheckoutOpen(true)} />
+  {/* Modals & Drawers */}
+  <ItemModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+  
+  <CartDrawer onOpenCheckout={() => setIsCheckoutOpen(true)} />
 
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        onOrderSuccess={(payload) => setCompletedOrder(payload)}
-      />
+  <CheckoutModal
+    isOpen={isCheckoutOpen}
+    onClose={() => setIsCheckoutOpen(false)}
+    onOrderSuccess={(payload) => {
+      setCompletedOrder(payload);
+      setTrackedOrderId(payload.orderId);
+      handleNavigate('track');
+    }}
+  />
 
-      <OrderConfirmationModal
-        order={completedOrder}
-        onClose={() => setCompletedOrder(null)}
-      />
+  <OrderConfirmationModal
+    order={completedOrder}
+    onClose={() => setCompletedOrder(null)}
+  />
 
-      <StoreModal
-        isOpen={isStoreModalOpen}
-        onClose={() => setIsStoreModalOpen(false)}
-      />
+  <StoreModal
+    isOpen={isStoreModalOpen}
+    onClose={() => setIsStoreModalOpen(false)}
+  />
 
-      <LegalModal
-        isOpen={isLegalModalOpen}
-        initialTab={legalTab}
-        onClose={() => setIsLegalModalOpen(false)}
-      />
+  <LegalModal
+    isOpen={isLegalModalOpen}
+    initialTab={legalTab}
+    onClose={() => setIsLegalModalOpen(false)}
+  />
 
-      {/* Cookie & POPIA Privacy Notice */}
-      <CookieBanner
-        onOpenPrivacyPolicy={(tab) => {
-          setLegalTab(tab);
-          setIsLegalModalOpen(true);
-        }}
-      />
+  {/* Cookie & POPIA Privacy Notice */}
+  <CookieBanner
+    onOpenPrivacyPolicy={(tab) => {
+      setLegalTab(tab);
+      setIsLegalModalOpen(true);
+    }}
+  />
 
-      {/* Mobile Floating Bottom Cart Bar */}
-      {totalItemCount > 0 && (
-        <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 animate-slideUp">
+  {/* Mobile Floating Bottom Cart Bar */}
+  {totalItemCount > 0 && currentView !== 'kitchen' && currentView !== 'track' && (
+    <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 animate-slideUp">
           <button
             type="button"
             onClick={() => setIsCartOpen(true)}

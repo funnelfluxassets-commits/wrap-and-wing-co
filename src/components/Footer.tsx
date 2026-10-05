@@ -112,6 +112,15 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
                   👥 Our Team & Kitchen
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => handleNav('kitchen')}
+                  className="text-amber-400/90 hover:text-amber-300 transition-colors cursor-pointer text-left font-bold"
+                >
+                  🍳 Staff Kitchen Screen
+                </button>
+              </li>
             </ul>
           </div>
 
