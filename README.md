@@ -1,4 +1,4 @@
-# Wrap and Wing Co — Official Web Application
+# Wrap & Wings Co. — Official Web Application
 
 > **Bold Flavour. Hot & Fresh.**
 > Premier flame-grilled chicken, handcrafted wraps, and signature wings in Pinetown, KwaZulu-Natal.

@@ -52,7 +52,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10 space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-extrabold uppercase tracking-widest">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>The Heart & Heritage Behind Wrap & Wing Co.</span>
+            <span>The Heart & Heritage Behind Wrap & Wings Co.</span>
           </div>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight">
@@ -74,7 +74,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/story/founder-vision.webp"
-                alt="Founder Nonto Magcugcwa inside Wrap and Wing Co restaurant"
+                alt="Founder Nonto Magcugcwa inside Wrap & Wings Co restaurant"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
@@ -107,7 +107,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
 
             <div className="space-y-4 text-sm sm:text-base text-zinc-300 leading-relaxed">
               <p>
-                When founder <span className="text-white font-bold">Nonto Magcugcwa</span> set out to create <span className="text-white font-bold">Wrap & Wing Co.</span>, she noticed a void in the fast-casual food landscape of KwaZulu-Natal. Fast food had become cold, transactional, and rushed — stripped of personality, freshness, and soul.
+                When founder <span className="text-white font-bold">Nonto Magcugcwa</span> set out to create <span className="text-white font-bold">Wrap & Wings Co.</span>, she noticed a void in the fast-casual food landscape of KwaZulu-Natal. Fast food had become cold, transactional, and rushed — stripped of personality, freshness, and soul.
               </p>
               <p>
                 Nonto envisioned something radically different: a warm, vibrant neighborhood table where every single meal is prepared over live open flame, seasoned with love, and handed across the counter with a genuine, caring smile.
@@ -155,7 +155,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
-                Nonto insisted from Day One that Wrap & Wing Co. would never cut corners on food quality. Our kitchen operates on strict culinary standards:
+                Nonto insisted from Day One that Wrap & Wings Co. would never cut corners on food quality. Our kitchen operates on strict culinary standards:
               </p>
 
               <div className="space-y-3.5">
@@ -202,7 +202,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
                   src="/images/story/handcrafted-food.webp"
-                  alt="Wrap and Wing Co handcrafted wraps, wings, fries, and coleslaw spread"
+                  alt="Wrap & Wings Co handcrafted wraps, wings, fries, and coleslaw spread"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
@@ -242,7 +242,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="relative overflow-hidden aspect-[4/3] bg-zinc-950">
               <img
                 src="/images/story/restaurant-interior.webp"
-                alt="Wrap and Wing Co dining hall and service counters"
+                alt="Wrap & Wings Co dining hall and service counters"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
@@ -269,7 +269,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="relative overflow-hidden aspect-[4/3] bg-zinc-950">
               <img
                 src="/images/story/community-gathering.webp"
-                alt="Families and patrons dining together at Wrap and Wing Co"
+                alt="Families and patrons dining together at Wrap & Wings Co"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />

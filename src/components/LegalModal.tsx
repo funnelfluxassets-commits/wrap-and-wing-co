@@ -32,7 +32,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
               <h2 className="text-base sm:text-lg font-black text-white">
                 {activeTab === 'privacy' ? 'Privacy Policy (POPIA)' : 'Terms of Service'}
               </h2>
-              <p className="text-xs text-zinc-400">Wrap and Wing Co • South Africa</p>
+              <p className="text-xs text-zinc-400">Wrap & Wings Co • South Africa</p>
             </div>
           </div>
 
@@ -88,7 +88,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   POPIA Compliance Statement
                 </div>
                 <p className="text-xs text-zinc-400">
-                  Wrap and Wing Co is fully committed to protecting your personal information in compliance with the
+                  Wrap & Wings Co is fully committed to protecting your personal information in compliance with the
                   Protection of Personal Information Act No. 4 of 2013 (POPIA) of the Republic of South Africa.
                 </p>
                 <div className="text-[11px] text-zinc-500 pt-1">
@@ -100,7 +100,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                 <h3 className="text-sm font-black text-white uppercase tracking-wide">1. Responsible Party</h3>
                 <p>
                   This Privacy Policy applies to personal information collected and processed by{' '}
-                  <strong className="text-white">Wrap and Wing Co</strong> ("we", "us", or "our"), operating at Shop 1,
+                  <strong className="text-white">Wrap & Wings Co</strong> ("we", "us", or "our"), operating at Shop 1,
                   Uniland Centre, Pinetown, KwaZulu-Natal, South Africa.
                 </p>
               </section>
@@ -192,7 +192,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   If you have questions regarding this Privacy Policy or wish to exercise your POPIA rights, contact us at:
                 </p>
                 <div className="space-y-1 text-xs text-zinc-300 pt-1">
-                  <div><strong>Wrap and Wing Co</strong> (Information Officer)</div>
+                  <div><strong>Wrap & Wings Co</strong> (Information Officer)</div>
                   <div>📍 Shop 1, Uniland Centre, Pinetown, Durban, KZN</div>
                   <div>📞 Telephone / WhatsApp: 068 886 3892</div>
                   <div>✉️ Email: funnelflux.assets@gmail.com</div>
@@ -211,7 +211,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   Consumer Terms & Conditions
                 </div>
                 <p className="text-xs text-zinc-400">
-                  These Terms govern your use of the Wrap and Wing Co website and ordering platform in accordance with the
+                  These Terms govern your use of the Wrap & Wings Co website and ordering platform in accordance with the
                   Consumer Protection Act No. 68 of 2008 (CPA) and Electronic Communications and Transactions Act No. 25 of 2002.
                 </p>
                 <div className="text-[11px] text-zinc-500 pt-1">
@@ -223,7 +223,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                 <h3 className="text-sm font-black text-white uppercase tracking-wide">1. Agreement to Terms</h3>
                 <p>
                   By accessing our website (wrapandwings.funnelfluxassets.com) or placing an order with{' '}
-                  <strong className="text-white">Wrap and Wing Co</strong>, you agree to be bound by these Terms of Service.
+                  <strong className="text-white">Wrap & Wings Co</strong>, you agree to be bound by these Terms of Service.
                   If you do not agree, please do not use our services.
                 </p>
               </section>
@@ -311,7 +311,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
 
         {/* Modal Footer */}
         <div className="p-4 bg-zinc-950 border-t border-white/10 flex items-center justify-between shrink-0">
-          <span className="text-xs text-zinc-500">Wrap and Wing Co • Shop 1 Uniland Centre, Pinetown</span>
+          <span className="text-xs text-zinc-500">Wrap & Wings Co • Shop 1 Uniland Centre, Pinetown</span>
           <button
             type="button"
             onClick={onClose}

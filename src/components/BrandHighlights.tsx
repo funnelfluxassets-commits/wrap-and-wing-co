@@ -17,7 +17,7 @@ export const BrandHighlights: React.FC = () => {
         <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wider mb-2">
             <Flame className="w-3.5 h-3.5" />
-            <span>The Wrap & Wing Co Difference</span>
+            <span>The Wrap & Wings Co Difference</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
             BOLD FLAVOUR. HOT & FRESH.
@@ -77,7 +77,7 @@ export const BrandHighlights: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-1 text-center md:text-left">
               <span className="text-[11px] font-black uppercase tracking-wider text-rose-400">FIND YOUR SWEET SPOT</span>
-              <h3 className="text-xl sm:text-2xl font-black text-white">The Wrap & Wing Flavour Meter</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-white">The Wrap & Wings Flavour Meter</h3>
               <p className="text-xs text-zinc-400 max-w-md">
                 Choose the exact flame profile that suits your mood today.
               </p>

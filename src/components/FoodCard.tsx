@@ -27,7 +27,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900 text-zinc-500 p-4 text-center">
               <span className="text-4xl mb-1">🔥</span>
-              <span className="text-xs font-bold text-zinc-400">Wrap & Wing Co Special</span>
+              <span className="text-xs font-bold text-zinc-400">Wrap & Wings Co Special</span>
             </div>
           )}
 

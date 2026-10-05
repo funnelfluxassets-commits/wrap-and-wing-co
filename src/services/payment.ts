@@ -28,7 +28,7 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
   const { orderId, orderMode, items, subtotal, deliveryFee, grandTotal, customer, store, paymentMethod } = payload;
   const isDelivery = orderMode === 'delivery';
 
-  let msg = `🔥 *NEW ORDER - WRAP & WING CO.*\n`;
+  let msg = `🔥 *NEW ORDER - WRAP & WINGS CO.*\n`;
   msg += `*Order Ref:* #${orderId}\n`;
   msg += `*Type:* ${isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
   msg += `*Store:* ${store.name} (${store.mall})\n`;
@@ -77,7 +77,7 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
       : '💬 Direct WhatsApp Confirmation'
   }\n`;
   msg += `─────────────────────────\n`;
-  msg += `_Thank you for choosing Wrap and Wing Co!_`;
+  msg += `_Thank you for choosing Wrap & Wings Co.!_`;
 
   return msg;
 }

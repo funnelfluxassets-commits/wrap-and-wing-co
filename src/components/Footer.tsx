@@ -36,13 +36,13 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
               className="text-left cursor-pointer"
             >
               <img
-                src="/images/logo/logo-trans.png"
-                alt="Wrap and Wing Co"
+                src="/images/logo/wrap-and-wings-co_optimized.webp"
+                alt="Wrap & Wings Co."
                 className="h-16 w-auto object-contain"
               />
             </button>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-sm leading-relaxed">
-              Wrap & Wing Co. Bold flavour, flame-grilled chicken, handcrafted wraps, and charred wings basted in our 5 signature sauces.
+              Wrap & Wings Co. Bold flavour, flame-grilled chicken, handcrafted wraps, and charred wings basted in our 5 signature sauces.
             </p>
             <div className="text-xs font-black text-rose-500 uppercase tracking-widest">
               COME HUNGRY! GOOD VIBES AWAIT!
@@ -170,7 +170,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
         {/* Bottom Bar with POPIA & Terms Links */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-            <div>© {new Date().getFullYear()} Wrap and Wing Co. All Rights Reserved.</div>
+            <div>© {new Date().getFullYear()} Wrap & Wings Co. All Rights Reserved.</div>
             <div className="flex items-center gap-3">
               <button
                 type="button"

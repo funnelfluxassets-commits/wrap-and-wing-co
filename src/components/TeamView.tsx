@@ -57,7 +57,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
           </div>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight">
-            Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-500 to-red-500">Wrap & Wing Co. Team</span>
+            Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-500 to-red-500">Wrap & Wings Co. Team</span>
           </h1>
           
           <p className="text-base sm:text-xl text-zinc-300 max-w-2xl mx-auto font-medium leading-relaxed">
@@ -75,7 +75,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/team/front-counter-team.webp"
-                alt="Wrap and Wing Co front of house staff welcoming customers"
+                alt="Wrap & Wings Co front of house staff welcoming customers"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
@@ -193,7 +193,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
                   src="/images/team/kitchen-crew.webp"
-                  alt="Wrap and Wing Co kitchen team member in professional chef attire"
+                  alt="Wrap & Wings Co kitchen team member in professional chef attire"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
@@ -260,7 +260,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="relative overflow-hidden aspect-[4/3] bg-zinc-950">
               <img
                 src="/images/team/team-service.webp"
-                alt="Wrap and Wing Co team atmosphere and service stations"
+                alt="Wrap & Wings Co team atmosphere and service stations"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />

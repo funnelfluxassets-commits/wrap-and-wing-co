@@ -55,8 +55,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               className="flex items-center gap-2 group text-left cursor-pointer"
             >
               <img
-                src="/images/logo/logo-trans.png"
-                alt="Wrap and Wing Co"
+                src="/images/logo/wrap-and-wings-co_optimized.webp"
+                alt="Wrap & Wings Co."
                 className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105"
               />
             </button>

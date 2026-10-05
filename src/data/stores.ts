@@ -3,7 +3,7 @@ import { StoreLocation } from '../types';
 export const STORES: StoreLocation[] = [
   {
     id: 'store-pinetown-flagship',
-    name: 'Wrap & Wing Co - Pinetown Flagship',
+    name: 'Wrap & Wings Co - Pinetown Flagship',
     mall: 'Uniland Centre (Shop 1)',
     address: 'Shop 1, Uniland Centre, Pinetown',
     city: 'Pinetown, Durban, KZN',
@@ -20,7 +20,7 @@ export const STORES: StoreLocation[] = [
   },
   {
     id: 'store-westville',
-    name: 'Wrap & Wing Co - Westville',
+    name: 'Wrap & Wings Co - Westville',
     mall: 'Westville Junction',
     address: 'Westville, Durban',
     city: 'Westville, KZN',
@@ -34,7 +34,7 @@ export const STORES: StoreLocation[] = [
   },
   {
     id: 'store-umhlanga',
-    name: 'Wrap & Wing Co - Umhlanga',
+    name: 'Wrap & Wings Co - Umhlanga',
     mall: 'Umhlanga Village',
     address: 'Umhlanga, Durban North',
     city: 'Umhlanga, KZN',

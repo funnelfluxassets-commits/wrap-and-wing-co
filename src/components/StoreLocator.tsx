@@ -170,7 +170,7 @@ export const StoreLocatorSection: React.FC = () => {
                 href={
                   flagship.googleMapsUrl ||
                   `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                    'Wrap and Wing Co, Shop 1, Uniland Centre, Pinetown'
+                    'Wrap & Wings Co, Shop 1, Uniland Centre, Pinetown'
                   )}`
                 }
                 target="_blank"
@@ -199,7 +199,7 @@ export const StoreLocatorSection: React.FC = () => {
             {/* Interactive Map Visual */}
             <div className="rounded-3xl overflow-hidden border border-white/10 bg-zinc-900 shadow-xl aspect-[16/9] relative">
               <iframe
-                title="Wrap & Wing Co Location"
+                title="Wrap & Wings Co Location"
                 src={
                   flagship.mapEmbedUrl ||
                   'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1163.082511830803!2d30.85500734324751!3d-29.811872099023525!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1ef6ff609bbeefc7%3A0xb1b982704527f3d7!2sWrap%20and%20Wing%20Co!5e1!3m2!1sen!2sza!4v1791152071878!5m2!1sen!2sza'
