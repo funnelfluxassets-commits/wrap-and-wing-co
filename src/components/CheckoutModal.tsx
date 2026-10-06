@@ -128,9 +128,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     // Save to real-time order service for kitchen display & live tracking (awaited so cloud receives it)
     await createLiveOrder(payload);
 
-    // Warm up audio context on user gesture so subsequent kitchen chimes play automatically on mobile
-    playCustomerUpdateChime();
-
     // If customer chose WhatsApp confirmation, open WhatsApp
     if (paymentMethod === 'whatsapp') {
       openWhatsAppOrder(payload);

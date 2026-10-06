@@ -192,51 +192,25 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-const CLOUD_MASTER_STORE_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a10fc639a705a5';
-
-// Publish an event to the persistent master store and same-domain Vercel API
+// Publish an event to same-domain Vercel API (/api/orders) with keepalive
 async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   event.senderDeviceId = DEVICE_ID;
   const bodyText = JSON.stringify(event);
 
-  // 1. Primary: Same-Domain Vercel Serverless Function (/api/orders) with keepalive
-  const vercelPromise = (async () => {
-    try {
-      await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyText,
-        keepalive: true,
-      });
-    } catch {}
-  })();
-
-  // 2. Direct Persistent Cloud Master Store (guarantees cross-device sync even across cold starts)
-  const masterStorePromise = (async () => {
-    try {
-      const allCurrent = getAllOrders();
-      await fetch(CLOUD_MASTER_STORE_URL, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'wrap_and_wing_orders_v1',
-          data: {
-            orders: allCurrent.slice(0, 100),
-            lastUpdated: Date.now(),
-          },
-        }),
-        keepalive: true,
-      });
-    } catch {}
-  })();
-
-  // Await with a 500ms ceiling so UI remains snappy while network transmission is guaranteed
   try {
-    await Promise.race([
-      Promise.all([vercelPromise, masterStorePromise]),
-      new Promise((resolve) => setTimeout(resolve, 500)),
-    ]);
-  } catch {}
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyText,
+      keepalive: true,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+  } catch (err) {
+    console.warn('Could not post order event to /api/orders:', err);
+  }
 }
 
 // Handle an incoming cloud event from another phone/tablet/computer
@@ -302,65 +276,37 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull orders from /api/orders and persistent master store
+// Pull orders from same-domain /api/orders
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
-    let cloudOrders: LiveOrder[] | null = null;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const apiResp = await fetch('/api/orders', {
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (apiResp.ok) {
+      const cloudOrders = await apiResp.json();
+      if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+        const currentOrders = getAllOrders();
+        const mergedMap = new Map<string, LiveOrder>();
 
-    // 1. Primary: Check same-domain /api/orders
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const apiResp = await fetch('/api/orders', {
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (apiResp.ok) {
-        const data = await apiResp.json();
-        if (Array.isArray(data) && data.length > 0) {
-          cloudOrders = data;
+        // Populate cloud orders
+        for (const o of cloudOrders) {
+          if (o && o.orderId) mergedMap.set(o.orderId, o);
         }
-      }
-    } catch {}
 
-    // 2. Secondary: Direct persistent Cloud Master Store (in case serverless is cold/restarting)
-    if (!cloudOrders || cloudOrders.length === 0) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const resp = await fetch(CLOUD_MASTER_STORE_URL, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (resp.ok) {
-          const json = await resp.json();
-          if (json && json.data && Array.isArray(json.data.orders) && json.data.orders.length > 0) {
-            cloudOrders = json.data.orders;
+        // Preserve any local orders that haven't synced yet
+        for (const o of currentOrders) {
+          if (!mergedMap.has(o.orderId)) {
+            mergedMap.set(o.orderId, o);
           }
         }
-      } catch {}
-    }
 
-    if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
-      const currentOrders = getAllOrders();
-      const mergedMap = new Map<string, LiveOrder>();
-
-      // Populate cloud orders
-      for (const o of cloudOrders) {
-        if (o && o.orderId) mergedMap.set(o.orderId, o);
+        const combined = Array.from(mergedMap.values());
+        saveOrders(combined, true);
       }
-
-      // Preserve any local orders that haven't synced yet
-      for (const o of currentOrders) {
-        if (!mergedMap.has(o.orderId)) {
-          mergedMap.set(o.orderId, o);
-        }
-      }
-
-      const combined = Array.from(mergedMap.values());
-      saveOrders(combined, true);
     }
   } catch (err) {
     console.warn('Sync error:', err);
@@ -454,8 +400,8 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   saveOrders([newOrder, ...existing]);
   setCurrentOrderId(newOrder.orderId);
 
-  // Play local chime
-  playKitchenChime();
+  // Play gentle customer confirmation chime on client device
+  playCustomerUpdateChime();
 
   // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
   await publishCloudEvent({

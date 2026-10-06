@@ -49,11 +49,15 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     if (status === 'cooking') {
       setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');
     } else if (status === 'ready') {
-      setToastMessage('🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.');
+      setToastMessage(
+        isDelivery
+          ? '📦 Kitchen Update: Food ready & packed in thermal bag! Assigned to your driver.'
+          : '🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.'
+      );
     } else if (status === 'dispatched') {
-      setToastMessage('🚗 Driver Update: Hot meal handed to delivery driver and heading to your door!');
+      setToastMessage('🛵 Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
     } else if (status === 'completed') {
-      setToastMessage('🎉 Handed Over: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+      setToastMessage('🎉 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
     }
   };
 
@@ -137,24 +141,87 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const isDelivery = order.orderMode === 'delivery';
   const whatsAppUrl = getWhatsAppOrderUrl(order);
 
-  // Status step calculations
+  // Status step calculations (5-Step for Delivery, 4-Step for Collection)
+  const steps = isDelivery
+    ? [
+        { step: 1, label: 'Order Accepted', icon: '📝' },
+        { step: 2, label: 'On The Grill', icon: '🔥' },
+        { step: 3, label: 'Food Ready', icon: '📦' },
+        { step: 4, label: 'Out for Delivery', icon: '🛵' },
+        { step: 5, label: 'Enjoy!', icon: '✨' },
+      ]
+    : [
+        { step: 1, label: 'Order Accepted', icon: '📝' },
+        { step: 2, label: 'On The Grill', icon: '🔥' },
+        { step: 3, label: 'Ready at Counter', icon: '🛍️' },
+        { step: 4, label: 'Enjoy!', icon: '✨' },
+      ];
+
   const getStepProgress = (status: OrderStatus) => {
-    switch (status) {
-      case 'received':
-        return 1;
-      case 'cooking':
-        return 2;
-      case 'ready':
-      case 'dispatched':
-        return 3;
-      case 'completed':
-        return 4;
-      default:
-        return 1;
+    if (isDelivery) {
+      switch (status) {
+        case 'received':
+          return 1;
+        case 'cooking':
+          return 2;
+        case 'ready':
+          return 3;
+        case 'dispatched':
+          return 4;
+        case 'completed':
+          return 5;
+        default:
+          return 1;
+      }
+    } else {
+      switch (status) {
+        case 'received':
+          return 1;
+        case 'cooking':
+          return 2;
+        case 'ready':
+          return 3;
+        case 'completed':
+          return 4;
+        default:
+          return 1;
+      }
     }
   };
 
   const currentStep = getStepProgress(order.status);
+
+  const getProgressWidth = () => {
+    if (isDelivery) {
+      switch (currentStep) {
+        case 1:
+          return '10%';
+        case 2:
+          return '32%';
+        case 3:
+          return '55%';
+        case 4:
+          return '78%';
+        case 5:
+          return '100%';
+        default:
+          return '10%';
+      }
+    } else {
+      switch (currentStep) {
+        case 1:
+          return '15%';
+        case 2:
+          return '50%';
+        case 3:
+          return '85%';
+        case 4:
+          return '100%';
+        default:
+          return '15%';
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0d0d12] text-zinc-100 flex flex-col font-sans pb-16">
@@ -218,7 +285,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               ? 'bg-gradient-to-br from-rose-950/60 via-zinc-900 to-zinc-950 border-rose-500/40'
               : order.status === 'cooking'
               ? 'bg-gradient-to-br from-amber-950/60 via-zinc-900 to-zinc-950 border-amber-500/40'
-              : order.status === 'ready' || order.status === 'dispatched'
+              : order.status === 'ready'
+              ? 'bg-gradient-to-br from-teal-950/60 via-zinc-900 to-zinc-950 border-teal-500/40'
+              : order.status === 'dispatched'
               ? 'bg-gradient-to-br from-emerald-950/70 via-zinc-900 to-zinc-950 border-emerald-500/50'
               : 'bg-zinc-900 border-white/10'
           }`}
@@ -229,21 +298,24 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {order.status === 'received' && 'Order Received!'}
+                {order.status === 'received' && 'Order Accepted! 📝'}
                 {order.status === 'cooking' && 'On The Flame Grill! 🔥'}
-                {order.status === 'ready' && 'Hot & Ready For Pickup! 🛍️'}
-                {order.status === 'dispatched' && 'Driver Is On The Way! 🚗'}
+                {order.status === 'ready' &&
+                  (isDelivery ? 'Food Ready & Packed! 📦' : 'Hot & Ready For Pickup! 🛍️')}
+                {order.status === 'dispatched' && 'Driver Is On The Way! 🛵'}
                 {order.status === 'completed' && 'Order Completed! 🎉'}
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-md leading-relaxed">
                 {order.status === 'received' &&
-                  'The Pinetown kitchen has your ticket and is preparing your flame-grilled order.'}
+                  'The Pinetown kitchen has accepted your ticket and is preparing fresh ingredients for the grill.'}
                 {order.status === 'cooking' &&
                   'Your chicken and meals are sizzling on the grill with your selected baste flavour.'}
                 {order.status === 'ready' &&
-                  'Your meal is fresh off the grill and packed! Please proceed to the collection counter at Shop 1, Uniland Centre.'}
+                  (isDelivery
+                    ? 'Your meal is freshly cooked and packed in thermal insulation! Waiting for driver departure.'
+                    : 'Your meal is fresh off the grill and packed! Please proceed to the collection counter at Shop 1, Uniland Centre.')}
                 {order.status === 'dispatched' &&
-                  'Our delivery driver has your hot order and is heading towards your delivery address.'}
+                  'Our delivery driver has your hot meal and is heading directly to your address.'}
                 {order.status === 'completed' &&
                   'Thank you for ordering with Wrap & Wings Co.! We hope you enjoy every bite.'}
               </p>
@@ -258,7 +330,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             </div>
           </div>
 
-          {/* Animated 4-Step Progress Bar (Pedros / Uber Eats style) */}
+          {/* Animated Multi-Step Progress Bar */}
           <div className="pt-8">
             <div className="relative">
               {/* Background Connecting Bar */}
@@ -266,26 +338,12 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               {/* Active Fill Bar */}
               <div
                 className="h-2 bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full absolute top-1/2 -translate-y-1/2 z-0 transition-all duration-700"
-                style={{
-                  width:
-                    currentStep === 1
-                      ? '15%'
-                      : currentStep === 2
-                      ? '50%'
-                      : currentStep === 3
-                      ? '85%'
-                      : '100%',
-                }}
+                style={{ width: getProgressWidth() }}
               />
 
               {/* Progress Node Points */}
               <div className="relative z-10 flex justify-between">
-                {[
-                  { step: 1, label: 'Order Sent', icon: '📝' },
-                  { step: 2, label: 'On The Grill', icon: '🔥' },
-                  { step: 3, label: isDelivery ? 'Driver En Route' : 'Ready for Pickup', icon: isDelivery ? '🚗' : '🛍️' },
-                  { step: 4, label: 'Enjoy!', icon: '✨' },
-                ].map((item) => {
+                {steps.map((item) => {
                   const isDone = currentStep >= item.step;
                   const isCurrent = currentStep === item.step;
 
@@ -315,9 +373,67 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </div>
         </div>
 
-        {/* Live Interactive Driver GPS Map & Delivery Telemetry */}
-        {isDelivery && (
+        {/* Live Interactive Driver GPS Map & Telemetry - ONLY SHOWN WHEN OUT FOR DELIVERY OR COMPLETED */}
+        {isDelivery && (order.status === 'dispatched' || order.status === 'completed') && (
           <LiveDriverMap order={order} />
+        )}
+
+        {/* Kitchen Preparation Progress Stage Card (Shown while order is being prepped, grilled, or packed before dispatch) */}
+        {isDelivery && (order.status === 'received' || order.status === 'cooking' || order.status === 'ready') && (
+          <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center text-xl shrink-0">
+                  {order.status === 'received' && '📋'}
+                  {order.status === 'cooking' && '🔥'}
+                  {order.status === 'ready' && '📦'}
+                </div>
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                    Kitchen Preparation in Progress
+                  </div>
+                  <h3 className="text-sm sm:text-base font-black text-white">
+                    {order.status === 'received' && 'Step 1 of 4: Order Accepted & Queued'}
+                    {order.status === 'cooking' && 'Step 2 of 4: Sizzling on the Flame Grill'}
+                    {order.status === 'ready' && 'Step 3 of 4: Food Ready & Thermal Packed'}
+                  </h3>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-white/5 shrink-0">
+                Shop 1, Pinetown
+              </span>
+            </div>
+
+            {/* Preparation Details */}
+            <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-white font-bold">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span>
+                  {order.status === 'received' && 'Kitchen crew reviewing your ticket items and sides.'}
+                  {order.status === 'cooking' && 'Chicken is basted and grilling hot over open flame.'}
+                  {order.status === 'ready' && 'Order packed in thermal insulation, assigned to delivery driver.'}
+                </span>
+              </div>
+              <p className="text-zinc-400 text-[11px] leading-relaxed">
+                {order.status === 'ready'
+                  ? 'Your driver is collecting the sealed hot bag right now. As soon as the driver departs from the kitchen, the Live Driver GPS Tracker map will automatically activate on this screen!'
+                  : 'Live Driver GPS Tracking will unlock automatically as soon as your meal finishes cooking, is packed, and our driver departs for your address.'}
+              </p>
+            </div>
+
+            {/* Delivery Destination */}
+            <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-zinc-300">
+                <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
+                <span className="font-semibold text-white">
+                  Delivery to: {order.customer.address}, {order.customer.suburb}
+                </span>
+              </div>
+              <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md self-start sm:self-auto">
+                Est. Delivery: {order.preferredTime}
+              </span>
+            </div>
+          </div>
         )}
 
         {/* Delivery Workflow Explanation */}

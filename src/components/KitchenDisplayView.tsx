@@ -505,7 +505,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Action Buttons (1-Tap Pedros-style Status Progression) */}
+                  {/* Action Buttons (1-Tap Clear 4-Step Progression) */}
                   <div className="p-3 bg-zinc-950/80 border-t border-white/10 grid grid-cols-1 gap-2">
                     {order.status === 'received' && (
                       <button
@@ -514,40 +514,51 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-rose-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <Flame className="w-4 h-4 fill-white" />
-                        <span>ACCEPT & START GRILLING</span>
+                        <span>1. ACCEPT & START GRILLING</span>
                       </button>
                     )}
 
                     {order.status === 'cooking' && (
                       <button
                         type="button"
+                        onClick={() => handleStatusChange(order.orderId, 'ready')}
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>2. FOOD READY & PACKED</span>
+                      </button>
+                    )}
+
+                    {order.status === 'ready' && (
+                      <button
+                        type="button"
                         onClick={() =>
-                          handleStatusChange(order.orderId, isDelivery ? 'dispatched' : 'ready')
+                          handleStatusChange(order.orderId, isDelivery ? 'dispatched' : 'completed')
                         }
                         className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {isDelivery ? (
                           <>
                             <Truck className="w-4 h-4" />
-                            <span>FOOD PACKED & SEND DRIVER</span>
+                            <span>3. HAND TO DRIVER (OUT FOR DELIVERY)</span>
                           </>
                         ) : (
                           <>
-                            <ShoppingBag className="w-4 h-4" />
-                            <span>FOOD PACKED & READY AT COUNTER</span>
+                            <CheckCircle className="w-4 h-4" />
+                            <span>3. HAND OVER TO CUSTOMER (COMPLETE)</span>
                           </>
                         )}
                       </button>
                     )}
 
-                    {(order.status === 'ready' || order.status === 'dispatched') && (
+                    {order.status === 'dispatched' && (
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'completed')}
                         className="w-full py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-emerald-400 font-black text-xs sm:text-sm tracking-wide border border-emerald-500/30 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <CheckCircle className="w-4 h-4" />
-                        <span>MARK COMPLETED (HANDED OVER)</span>
+                        <span>4. CONFIRM DELIVERED & COMPLETE</span>
                       </button>
                     )}
                   </div>
