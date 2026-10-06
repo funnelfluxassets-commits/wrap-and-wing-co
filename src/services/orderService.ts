@@ -1,5 +1,6 @@
 import { LiveOrder, OrderStatus, OrderTimelineEvent } from '../types';
 import { CheckoutPayload } from './payment';
+import { STORES } from '../data/stores';
 
 const STORAGE_KEY = 'wrap_wing_live_orders';
 const CURRENT_ORDER_KEY = 'wrap_wing_current_order_id';
@@ -118,16 +119,169 @@ function notifySubscribers() {
   }
 }
 
-// Local Storage helpers with full schema sanitization
+export const DEFAULT_INITIAL_ORDERS: LiveOrder[] = [
+  {
+    orderId: 'WW-8492',
+    orderMode: 'delivery',
+    status: 'received',
+    items: [
+      {
+        id: 'item-ww-8492-1',
+        quantity: 1,
+        menuItem: {
+          id: 'pedros-full-chicken',
+          name: 'Flame-Grilled Full Chicken',
+          price: 189.9,
+          description: 'Whole chicken flame-grilled to perfection in our signature basting.',
+          categoryId: 'chicken',
+          popular: true,
+          isSpicy: true,
+          image: '/images/menu/full-chicken.webp',
+        },
+        customization: { flavour: 'hot', side: 'Chips (Large)', extras: [{ name: 'Extra Prego Roll', price: 15 }] },
+        itemTotal: 204.9,
+      },
+      {
+        id: 'item-ww-8492-2',
+        quantity: 2,
+        menuItem: {
+          id: 'pedros-classic-wrap',
+          name: 'Classic Grilled Chicken Wrap',
+          price: 69.9,
+          description: 'Tender chicken strips, crispy lettuce, tomato and signature garlic prego mayo.',
+          categoryId: 'wraps',
+          popular: true,
+          image: '/images/menu/classic-wrap.webp',
+        },
+        customization: { flavour: 'lemony', side: 'Coleslaw' },
+        itemTotal: 139.8,
+      },
+    ],
+    subtotal: 344.7,
+    deliveryFee: 25.0,
+    grandTotal: 369.7,
+    customer: {
+      customerName: 'Sipho Khumalo',
+      phone: '082 555 4921',
+      address: '14 Kings Road',
+      suburb: 'Pinetown',
+      gateCode: '#4820',
+      notes: 'Please ring bell at gate',
+    },
+    store: STORES[0],
+    paymentMethod: 'whatsapp',
+    paymentStatus: 'pending',
+    preferredTime: 'ASAP (35–45 mins)',
+    createdAt: 'Just now',
+    estimatedMinutes: 35,
+    timeline: [
+      { status: 'received', timestamp: 'Just now', label: 'Order Placed & Received', note: 'Ticket sent to Pinetown Flagship' }
+    ],
+  },
+  {
+    orderId: 'WW-8490',
+    orderMode: 'delivery',
+    status: 'cooking',
+    items: [
+      {
+        id: 'item-ww-8490-1',
+        quantity: 2,
+        menuItem: {
+          id: 'wings-12pc',
+          name: '12 Flame-Grilled Wings',
+          price: 129.9,
+          description: '12 succulent flame-grilled chicken wings drenched in your choice of marinade.',
+          categoryId: 'wings',
+          popular: true,
+          isSpicy: true,
+          image: '/images/menu/12-wings.webp',
+        },
+        customization: { flavour: 'hot', side: 'Spicy Rice' },
+        itemTotal: 259.8,
+      },
+    ],
+    subtotal: 259.8,
+    deliveryFee: 25.0,
+    grandTotal: 284.8,
+    customer: {
+      customerName: 'Thabo Mbeki',
+      phone: '083 490 8593',
+      address: '42 Crompton Street',
+      suburb: 'Pinetown',
+      complexOrUnit: 'Block B, Unit 4',
+      notes: 'Call on arrival',
+    },
+    store: STORES[0],
+    paymentMethod: 'cod',
+    paymentStatus: 'pending',
+    preferredTime: '12:30 PM',
+    createdAt: '12:05 PM',
+    estimatedMinutes: 25,
+    timeline: [
+      { status: 'received', timestamp: '12:05 PM', label: 'Order Placed & Received', note: 'Ticket sent to Pinetown Flagship' },
+      { status: 'cooking', timestamp: '12:10 PM', label: 'Flame Grill Started', note: 'Chicken on the grill' }
+    ],
+  },
+  {
+    orderId: 'WW-8488',
+    orderMode: 'collection',
+    status: 'ready',
+    items: [
+      {
+        id: 'item-ww-8488-1',
+        quantity: 1,
+        menuItem: {
+          id: 'wrap-meal',
+          name: 'Signature Wrap Meal Combo',
+          price: 89.9,
+          description: 'Toasted chicken wrap with regular chips and a 300ml cold drink.',
+          categoryId: 'wraps',
+          popular: true,
+          image: '/images/menu/wrap-meal.webp',
+        },
+        customization: { flavour: 'mild', side: 'Chips (Regular)' },
+        itemTotal: 89.9,
+      },
+    ],
+    subtotal: 89.9,
+    deliveryFee: 0,
+    grandTotal: 89.9,
+    customer: {
+      customerName: 'Sarah Jenkins',
+      phone: '071 234 5678',
+      address: 'Collection Counter',
+      suburb: 'Pinetown',
+    },
+    store: STORES[0],
+    paymentMethod: 'yoco',
+    paymentStatus: 'paid',
+    preferredTime: 'ASAP (15–20 mins)',
+    createdAt: '11:45 AM',
+    estimatedMinutes: 15,
+    timeline: [
+      { status: 'received', timestamp: '11:45 AM', label: 'Order Placed', note: 'Ticket sent to kitchen' },
+      { status: 'cooking', timestamp: '11:48 AM', label: 'Cooking', note: 'On the grill' },
+      { status: 'ready', timestamp: '11:58 AM', label: 'Packed & Ready', note: 'Waiting at collection counter' }
+    ],
+  }
+];
+
+// Local Storage helpers with full schema sanitization and auto-initialization
 export function getAllOrders(): LiveOrder[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      saveOrders(DEFAULT_INITIAL_ORDERS, false);
+      return [...DEFAULT_INITIAL_ORDERS];
+    }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      saveOrders(DEFAULT_INITIAL_ORDERS, false);
+      return [...DEFAULT_INITIAL_ORDERS];
+    }
     // Sanitize and filter out invalid or corrupted orders
-    return parsed
+    const valid = parsed
       .filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId))
       .map((o) => ({
         ...o,
@@ -149,8 +303,14 @@ export function getAllOrders(): LiveOrder[] {
         preferredTime: o.preferredTime || 'ASAP',
         createdAt: o.createdAt || 'Just now',
       }));
+
+    if (valid.length === 0) {
+      saveOrders(DEFAULT_INITIAL_ORDERS, false);
+      return [...DEFAULT_INITIAL_ORDERS];
+    }
+    return valid;
   } catch {
-    return [];
+    return [...DEFAULT_INITIAL_ORDERS];
   }
 }
 
@@ -164,6 +324,14 @@ export function saveOrders(orders: LiveOrder[], notify = true) {
   } catch (err) {
     console.error('Failed to save orders:', err);
   }
+}
+
+export function resetToDefaultOrders(): LiveOrder[] {
+  saveOrders(DEFAULT_INITIAL_ORDERS, true);
+  if (typeof window !== 'undefined') {
+    setCurrentOrderId(DEFAULT_INITIAL_ORDERS[0].orderId);
+  }
+  return [...DEFAULT_INITIAL_ORDERS];
 }
 
 export function getOrderById(orderId: string): LiveOrder | null {
@@ -232,7 +400,7 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -313,7 +481,7 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const apiResp = await fetch('/api/orders', {
       cache: 'no-store',
       signal: controller.signal,
