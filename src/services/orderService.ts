@@ -118,13 +118,37 @@ function notifySubscribers() {
   }
 }
 
-// Local Storage helpers
+// Local Storage helpers with full schema sanitization
 export function getAllOrders(): LiveOrder[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Sanitize and filter out invalid or corrupted orders
+    return parsed
+      .filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId))
+      .map((o) => ({
+        ...o,
+        customer: o.customer || {
+          customerName: 'Customer',
+          phone: '',
+          address: '',
+          suburb: 'Pinetown',
+        },
+        items: Array.isArray(o.items) ? o.items : [],
+        grandTotal: typeof o.grandTotal === 'number' ? o.grandTotal : 0,
+        subtotal: typeof o.subtotal === 'number' ? o.subtotal : 0,
+        deliveryFee: typeof o.deliveryFee === 'number' ? o.deliveryFee : 0,
+        timeline: Array.isArray(o.timeline) ? o.timeline : [],
+        status: o.status || 'received',
+        orderMode: o.orderMode || 'delivery',
+        paymentMethod: o.paymentMethod || 'cod',
+        paymentStatus: o.paymentStatus || 'pending',
+        preferredTime: o.preferredTime || 'ASAP',
+        createdAt: o.createdAt || 'Just now',
+      }));
   } catch {
     return [];
   }
@@ -158,6 +182,15 @@ export function getCurrentOrderId(): string | null {
 export function setCurrentOrderId(orderId: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(CURRENT_ORDER_KEY, orderId);
+}
+
+export function clearAllOrders() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CURRENT_ORDER_KEY);
+    notifySubscribers();
+  } catch {}
 }
 
 // -------------------------------------------------------------
@@ -292,9 +325,31 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         const currentOrders = getAllOrders();
         const mergedMap = new Map<string, LiveOrder>();
 
-        // Populate cloud orders
-        for (const o of cloudOrders) {
-          if (o && o.orderId) mergedMap.set(o.orderId, o);
+        // Populate cloud orders with schema sanitization
+        for (const raw of cloudOrders) {
+          if (raw && raw.orderId) {
+            const sanitized: LiveOrder = {
+              ...raw,
+              customer: raw.customer || {
+                customerName: 'Customer',
+                phone: '',
+                address: '',
+                suburb: 'Pinetown',
+              },
+              items: Array.isArray(raw.items) ? raw.items : [],
+              grandTotal: typeof raw.grandTotal === 'number' ? raw.grandTotal : 0,
+              subtotal: typeof raw.subtotal === 'number' ? raw.subtotal : 0,
+              deliveryFee: typeof raw.deliveryFee === 'number' ? raw.deliveryFee : 0,
+              timeline: Array.isArray(raw.timeline) ? raw.timeline : [],
+              status: raw.status || 'received',
+              orderMode: raw.orderMode || 'delivery',
+              paymentMethod: raw.paymentMethod || 'cod',
+              paymentStatus: raw.paymentStatus || 'pending',
+              preferredTime: raw.preferredTime || 'ASAP',
+              createdAt: raw.createdAt || 'Just now',
+            };
+            mergedMap.set(sanitized.orderId, sanitized);
+          }
         }
 
         // Preserve any local orders that haven't synced yet

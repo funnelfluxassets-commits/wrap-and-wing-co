@@ -139,6 +139,27 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   }
 
   const isDelivery = order.orderMode === 'delivery';
+  const customer = order.customer || {
+    customerName: 'Customer',
+    phone: '',
+    address: '',
+    suburb: 'Pinetown',
+    complexOrUnit: '',
+    gateCode: '',
+    notes: '',
+  };
+  const store = order.store || {
+    name: 'Shop 1, Uniland Centre, Pinetown',
+    phone: '083 490 8593',
+    address: 'Shop 1, Uniland Centre, Pinetown',
+    googleMapsUrl: 'https://maps.google.com/?q=Shop+1+Uniland+Centre+Pinetown',
+  };
+  const items = Array.isArray(order.items) ? order.items : [];
+  const subtotal = typeof order.subtotal === 'number' ? order.subtotal : 0;
+  const deliveryFee = typeof order.deliveryFee === 'number' ? order.deliveryFee : 0;
+  const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
+  const preferredTime = order.preferredTime || 'ASAP';
+  const createdAt = order.createdAt || 'Just now';
   const whatsAppUrl = getWhatsAppOrderUrl(order);
 
   // Status step calculations (5-Step for Delivery, 4-Step for Collection)
@@ -324,9 +345,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             <div className="p-4 rounded-2xl bg-black/50 border border-white/10 text-center shrink-0">
               <div className="text-[10px] font-black uppercase text-zinc-400">Target Time</div>
               <div className="text-lg sm:text-xl font-black text-amber-400 mt-0.5">
-                {order.preferredTime}
+                {preferredTime}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">Placed: {order.createdAt}</div>
+              <div className="text-[10px] text-zinc-500 mt-0.5">Placed: {createdAt}</div>
             </div>
           </div>
 
@@ -426,11 +447,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <div className="flex items-center gap-2 text-zinc-300">
                 <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
                 <span className="font-semibold text-white">
-                  Delivery to: {order.customer.address}, {order.customer.suburb}
+                  Delivery to: {customer.address ? `${customer.address}, ${customer.suburb || 'Pinetown'}` : (customer.suburb || 'Pinetown')}
                 </span>
               </div>
               <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md self-start sm:self-auto">
-                Est. Delivery: {order.preferredTime}
+                Est. Delivery: {preferredTime}
               </span>
             </div>
           </div>
@@ -473,7 +494,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   <span>3. Doorstep Arrival</span>
                 </div>
                 <div className="text-[11px] text-zinc-400 leading-relaxed">
-                  Driver navigates via GPS straight to your delivery address in {order.customer.suburb}.
+                  Driver navigates via GPS straight to your delivery address in {customer.suburb || 'Pinetown'}.
                 </div>
               </div>
             </div>
@@ -491,7 +512,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <MapPin className="w-4 h-4 text-rose-500" />
               <span>{isDelivery ? 'Delivery Destination' : 'Collection Counter Details'}</span>
             </h3>
-            <span className="text-[11px] font-bold text-zinc-400">{order.store.name}</span>
+            <span className="text-[11px] font-bold text-zinc-400">{store.name}</span>
           </div>
 
           {!isDelivery ? (
@@ -505,9 +526,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                {order.store.googleMapsUrl && (
+                {store.googleMapsUrl && (
                   <a
-                    href={order.store.googleMapsUrl}
+                    href={store.googleMapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/40"
@@ -518,28 +539,28 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   </a>
                 )}
                 <a
-                  href={`tel:${order.store.phone}`}
+                  href={`tel:${store.phone}`}
                   className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10"
                 >
                   <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Call Store ({order.store.phone})</span>
+                  <span>Call Store ({store.phone})</span>
                 </a>
               </div>
             </div>
           ) : (
             <div className="text-xs text-zinc-300 space-y-1.5">
               <div>
-                <div className="font-extrabold text-white text-base">{order.customer.address}</div>
-                <div className="text-zinc-400">{order.customer.suburb}, Durban</div>
+                <div className="font-extrabold text-white text-base">{customer.address || 'Address on file'}</div>
+                <div className="text-zinc-400">{customer.suburb || 'Pinetown'}, Durban</div>
               </div>
-              {order.customer.complexOrUnit && (
-                <div className="text-amber-300 font-semibold">Unit: {order.customer.complexOrUnit}</div>
+              {customer.complexOrUnit && (
+                <div className="text-amber-300 font-semibold">Unit: {customer.complexOrUnit}</div>
               )}
-              {order.customer.gateCode && (
-                <div className="text-amber-300 font-semibold">🔑 Gate Code: {order.customer.gateCode}</div>
+              {customer.gateCode && (
+                <div className="text-amber-300 font-semibold">🔑 Gate Code: {customer.gateCode}</div>
               )}
-              {order.customer.notes && (
-                <div className="italic text-zinc-400 pt-0.5">"{order.customer.notes}"</div>
+              {customer.notes && (
+                <div className="italic text-zinc-400 pt-0.5">"{customer.notes}"</div>
               )}
             </div>
           )}
@@ -548,18 +569,18 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         {/* Items Ordered Card */}
         <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">
           <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
-            Your Meal ({order.items.length} items)
+            Your Meal ({items.length} items)
           </h3>
 
           <div className="space-y-2">
-            {order.items.map((item, idx) => (
+            {items.map((item, idx) => (
               <div
                 key={idx}
                 className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/5 flex items-start justify-between text-xs"
               >
                 <div>
                   <span className="font-extrabold text-white text-sm">
-                    {item.quantity}x {item.menuItem.name}
+                    {item.quantity || 1}x {item.menuItem?.name || 'Meal'}
                   </span>
                   <div className="text-[11px] text-zinc-400 mt-1 space-y-0.5">
                     {item.customization?.flavour && (
@@ -568,16 +589,17 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                       </div>
                     )}
                     {item.customization?.side && <div>Side: {item.customization.side}</div>}
-                    {item.customization?.extras?.map((e) => (
-                      <div key={e.name} className="text-amber-300">+ {e.name}</div>
-                    ))}
+                    {Array.isArray(item.customization?.extras) &&
+                      item.customization.extras.map((e) => (
+                        <div key={e.name} className="text-amber-300">+ {e.name}</div>
+                      ))}
                     {item.customization?.notes && (
                       <div className="italic text-zinc-500">"{item.customization.notes}"</div>
                     )}
                   </div>
                 </div>
                 <span className="font-black text-amber-400 text-sm">
-                  R{item.itemTotal.toFixed(2)}
+                  R{(typeof item.itemTotal === 'number' ? item.itemTotal : 0).toFixed(2)}
                 </span>
               </div>
             ))}
@@ -587,17 +609,17 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           <div className="pt-3 border-t border-white/10 space-y-1.5 text-xs text-zinc-400">
             <div className="flex justify-between">
               <span>Subtotal</span>
-              <span className="text-white font-bold">R{order.subtotal.toFixed(2)}</span>
+              <span className="text-white font-bold">R{subtotal.toFixed(2)}</span>
             </div>
             {isDelivery && (
               <div className="flex justify-between">
                 <span>Delivery Fee</span>
-                <span className="text-white font-bold">R{order.deliveryFee.toFixed(2)}</span>
+                <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-base font-black text-white pt-2 border-t border-white/10">
               <span>Total Amount</span>
-              <span className="text-amber-400 text-lg">R{order.grandTotal.toFixed(2)}</span>
+              <span className="text-amber-400 text-lg">R{grandTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>

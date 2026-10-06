@@ -16,6 +16,7 @@ import { StoryView } from './components/StoryView';
 import { TeamView } from './components/TeamView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { OrderTrackerView } from './components/OrderTrackerView';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder } from './types';
 import { CheckoutPayload } from './services/payment';
@@ -97,19 +98,23 @@ const MainContent: React.FC = () => {
       
       {/* ── View Routing ────────────────────────────────────────────────────── */}
       {currentView === 'kitchen' ? (
-        <KitchenDisplayView
-          onBackToMenu={() => handleNavigate('menu')}
-          onViewOrderTracker={(orderId) => {
-            setTrackedOrderId(orderId);
-            handleNavigate('track');
-          }}
-        />
+        <ErrorBoundary fallbackTitle="Kitchen Display System Recovery">
+          <KitchenDisplayView
+            onBackToMenu={() => handleNavigate('menu')}
+            onViewOrderTracker={(orderId) => {
+              setTrackedOrderId(orderId);
+              handleNavigate('track');
+            }}
+          />
+        </ErrorBoundary>
       ) : currentView === 'track' ? (
-        <OrderTrackerView
-          orderId={trackedOrderId || activeOrder?.orderId || ''}
-          onBackToMenu={() => handleNavigate('menu')}
-          onOpenKitchen={() => handleNavigate('kitchen')}
-        />
+        <ErrorBoundary fallbackTitle="Order Tracker Recovery">
+          <OrderTrackerView
+            orderId={trackedOrderId || activeOrder?.orderId || ''}
+            onBackToMenu={() => handleNavigate('menu')}
+            onOpenKitchen={() => handleNavigate('kitchen')}
+          />
+        </ErrorBoundary>
       ) : (
         <>
           {/* Navigation */}
@@ -338,9 +343,11 @@ const MainContent: React.FC = () => {
 
 export const App: React.FC = () => {
   return (
-    <CartProvider>
-      <MainContent />
-    </CartProvider>
+    <ErrorBoundary fallbackTitle="Wrap & Wings Co. App Recovery">
+      <CartProvider>
+        <MainContent />
+      </CartProvider>
+    </ErrorBoundary>
   );
 };
 

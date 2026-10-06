@@ -5,7 +5,8 @@ import {
   subscribeToOrders,
   updateOrderStatus,
   playKitchenChime,
-  syncOrdersFromCloud
+  syncOrdersFromCloud,
+  clearAllOrders
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
@@ -23,7 +24,8 @@ import {
   Printer,
   Sparkles,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 
@@ -36,7 +38,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
 }) => {
-  const [orders, setOrders] = useState<LiveOrder[]>([]);
+  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
   const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed'>('active');
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -104,23 +106,23 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <div class="badge">${isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}</div>
           <div>Time: ${order.createdAt} (${order.preferredTime})</div>
           <div class="line"></div>
-          <div><span class="bold">Customer:</span> ${order.customer.customerName}</div>
-          <div><span class="bold">Phone:</span> ${order.customer.phone}</div>
+          <div><span class="bold">Customer:</span> ${order.customer?.customerName || 'Customer'}</div>
+          <div><span class="bold">Phone:</span> ${order.customer?.phone || 'N/A'}</div>
           ${
             isDelivery
-              ? `<div><span class="bold">Address:</span> ${order.customer.address}, ${order.customer.suburb}</div>
-                 ${order.customer.complexOrUnit ? `<div>Unit: ${order.customer.complexOrUnit}</div>` : ''}
-                 ${order.customer.gateCode ? `<div>Gate Code: ${order.customer.gateCode}</div>` : ''}
-                 ${order.customer.notes ? `<div>Notes: ${order.customer.notes}</div>` : ''}`
+              ? `<div><span class="bold">Address:</span> ${order.customer?.address || ''}, ${order.customer?.suburb || 'Pinetown'}</div>
+                 ${order.customer?.complexOrUnit ? `<div>Unit: ${order.customer.complexOrUnit}</div>` : ''}
+                 ${order.customer?.gateCode ? `<div>Gate Code: ${order.customer.gateCode}</div>` : ''}
+                 ${order.customer?.notes ? `<div>Notes: ${order.customer.notes}</div>` : ''}`
               : ''
           }
           <div class="line"></div>
           <div class="bold">ITEMS:</div>
-          ${order.items
+          ${(Array.isArray(order.items) ? order.items : [])
             .map(
               (i) => `
             <div class="item">
-              <div class="bold">${i.quantity}x ${i.menuItem.name}</div>
+              <div class="bold">${i.quantity}x ${i.menuItem?.name || 'Meal'}</div>
               ${i.customization?.flavour ? `<div>- Baste: ${i.customization.flavour.toUpperCase()}</div>` : ''}
               ${i.customization?.side ? `<div>- Side: ${i.customization.side}</div>` : ''}
               ${i.customization?.notes ? `<div>- Notes: ${i.customization.notes}</div>` : ''}
@@ -129,8 +131,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             )
             .join('')}
           <div class="line"></div>
-          <div class="bold" style="font-size: 15px;">TOTAL: R${order.grandTotal.toFixed(2)}</div>
-          <div>Payment: ${order.paymentStatus === 'paid' ? 'PAID' : 'COLLECT PAYMENT'} (${order.paymentMethod.toUpperCase()})</div>
+          <div class="bold" style="font-size: 15px;">TOTAL: R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)}</div>
+          <div>Payment: ${order.paymentStatus === 'paid' ? 'PAID' : 'COLLECT PAYMENT'} (${(order.paymentMethod || 'cod').toUpperCase()})</div>
           <div class="line"></div>
           <div class="center">*** THANK YOU ***</div>
         </body>
@@ -144,11 +146,12 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     }, 250);
   };
 
-  // Filter orders
-  const activeOrders = orders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
-  const cookingOrders = orders.filter((o) => o.status === 'cooking');
-  const readyOrders = orders.filter((o) => o.status === 'ready' || o.status === 'dispatched');
-  const completedOrders = orders.filter((o) => o.status === 'completed');
+  // Filter orders safely
+  const validOrders = orders.filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId));
+  const activeOrders = validOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
+  const cookingOrders = validOrders.filter((o) => o.status === 'cooking');
+  const readyOrders = validOrders.filter((o) => o.status === 'ready' || o.status === 'dispatched');
+  const completedOrders = validOrders.filter((o) => o.status === 'completed');
 
   const displayedOrders =
     filter === 'active'
@@ -280,7 +283,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={async () => {
@@ -297,9 +300,24 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
           </button>
 
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Reset local kitchen ticket cache? Cloud will re-sync fresh orders.')) {
+                clearAllOrders();
+                setOrders([]);
+              }
+            }}
+            className="p-1.5 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-400 hover:text-rose-400 flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+            title="Clear local orders cache"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Reset Cache</span>
+          </button>
+
           <div className="text-xs text-zinc-400 flex items-center gap-1.5">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="hidden sm:inline">Live Cloud Sync</span>
+            <span className="hidden sm:inline">Live Radar</span>
           </div>
         </div>
       </div>
@@ -335,9 +353,28 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {displayedOrders.map((order) => {
+              if (!order || !order.orderId) return null;
               const isDelivery = order.orderMode === 'delivery';
-              const googleMapsUrl = generateGoogleMapsUrl(order.customer.address, order.customer.suburb);
-              const cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
+              const customer = order.customer || {
+                customerName: 'Customer',
+                phone: '',
+                address: '',
+                suburb: 'Pinetown',
+                complexOrUnit: '',
+                gateCode: '',
+                notes: '',
+              };
+              const customerName = customer.customerName || 'Customer';
+              const rawPhone = customer.phone || '';
+              const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+              const address = customer.address || '';
+              const suburb = customer.suburb || 'Pinetown';
+              const googleMapsUrl = generateGoogleMapsUrl(address, suburb);
+              const items = Array.isArray(order.items) ? order.items : [];
+              const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
+              const createdAt = order.createdAt || 'Just now';
+              const preferredTime = order.preferredTime || 'ASAP';
+              const paymentMethod = (order.paymentMethod || 'cod').toUpperCase();
 
               return (
                 <div
@@ -379,9 +416,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       </div>
                       <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
                         <Clock className="w-3 h-3" />
-                        <span>Placed: {order.createdAt}</span>
+                        <span>Placed: {createdAt}</span>
                         <span>•</span>
-                        <span className="text-amber-300 font-bold">{order.preferredTime}</span>
+                        <span className="text-amber-300 font-bold">{preferredTime}</span>
                       </div>
                     </div>
 
@@ -401,30 +438,34 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   <div className="p-4 bg-zinc-950/60 border-b border-white/5 space-y-1 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-extrabold text-white text-sm">
-                        {order.customer.customerName}
+                        {customerName}
                       </span>
-                      <a
-                        href={`tel:${cleanPhone}`}
-                        className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
-                      >
-                        <Phone className="w-3 h-3" />
-                        <span>{order.customer.phone}</span>
-                      </a>
+                      {rawPhone ? (
+                        <a
+                          href={`tel:${cleanPhone}`}
+                          className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{rawPhone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px]">No Phone</span>
+                      )}
                     </div>
 
                     {isDelivery && (
                       <div className="pt-1 text-[11px] text-zinc-300 space-y-0.5">
                         <div className="font-semibold text-white">
-                          📍 {order.customer.address}, {order.customer.suburb}
+                          📍 {address ? `${address}, ${suburb}` : suburb}
                         </div>
-                        {order.customer.complexOrUnit && (
-                          <div className="text-amber-300">Unit: {order.customer.complexOrUnit}</div>
+                        {customer.complexOrUnit && (
+                          <div className="text-amber-300">Unit: {customer.complexOrUnit}</div>
                         )}
-                        {order.customer.gateCode && (
-                          <div className="text-amber-300 font-bold">🔑 Gate Code: {order.customer.gateCode}</div>
+                        {customer.gateCode && (
+                          <div className="text-amber-300 font-bold">🔑 Gate Code: {customer.gateCode}</div>
                         )}
-                        {order.customer.notes && (
-                          <div className="italic text-zinc-400">"{order.customer.notes}"</div>
+                        {customer.notes && (
+                          <div className="italic text-zinc-400">"{customer.notes}"</div>
                         )}
 
                         <div className="pt-1.5 flex gap-2">
@@ -445,16 +486,16 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   {/* Meal Checklist (The Kitchen's Core View) */}
                   <div className="flex-1 p-4 space-y-2.5 overflow-y-auto max-h-64">
                     <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      Food Checklist ({order.items.length} items)
+                      Food Checklist ({items.length} items)
                     </div>
-                    {order.items.map((item, idx) => (
+                    {items.map((item, idx) => (
                       <div
                         key={idx}
                         className="p-3 rounded-2xl bg-zinc-900 border border-white/10 space-y-1 text-xs"
                       >
                         <div className="flex items-baseline justify-between">
                           <span className="font-black text-white text-sm">
-                            {item.quantity}x {item.menuItem.name}
+                            {item.quantity || 1}x {item.menuItem?.name || 'Meal'}
                           </span>
                         </div>
 
@@ -471,11 +512,12 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                           )}
                         </div>
 
-                        {item.customization?.extras?.map((e) => (
-                          <div key={e.name} className="text-[11px] text-amber-300/80 font-medium">
-                            + {e.name}
-                          </div>
-                        ))}
+                        {Array.isArray(item.customization?.extras) &&
+                          item.customization.extras.map((e) => (
+                            <div key={e.name} className="text-[11px] text-amber-300/80 font-medium">
+                              + {e.name}
+                            </div>
+                          ))}
 
                         {item.customization?.notes && (
                           <div className="text-[11px] text-yellow-300/90 italic bg-yellow-500/10 p-1.5 rounded-lg mt-1 border border-yellow-500/20">
@@ -491,7 +533,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     <div>
                       <span className="text-zinc-400">Total: </span>
                       <span className="text-amber-400 font-black text-sm">
-                        R{order.grandTotal.toFixed(2)}
+                        R{grandTotal.toFixed(2)}
                       </span>
                     </div>
                     <span
@@ -501,7 +543,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                           : 'bg-amber-500/20 text-amber-300'
                       }`}
                     >
-                      {order.paymentStatus === 'paid' ? 'PAID' : 'PAY ON HANDOVER'}
+                      {order.paymentStatus === 'paid' ? 'PAID' : 'PAY ON HANDOVER'} ({paymentMethod})
                     </span>
                   </div>
 

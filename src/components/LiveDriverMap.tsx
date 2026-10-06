@@ -47,7 +47,13 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
   const [driverCurrentRoad, setDriverCurrentRoad] = useState('Josiah Gumede Road, Pinetown');
   const [isMapLoaded, setIsMapLoaded] = useState(false);
 
-  const suburbName = order.customer.suburb || 'Pinetown';
+  const customer = order.customer || {
+    customerName: 'Customer',
+    phone: '',
+    address: 'Pinetown',
+    suburb: 'Pinetown',
+  };
+  const suburbName = customer.suburb || 'Pinetown';
   const destCoords: [number, number] =
     SUBURB_COORDINATES[suburbName] || SUBURB_COORDINATES['Pinetown'];
 
@@ -176,7 +182,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
       // Add Destination Marker
       L.marker(destCoords, { icon: customerIcon })
         .addTo(map)
-        .bindPopup(`<b>Delivery Address</b><br>${order.customer.address}`);
+        .bindPopup(`<b>Delivery Address</b><br>${customer.address || suburbName}`);
 
       // Add Route Line (Glowing Rose / Amber gradient styling)
       const polyline = L.polyline(routePoints, {
