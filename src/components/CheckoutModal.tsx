@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
-import { createLiveOrder, playCustomerUpdateChime } from '../services/orderService';
+import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, Sparkles } from 'lucide-react';
 
 interface SavedCustomerProfile {
@@ -95,7 +95,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       notes: notes.trim() || undefined,
     });
 
-    const orderId = `WW-${Math.floor(1000 + Math.random() * 9000)}`;
+    const orderId = generateNextOrderId(orderMode);
 
     const deliveryDetails: DeliveryDetails = {
       customerName,

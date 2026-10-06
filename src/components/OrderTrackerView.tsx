@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LiveOrder, OrderStatus } from '../types';
 import {
   subscribeToSingleOrder,
@@ -22,7 +22,9 @@ import {
   ChevronRight,
   ExternalLink,
   Sparkles,
-  PartyPopper
+  PartyPopper,
+  FileText,
+  Store
 } from 'lucide-react';
 import { LiveDriverMap } from './LiveDriverMap';
 
@@ -39,7 +41,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 }) => {
   const [order, setOrder] = useState<LiveOrder | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [lastStatus, setLastStatus] = useState<OrderStatus | null>(null);
+  const lastStatusRef = useRef<OrderStatus | null>(null);
 
   const effectiveOrderId = orderId || getCurrentOrderId() || getAllOrders()[0]?.orderId || '';
 
@@ -63,20 +65,27 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
   useEffect(() => {
     if (!effectiveOrderId) return;
+    const cleanTarget = effectiveOrderId.replace('#', '').trim();
+
     const unsubscribe = subscribeToSingleOrder(effectiveOrderId, (liveOrder) => {
       if (liveOrder) {
-        if (lastStatus && liveOrder.status !== lastStatus) {
+        if (lastStatusRef.current && liveOrder.status !== lastStatusRef.current) {
           triggerStatusAlert(liveOrder.status);
         }
-        setLastStatus(liveOrder.status);
+        lastStatusRef.current = liveOrder.status;
         setOrder(liveOrder);
       }
     });
 
     const handleCustomStatusEvent = (e: Event) => {
       const detail = (e as CustomEvent).detail;
-      if (detail && detail.orderId === effectiveOrderId) {
-        triggerStatusAlert(detail.newStatus || detail.status);
+      const detailClean = detail?.orderId ? String(detail.orderId).replace('#', '').trim() : '';
+      if (detail && (detail.orderId === effectiveOrderId || detailClean === cleanTarget)) {
+        const next = detail.newStatus || detail.status;
+        if (next && next !== lastStatusRef.current) {
+          triggerStatusAlert(next);
+          lastStatusRef.current = next;
+        }
       }
     };
     window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
@@ -84,12 +93,14 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     // Active 2-second tracker radar to check for kitchen status progression
     const trackerRadar = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
-      const current = freshOrders.find((o) => o.orderId === effectiveOrderId);
+      const current = freshOrders.find(
+        (o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === cleanTarget
+      );
       if (current) {
-        if (lastStatus && current.status !== lastStatus) {
+        if (lastStatusRef.current && current.status !== lastStatusRef.current) {
           triggerStatusAlert(current.status);
         }
-        setLastStatus(current.status);
+        lastStatusRef.current = current.status;
         setOrder(current);
       }
     }, 2000);
@@ -99,7 +110,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       window.removeEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
       clearInterval(trackerRadar);
     };
-  }, [effectiveOrderId, lastStatus]);
+  }, [effectiveOrderId]);
 
   if (!order) {
     return (
@@ -165,17 +176,62 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   // Status step calculations (5-Step for Delivery, 4-Step for Collection)
   const steps = isDelivery
     ? [
-        { step: 1, label: 'Order Accepted', icon: '📝' },
-        { step: 2, label: 'On The Grill', icon: '🔥' },
-        { step: 3, label: 'Food Ready', icon: '📦' },
-        { step: 4, label: 'Out for Delivery', icon: '🛵' },
-        { step: 5, label: 'Enjoy!', icon: '✨' },
+        {
+          step: 1,
+          label: 'Order Accepted',
+          icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+        },
+        {
+          step: 2,
+          label: 'On The Grill',
+          icon: <Flame className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-amber-500/40',
+        },
+        {
+          step: 3,
+          label: 'Food Ready',
+          icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-400 to-amber-500 text-zinc-950 shadow-yellow-500/40',
+        },
+        {
+          step: 4,
+          label: 'Out for Delivery',
+          icon: <Truck className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-zinc-950 shadow-emerald-500/40',
+        },
+        {
+          step: 5,
+          label: 'Enjoy!',
+          icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-rose-500 to-amber-500 text-white shadow-rose-500/40',
+        },
       ]
     : [
-        { step: 1, label: 'Order Accepted', icon: '📝' },
-        { step: 2, label: 'On The Grill', icon: '🔥' },
-        { step: 3, label: 'Ready at Counter', icon: '🛍️' },
-        { step: 4, label: 'Enjoy!', icon: '✨' },
+        {
+          step: 1,
+          label: 'Order Accepted',
+          icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+        },
+        {
+          step: 2,
+          label: 'On The Grill',
+          icon: <Flame className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-amber-500/40',
+        },
+        {
+          step: 3,
+          label: 'Ready at Counter',
+          icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-400 to-amber-500 text-zinc-950 shadow-yellow-500/40',
+        },
+        {
+          step: 4,
+          label: 'Enjoy!',
+          icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-rose-500 to-amber-500 text-white shadow-rose-500/40',
+        },
       ];
 
   const getStepProgress = (status: OrderStatus) => {
@@ -371,17 +427,17 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   return (
                     <div key={item.step} className="flex flex-col items-center">
                       <div
-                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all shadow-lg ${
+                        className={`w-9 h-9 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center transition-all shadow-lg ${
                           isDone
-                            ? 'bg-emerald-500 text-zinc-950 scale-105'
-                            : 'bg-zinc-800 text-zinc-500 border border-white/10'
+                            ? `${item.activeColor} scale-105`
+                            : 'bg-zinc-850 text-zinc-500 border border-white/10'
                         } ${isCurrent ? 'ring-4 ring-rose-500/30 animate-pulse' : ''}`}
                       >
-                        {isDone ? item.icon : item.step}
+                        {item.icon}
                       </div>
                       <span
-                        className={`text-[10px] sm:text-xs font-bold mt-2 text-center max-w-[70px] ${
-                          isDone ? 'text-white' : 'text-zinc-500'
+                        className={`text-[9px] sm:text-xs font-bold mt-2 text-center max-w-[70px] ${
+                          isDone ? 'text-white font-extrabold' : 'text-zinc-500'
                         }`}
                       >
                         {item.label}
@@ -401,26 +457,26 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
         {/* Kitchen Preparation Progress Stage Card (Shown while order is being prepped, grilled, or packed before dispatch) */}
         {isDelivery && (order.status === 'received' || order.status === 'cooking' || order.status === 'ready') && (
-          <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center text-xl shrink-0">
+          <div className="p-4 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 shadow-2xl space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center text-lg sm:text-xl shrink-0">
                   {order.status === 'received' && '📋'}
                   {order.status === 'cooking' && '🔥'}
                   {order.status === 'ready' && '📦'}
                 </div>
-                <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                <div className="min-w-0">
+                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-amber-400 whitespace-nowrap truncate">
                     Kitchen Preparation in Progress
                   </div>
-                  <h3 className="text-sm sm:text-base font-black text-white">
+                  <h3 className="text-xs sm:text-base font-black text-white whitespace-nowrap truncate">
                     {order.status === 'received' && 'Step 1 of 4: Order Accepted & Queued'}
                     {order.status === 'cooking' && 'Step 2 of 4: Sizzling on the Flame Grill'}
                     {order.status === 'ready' && 'Step 3 of 4: Food Ready & Thermal Packed'}
                   </h3>
                 </div>
               </div>
-              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-white/5 shrink-0">
+              <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-zinc-800 text-zinc-300 border border-white/5 shrink-0 whitespace-nowrap">
                 Shop 1, Pinetown
               </span>
             </div>
@@ -454,54 +510,6 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 Est. Delivery: {preferredTime}
               </span>
             </div>
-          </div>
-        )}
-
-        {/* Delivery Workflow Explanation */}
-        {isDelivery && (
-          <div className="p-4 sm:p-5 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <Truck className="w-4 h-4 text-rose-500" />
-                <span>How Your Delivery Order Works</span>
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Live Kitchen Dispatch
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
-              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <div className="font-black text-white flex items-center gap-1">
-                  <span>1. Ticket to Grill</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 leading-relaxed">
-                  Pinetown kitchen accepts your ticket & flame-grills your order fresh with your chosen baste.
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <div className="font-black text-white flex items-center gap-1">
-                  <span>2. Thermal Packing</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 leading-relaxed">
-                  Meals are packed in insulated bags and handed directly to our local delivery driver.
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1">
-                <div className="font-black text-white flex items-center gap-1">
-                  <span>3. Doorstep Arrival</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 leading-relaxed">
-                  Driver navigates via GPS straight to your delivery address in {customer.suburb || 'Pinetown'}.
-                </div>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-zinc-400 pt-1 italic text-center">
-              💡 Keep this screen open or return anytime — updates from the kitchen will appear here automatically in real time!
-            </p>
           </div>
         )}
 

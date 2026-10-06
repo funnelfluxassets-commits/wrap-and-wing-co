@@ -405,28 +405,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
               return (
                 <div
                   key={order.orderId}
-                  className={`rounded-3xl border flex flex-col overflow-hidden shadow-2xl transition-all ${
-                    order.status === 'received'
-                      ? 'bg-[#181820] border-rose-500/60 ring-2 ring-rose-500/30'
-                      : order.status === 'cooking'
-                      ? 'bg-[#181820] border-amber-500/50'
-                      : order.status === 'ready' || order.status === 'dispatched'
-                      ? 'bg-[#181820] border-emerald-500/50'
-                      : 'bg-zinc-900/80 border-white/10 opacity-70'
-                  }`}
+                  className="rounded-3xl border border-orange-500/25 bg-[#171720] flex flex-col overflow-hidden shadow-2xl transition-all hover:border-orange-500/40"
                 >
                   {/* Card Header */}
-                  <div
-                    className={`p-4 flex items-center justify-between border-b ${
-                      order.status === 'received'
-                        ? 'bg-rose-950/60 border-rose-500/30 text-rose-200'
-                        : order.status === 'cooking'
-                        ? 'bg-amber-950/50 border-amber-500/30 text-amber-200'
-                        : order.status === 'ready' || order.status === 'dispatched'
-                        ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-200'
-                        : 'bg-zinc-950 border-white/10 text-zinc-400'
-                    }`}
-                  >
+                  <div className="p-4 flex items-center justify-between border-b border-orange-500/20 bg-zinc-950/90 text-zinc-100">
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-black text-white tracking-tight">
@@ -434,14 +416,14 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         </h3>
                         <span
                           className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
-                            isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-emerald-500 text-zinc-950'
+                            isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
                           }`}
                         >
                           {isDelivery ? '🚗 DELIVERY' : '🛍️ COLLECTION'}
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3 h-3" />
+                        <Clock className="w-3 h-3 text-amber-400" />
                         <span>Placed: {createdAt}</span>
                         <span>•</span>
                         <span className="text-amber-300 font-bold">{preferredTime}</span>
@@ -574,12 +556,12 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   </div>
 
                   {/* Action Buttons (1-Tap Clear 4-Step Progression) */}
-                  <div className="p-3 bg-zinc-950/80 border-t border-white/10 grid grid-cols-1 gap-2">
+                  <div className="p-3 bg-zinc-950/80 border-t border-orange-500/20 grid grid-cols-1 gap-2">
                     {order.status === 'received' && (
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'cooking')}
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-rose-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-red-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <Flame className="w-4 h-4 fill-white" />
                         <span>1. ACCEPT & START GRILLING</span>
@@ -590,7 +572,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'ready')}
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-emerald-600 hover:from-amber-400 hover:to-emerald-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <ShoppingBag className="w-4 h-4" />
                         <span>2. FOOD READY & PACKED</span>
@@ -603,7 +585,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         onClick={() =>
                           handleStatusChange(order.orderId, isDelivery ? 'dispatched' : 'completed')
                         }
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-orange-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {isDelivery ? (
                           <>
@@ -623,9 +605,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'completed')}
-                        className="w-full py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-emerald-400 font-black text-xs sm:text-sm tracking-wide border border-emerald-500/30 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-amber-400 font-black text-xs sm:text-sm tracking-wide border border-amber-500/40 shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        <CheckCircle className="w-4 h-4" />
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
                         <span>4. CONFIRM DELIVERED & COMPLETE</span>
                       </button>
                     )}

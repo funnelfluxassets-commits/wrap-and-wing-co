@@ -1,9 +1,11 @@
 // Vercel Serverless Function for Live Order Synchronization
 // Provides lightning-fast same-domain order relay between customer phones and kitchen display
 
+const todayDay = String(new Date().getDate()).padStart(2, '0');
+
 const DEFAULT_INITIAL_ORDERS = [
   {
-    orderId: 'WW-8492',
+    orderId: `D-${todayDay}01`,
     orderMode: 'delivery',
     status: 'received',
     items: [
@@ -16,7 +18,7 @@ const DEFAULT_INITIAL_ORDERS = [
       {
         quantity: 2,
         menuItem: { id: 'pedros-classic-wrap', name: 'Classic Grilled Chicken Wrap', price: 69.9 },
-        customization: { flavour: 'lemon & herb', side: 'Coleslaw' },
+        customization: { flavour: 'lemony', side: 'Coleslaw' },
         itemTotal: 139.8,
       },
     ],
@@ -49,14 +51,14 @@ const DEFAULT_INITIAL_ORDERS = [
     ],
   },
   {
-    orderId: 'WW-8490',
+    orderId: `D-${todayDay}02`,
     orderMode: 'delivery',
     status: 'cooking',
     items: [
       {
         quantity: 2,
         menuItem: { id: 'wings-12pc', name: '12 Flame-Grilled Wings', price: 129.9 },
-        customization: { flavour: 'extra hot', side: 'Spicy Rice' },
+        customization: { flavour: 'hot', side: 'Spicy Rice' },
         itemTotal: 259.8,
       },
     ],
@@ -90,7 +92,7 @@ const DEFAULT_INITIAL_ORDERS = [
     ],
   },
   {
-    orderId: 'WW-8488',
+    orderId: `C-${todayDay}01`,
     orderMode: 'collection',
     status: 'ready',
     items: [
@@ -160,23 +162,52 @@ export default async function handler(req: any, res: any) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
       const { type, order, orderId, newStatus, timelineEvent } = body;
 
+      const targetId = orderId || order?.orderId;
+      const cleanTarget = targetId ? String(targetId).replace('#', '').trim() : '';
+
       if (type === 'ORDER_CREATED' && order && order.orderId) {
-        const existingIdx = store.findIndex((o) => o.orderId === order.orderId);
+        const orderCleanId = String(order.orderId).replace('#', '').trim();
+        const existingIdx = store.findIndex((o) =>
+          o.orderId === order.orderId ||
+          String(o.orderId).replace('#', '').trim() === orderCleanId
+        );
         if (existingIdx === -1) {
           store.unshift(order);
         } else {
-          store[existingIdx] = order;
+          store[existingIdx] = { ...store[existingIdx], ...order };
         }
-      } else if (type === 'ORDER_UPDATED' && orderId && newStatus) {
-        const existingIdx = store.findIndex((o) => o.orderId === orderId);
+      } else if (type === 'ORDER_UPDATED' && (targetId || cleanTarget)) {
+        const existingIdx = store.findIndex((o) =>
+          o.orderId === targetId ||
+          String(o.orderId).replace('#', '').trim() === cleanTarget
+        );
+
         if (existingIdx !== -1) {
-          store[existingIdx].status = newStatus;
+          if (newStatus) {
+            store[existingIdx].status = newStatus;
+          }
           if (timelineEvent) {
+            const existingTimeline = Array.isArray(store[existingIdx].timeline) ? store[existingIdx].timeline : [];
             store[existingIdx].timeline = [
-              ...(store[existingIdx].timeline || []),
+              ...existingTimeline.filter((t: any) => t.status !== newStatus),
               timelineEvent,
             ];
           }
+          if (order) {
+            store[existingIdx] = {
+              ...store[existingIdx],
+              ...order,
+              status: newStatus || order.status || store[existingIdx].status,
+            };
+          }
+        } else if (order) {
+          store.unshift(order);
+        } else if (targetId) {
+          store.unshift({
+            orderId: targetId,
+            status: newStatus || 'received',
+            timeline: timelineEvent ? [timelineEvent] : [],
+          });
         }
       }
 

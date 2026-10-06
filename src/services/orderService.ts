@@ -119,9 +119,54 @@ function notifySubscribers() {
   }
 }
 
+const todayDay = typeof window !== 'undefined'
+  ? String(new Date().getDate()).padStart(2, '0')
+  : '06';
+
+export function generateNextOrderId(orderMode: 'delivery' | 'collection' = 'delivery'): string {
+  const prefix = orderMode === 'delivery' ? 'D' : 'C';
+  const dayStr = String(new Date().getDate()).padStart(2, '0');
+  const targetPrefix = `${prefix}-${dayStr}`;
+
+  let maxNum = 0;
+  const currentOrders = getAllOrders();
+  const pattern = new RegExp(`^${prefix}-${dayStr}(\\d+)$`);
+
+  for (const o of currentOrders) {
+    if (o && o.orderId) {
+      const clean = o.orderId.replace('#', '').trim();
+      const m = clean.match(pattern);
+      if (m && m[1]) {
+        const parsed = parseInt(m[1], 10);
+        if (!isNaN(parsed) && parsed > maxNum) {
+          maxNum = parsed;
+        }
+      }
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const storedKey = `wrap_wing_seq_${prefix}_${dayStr}`;
+      const storedVal = parseInt(localStorage.getItem(storedKey) || '0', 10);
+      if (!isNaN(storedVal) && storedVal > maxNum) {
+        maxNum = storedVal;
+      }
+      const nextNum = maxNum + 1;
+      localStorage.setItem(storedKey, String(nextNum));
+      const counterStr = String(nextNum).padStart(2, '0');
+      return `${targetPrefix}${counterStr}`;
+    } catch {}
+  }
+
+  const nextNum = maxNum + 1;
+  const counterStr = String(nextNum).padStart(2, '0');
+  return `${targetPrefix}${counterStr}`;
+}
+
 export const DEFAULT_INITIAL_ORDERS: LiveOrder[] = [
   {
-    orderId: 'WW-8492',
+    orderId: `D-${todayDay}01`,
     orderMode: 'delivery',
     status: 'received',
     items: [
@@ -179,7 +224,7 @@ export const DEFAULT_INITIAL_ORDERS: LiveOrder[] = [
     ],
   },
   {
-    orderId: 'WW-8490',
+    orderId: `D-${todayDay}02`,
     orderMode: 'delivery',
     status: 'cooking',
     items: [
@@ -223,7 +268,7 @@ export const DEFAULT_INITIAL_ORDERS: LiveOrder[] = [
     ],
   },
   {
-    orderId: 'WW-8488',
+    orderId: `C-${todayDay}01`,
     orderMode: 'collection',
     status: 'ready',
     items: [
@@ -477,7 +522,7 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull orders from same-domain /api/orders
+// Pull orders from same-domain /api/orders with smart 2-way merge
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
     const controller = new AbortController();
@@ -493,7 +538,14 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         const currentOrders = getAllOrders();
         const mergedMap = new Map<string, LiveOrder>();
 
-        // Populate cloud orders with schema sanitization
+        // 1. Seed with local orders
+        for (const local of currentOrders) {
+          if (local && local.orderId) {
+            mergedMap.set(local.orderId, local);
+          }
+        }
+
+        // 2. Merge cloud orders into map
         for (const raw of cloudOrders) {
           if (raw && raw.orderId) {
             const sanitized: LiveOrder = {
@@ -515,20 +567,46 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
               paymentStatus: raw.paymentStatus || 'pending',
               preferredTime: raw.preferredTime || 'ASAP',
               createdAt: raw.createdAt || 'Just now',
+              estimatedMinutes: raw.estimatedMinutes || (raw.orderMode === 'collection' ? 20 : 40),
             };
-            mergedMap.set(sanitized.orderId, sanitized);
+
+            const existing = mergedMap.get(sanitized.orderId);
+            if (!existing) {
+              mergedMap.set(sanitized.orderId, sanitized);
+            } else {
+              // Status progression from cloud takes precedence
+              mergedMap.set(sanitized.orderId, {
+                ...existing,
+                ...sanitized,
+                status: sanitized.status,
+                timeline: (sanitized.timeline?.length || 0) >= (existing.timeline?.length || 0)
+                  ? sanitized.timeline
+                  : existing.timeline,
+                customer: sanitized.customer?.customerName ? sanitized.customer : existing.customer,
+                items: sanitized.items?.length > 0 ? sanitized.items : existing.items,
+              });
+            }
           }
         }
 
-        // Preserve any local orders that haven't synced yet
-        for (const o of currentOrders) {
-          if (!mergedMap.has(o.orderId)) {
-            mergedMap.set(o.orderId, o);
+        // 3. Two-way sync: If local device has an order that cloud does not have, auto-push to cloud
+        for (const local of currentOrders) {
+          if (
+            local &&
+            local.orderId &&
+            !cloudOrders.some((c: any) => c.orderId === local.orderId || c.orderId?.replace('#', '') === local.orderId.replace('#', ''))
+          ) {
+            publishCloudEvent({
+              type: 'ORDER_CREATED',
+              order: local,
+              timestamp: Date.now(),
+            });
           }
         }
 
         const combined = Array.from(mergedMap.values());
         saveOrders(combined, true);
+        return combined;
       }
     }
   } catch (err) {
@@ -676,6 +754,7 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
     newStatus,
     note,
     timelineEvent,
+    order: updatedOrder,
     timestamp: Date.now(),
   });
 
