@@ -121,11 +121,15 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
 
       mapInstanceRef.current = map;
 
-      // Dark theme map tiles (CartoDB Dark Matter)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-      }).addTo(map);
+      // High-performance Dark Basemap (Esri World Dark Gray Base - No API key required, no watermarks)
+      L.tileLayer(
+        'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+        {
+          maxZoom: 19,
+          maxNativeZoom: 16,
+          attribution: '&copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
+        }
+      ).addTo(map);
 
       // Custom HTML Icons
       const storeIcon = L.divIcon({
@@ -195,6 +199,12 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
       // Fit map bounds to show full route
       const bounds = L.latLngBounds([RESTAURANT_COORDS, destCoords]);
       map.fitBounds(bounds, { padding: [40, 40] });
+
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 250);
 
       setIsMapLoaded(true);
     };

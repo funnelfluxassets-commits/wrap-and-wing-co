@@ -192,39 +192,51 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-// Publish an event to the cloud topic and same-domain Vercel API
-async function publishCloudEvent(event: CloudOrderEvent) {
+const CLOUD_MASTER_STORE_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a10fc639a705a5';
+
+// Publish an event to the persistent master store and same-domain Vercel API
+async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   event.senderDeviceId = DEVICE_ID;
   const bodyText = JSON.stringify(event);
 
-  // 1. Primary: Same-Domain Vercel Serverless Function (/api/orders) - Zero CORS, 100% reliable
-  try {
-    fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: bodyText,
-    }).catch(() => {});
-  } catch {}
-
-  // 2. Secondary: Fallback Cloud Relays with short timeout
-  const relays = [
-    'https://ntfy.sh/wrap_and_wing_live_orders_shop1',
-    'https://ntfy.m1k.eu/wrap_and_wing_live_orders_shop1',
-  ];
-  for (const relay of relays) {
+  // 1. Primary: Same-Domain Vercel Serverless Function (/api/orders) with keepalive
+  const vercelPromise = (async () => {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      fetch(relay, {
+      await fetch('/api/orders', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: bodyText,
-        mode: 'cors',
-        signal: controller.signal,
-      })
-        .then(() => clearTimeout(timeoutId))
-        .catch(() => clearTimeout(timeoutId));
+        keepalive: true,
+      });
     } catch {}
-  }
+  })();
+
+  // 2. Direct Persistent Cloud Master Store (guarantees cross-device sync even across cold starts)
+  const masterStorePromise = (async () => {
+    try {
+      const allCurrent = getAllOrders();
+      await fetch(CLOUD_MASTER_STORE_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'wrap_and_wing_orders_v1',
+          data: {
+            orders: allCurrent.slice(0, 100),
+            lastUpdated: Date.now(),
+          },
+        }),
+        keepalive: true,
+      });
+    } catch {}
+  })();
+
+  // Await with a 500ms ceiling so UI remains snappy while network transmission is guaranteed
+  try {
+    await Promise.race([
+      Promise.all([vercelPromise, masterStorePromise]),
+      new Promise((resolve) => setTimeout(resolve, 500)),
+    ]);
+  } catch {}
 }
 
 // Handle an incoming cloud event from another phone/tablet/computer
@@ -290,9 +302,11 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull historical orders from /api/orders and fallback cloud relays
+// Pull orders from /api/orders and persistent master store
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
+    let cloudOrders: LiveOrder[] | null = null;
+
     // 1. Primary: Check same-domain /api/orders
     try {
       const controller = new AbortController();
@@ -303,56 +317,50 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
       });
       clearTimeout(timeoutId);
       if (apiResp.ok) {
-        const cloudOrders = await apiResp.json();
-        if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
-          const currentOrders = getAllOrders();
-          const mergedMap = new Map<string, LiveOrder>();
-
-          for (const o of cloudOrders) {
-            if (o && o.orderId) mergedMap.set(o.orderId, o);
-          }
-          for (const o of currentOrders) {
-            if (!mergedMap.has(o.orderId)) {
-              mergedMap.set(o.orderId, o);
-            }
-          }
-
-          const combined = Array.from(mergedMap.values());
-          saveOrders(combined, true);
+        const data = await apiResp.json();
+        if (Array.isArray(data) && data.length > 0) {
+          cloudOrders = data;
         }
       }
     } catch {}
 
-    // 2. Secondary: Fallback Cloud Relays with short timeout
-    const relays = [
-      'https://ntfy.sh/wrap_and_wing_live_orders_shop1/json?poll=1&since=24h',
-      'https://ntfy.m1k.eu/wrap_and_wing_live_orders_shop1/json?poll=1&since=24h',
-    ];
-    for (const relayUrl of relays) {
+    // 2. Secondary: Direct persistent Cloud Master Store (in case serverless is cold/restarting)
+    if (!cloudOrders || cloudOrders.length === 0) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const resp = await fetch(relayUrl, {
+        const resp = await fetch(CLOUD_MASTER_STORE_URL, {
           cache: 'no-store',
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
         if (resp.ok) {
-          const text = await resp.text();
-          const lines = text.trim().split('\n');
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            try {
-              const raw = JSON.parse(line);
-              if (raw.event === 'message' && raw.message) {
-                const cloudEvent = JSON.parse(raw.message) as CloudOrderEvent;
-                handleIncomingCloudEvent(cloudEvent, false);
-              }
-            } catch {}
+          const json = await resp.json();
+          if (json && json.data && Array.isArray(json.data.orders) && json.data.orders.length > 0) {
+            cloudOrders = json.data.orders;
           }
-          break;
         }
       } catch {}
+    }
+
+    if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+      const currentOrders = getAllOrders();
+      const mergedMap = new Map<string, LiveOrder>();
+
+      // Populate cloud orders
+      for (const o of cloudOrders) {
+        if (o && o.orderId) mergedMap.set(o.orderId, o);
+      }
+
+      // Preserve any local orders that haven't synced yet
+      for (const o of currentOrders) {
+        if (!mergedMap.has(o.orderId)) {
+          mergedMap.set(o.orderId, o);
+        }
+      }
+
+      const combined = Array.from(mergedMap.values());
+      saveOrders(combined, true);
     }
   } catch (err) {
     console.warn('Sync error:', err);
@@ -410,7 +418,7 @@ if (typeof window !== 'undefined') {
 // ORDER LIFECYCLE MANAGEMENT
 // -------------------------------------------------------------
 
-export function createLiveOrder(payload: CheckoutPayload): LiveOrder {
+export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrder> {
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const isDelivery = payload.orderMode === 'delivery';
 
@@ -446,15 +454,15 @@ export function createLiveOrder(payload: CheckoutPayload): LiveOrder {
   saveOrders([newOrder, ...existing]);
   setCurrentOrderId(newOrder.orderId);
 
-  // Broadcast to cloud so Kitchen display on PC/counter tablet chimes immediately!
-  publishCloudEvent({
+  // Play local chime
+  playKitchenChime();
+
+  // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
+  await publishCloudEvent({
     type: 'ORDER_CREATED',
     order: newOrder,
     timestamp: Date.now(),
   });
-
-  // Play local chime
-  playKitchenChime();
 
   return newOrder;
 }

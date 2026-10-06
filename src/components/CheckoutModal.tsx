@@ -3,7 +3,35 @@ import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime } from '../services/orderService';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, Sparkles } from 'lucide-react';
+
+interface SavedCustomerProfile {
+  customerName?: string;
+  phone?: string;
+  address?: string;
+  suburb?: string;
+  complexOrUnit?: string;
+  gateCode?: string;
+  notes?: string;
+}
+
+const SAVED_PROFILE_KEY = 'wrap_wing_saved_customer_profile';
+
+function loadSavedProfile(): SavedCustomerProfile {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(SAVED_PROFILE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return {};
+}
+
+function saveCustomerProfile(profile: SavedCustomerProfile) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(SAVED_PROFILE_KEY, JSON.stringify(profile));
+  } catch {}
+}
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -14,16 +42,32 @@ interface CheckoutModalProps {
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onOrderSuccess }) => {
   const { items, orderMode, subtotal, deliveryFee, grandTotal, selectedStore, clearCart } = useCart();
 
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [suburb, setSuburb] = useState('Pinetown');
-  const [complexOrUnit, setComplexOrUnit] = useState('');
-  const [gateCode, setGateCode] = useState('');
-  const [notes, setNotes] = useState('');
+  const savedProfile = loadSavedProfile();
+  const [hasAutofilled, setHasAutofilled] = useState(() => Boolean(savedProfile.customerName || savedProfile.phone));
+  const [customerName, setCustomerName] = useState(() => savedProfile.customerName || '');
+  const [phone, setPhone] = useState(() => savedProfile.phone || '');
+  const [address, setAddress] = useState(() => savedProfile.address || '');
+  const [suburb, setSuburb] = useState(() => savedProfile.suburb || 'Pinetown');
+  const [complexOrUnit, setComplexOrUnit] = useState(() => savedProfile.complexOrUnit || '');
+  const [gateCode, setGateCode] = useState(() => savedProfile.gateCode || '');
+  const [notes, setNotes] = useState(() => savedProfile.notes || '');
   const [preferredTime, setPreferredTime] = useState('ASAP');
   const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleClearSavedDetails = () => {
+    try {
+      localStorage.removeItem(SAVED_PROFILE_KEY);
+    } catch {}
+    setCustomerName('');
+    setPhone('');
+    setAddress('');
+    setSuburb('Pinetown');
+    setComplexOrUnit('');
+    setGateCode('');
+    setNotes('');
+    setHasAutofilled(false);
+  };
 
   if (!isOpen) return null;
 
@@ -39,6 +83,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     }
 
     setIsProcessing(true);
+
+    // Save customer details to localStorage for instant autofill on future orders
+    saveCustomerProfile({
+      customerName,
+      phone,
+      address,
+      suburb,
+      complexOrUnit: complexOrUnit.trim() || undefined,
+      gateCode: gateCode.trim() || undefined,
+      notes: notes.trim() || undefined,
+    });
 
     const orderId = `WW-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -70,8 +125,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       createdAt: deliveryDetails.createdAt || 'Just now',
     };
 
-    // Save to real-time order service for kitchen display & live tracking
-    createLiveOrder(payload);
+    // Save to real-time order service for kitchen display & live tracking (awaited so cloud receives it)
+    await createLiveOrder(payload);
 
     // Warm up audio context on user gesture so subsequent kitchen chimes play automatically on mobile
     playCustomerUpdateChime();
@@ -86,7 +141,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       clearCart();
       onOrderSuccess(payload);
       onClose();
-    }, 300);
+    }, 250);
   };
 
   return (
@@ -117,6 +172,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
         {/* Form Body */}
         <form onSubmit={handleSubmitOrder} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           
+          {/* Saved Profile Autofill Notice */}
+          {hasAutofilled && (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Welcome back! Your details have been auto-filled.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleClearSavedDetails}
+                className="text-[11px] font-bold text-zinc-400 hover:text-white underline cursor-pointer ml-2 shrink-0"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
           {/* Customer Details */}
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
@@ -127,6 +199,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 <label className="text-[11px] font-bold text-zinc-400 block mb-1">Your Full Name *</label>
                 <input
                   type="text"
+                  name="name"
+                  autoComplete="name"
                   required
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
@@ -138,6 +212,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 <label className="text-[11px] font-bold text-zinc-400 block mb-1">Mobile / WhatsApp Number *</label>
                 <input
                   type="tel"
+                  name="tel"
+                  autoComplete="tel"
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -163,6 +239,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 <label className="text-[11px] font-bold text-zinc-400 block mb-1">Street Address *</label>
                 <input
                   type="text"
+                  name="address"
+                  autoComplete="street-address"
                   required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
