@@ -55,10 +55,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
 
       {/* ── Main Sticky Navigation ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-[#121217]/95 backdrop-blur-md border-b border-white/10 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-3">
           
-          {/* Brand Logo & Main Nav Tabs */}
-          <div className="flex items-center gap-3 sm:gap-6">
+          {/* Brand Logo */}
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => onNavigate('menu')}
@@ -67,159 +67,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               <img
                 src="/images/logo/wrap-and-wings-co_optimized.webp"
                 alt="Wrap & Wings Co."
-                className="h-12 sm:h-14 md:h-16 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-11 sm:h-12 md:h-12 w-auto object-contain transition-transform group-hover:scale-105"
               />
             </button>
-
-            {/* Desktop Page Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1 bg-zinc-900/90 border border-white/10 rounded-full p-1 shadow-inner">
-              <button
-                type="button"
-                onClick={() => onNavigate('menu')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                  currentView === 'menu'
-                    ? 'bg-rose-600 text-white shadow-md'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                🔥 Menu
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('story')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                  currentView === 'story'
-                    ? 'bg-rose-600 text-white shadow-md'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                📖 Our Story
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('team')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                  currentView === 'team'
-                    ? 'bg-rose-600 text-white shadow-md'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                👥 Our Team
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('kitchen')}
-                className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
-                  currentView === 'kitchen'
-                    ? 'bg-amber-500 text-zinc-950 shadow-md font-black'
-                    : 'text-zinc-400 hover:text-amber-300'
-                }`}
-                title="Kitchen Order Display Screen"
-              >
-                <span>🍳 Kitchen</span>
-              </button>
-              {activeOrderId && (
-                <button
-                  type="button"
-                  onClick={() => onNavigate('track')}
-                  className={`px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                    currentView === 'track'
-                      ? 'bg-rose-600 text-white shadow-md'
-                      : 'bg-zinc-800 text-zinc-300 hover:text-white border border-rose-500/30'
-                  }`}
-                  title="Track Live Order"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>📦 Track Order</span>
-                </button>
-              )}
-            </nav>
           </div>
 
-          {/* Desktop Order Mode Selector (Collection vs Delivery) */}
-          <div className="hidden lg:flex items-center bg-zinc-900/90 border border-white/10 rounded-full p-1 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setOrderMode('collection')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                orderMode === 'collection'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>🛍️ Store Collection</span>
-              {orderMode === 'collection' && <Check className="w-3.5 h-3.5" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOrderMode('delivery')}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                orderMode === 'delivery'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>🚗 Home Delivery</span>
-              {orderMode === 'delivery' && <Check className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          {/* Store Location Button */}
-          <button
-            type="button"
-            onClick={onOpenStoreModal}
-            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-800 border border-white/10 text-left transition-colors cursor-pointer group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center shrink-0">
-              <MapPin className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 pr-1">
-              <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
-                <span>Selected Store</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              </div>
-              <div className="text-xs font-extrabold text-white truncate max-w-[150px] md:max-w-[190px]">
-                {selectedStore.mall}
-              </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-zinc-400 group-hover:text-white transition-transform group-hover:translate-y-0.5" />
-          </button>
-
-          {/* Right Actions: Socials + Cart Button */}
+          {/* Right Actions: Track Order (if active) + Cart + Menu Toggle */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Social Icons */}
-            <div className="hidden md:flex items-center gap-1.5">
-              <a
-                href={SOCIAL_LINKS.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Follow us on TikTok"
-                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all hover:border-white/20"
-              >
-                <TikTokIcon className="w-4 h-4" />
-              </a>
-              <a
-                href={SOCIAL_LINKS.facebook}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Like us on Facebook"
-                className="w-9 h-9 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition-all hover:border-white/20"
-              >
-                <FacebookIcon className="w-4 h-4" />
-              </a>
-            </div>
-
-            {/* Active Order Pill on Mobile */}
+            {/* Active Order Pill */}
             {activeOrderId && currentView !== 'track' && (
               <button
                 type="button"
                 onClick={() => onNavigate('track')}
-                className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[11px] flex items-center gap-1.5 shadow-md shadow-rose-950/40 cursor-pointer animate-pulse"
+                className="px-2.5 sm:px-3 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 text-white font-black text-[11px] sm:text-xs flex items-center gap-1.5 shadow-md shadow-rose-950/40 cursor-pointer animate-pulse"
                 title="View your active order"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Track</span>
+                <span>Track Order</span>
               </button>
             )}
 
@@ -227,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
             <button
               type="button"
               onClick={() => setIsCartOpen(true)}
-              className="relative flex items-center gap-2.5 px-3.5 sm:px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold shadow-lg shadow-rose-900/30 transition-all hover:scale-105 cursor-pointer"
+              className="relative flex items-center gap-2 sm:gap-2.5 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-extrabold shadow-lg shadow-rose-900/30 transition-all hover:scale-105 cursor-pointer"
             >
               <div className="relative">
                 <ShoppingBag className="w-5 h-5" />
@@ -242,164 +107,204 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               </span>
             </button>
 
-            {/* Mobile menu toggle */}
+            {/* Menu Toggle (visible on all devices) */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl bg-zinc-800/80 border border-white/10 text-zinc-300 hover:text-white"
+              className="p-2 sm:p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Menu</span>
             </button>
           </div>
         </div>
 
-        {/* Mobile Subheader Bar (Mode & Location) */}
-        <div className="lg:hidden px-4 py-2 bg-zinc-900/90 border-t border-white/5 flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
-            <button
-              type="button"
-              onClick={() => setOrderMode('collection')}
-              className={`px-2.5 py-1 rounded text-[11px] font-bold ${
-                orderMode === 'collection' ? 'bg-rose-600 text-white' : 'text-zinc-400'
-              }`}
-            >
-              🛍️ Collect
-            </button>
-            <button
-              type="button"
-              onClick={() => setOrderMode('delivery')}
-              className={`px-2.5 py-1 rounded text-[11px] font-bold ${
-                orderMode === 'delivery' ? 'bg-rose-600 text-white' : 'text-zinc-400'
-              }`}
-            >
-              🚗 Delivery
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenStoreModal}
-            className="flex items-center gap-1 text-[11px] font-semibold text-zinc-300 hover:text-white truncate"
-          >
-            <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-            <span className="truncate">{selectedStore.mall}</span>
-            <ChevronDown className="w-3 h-3 text-zinc-400" />
-          </button>
-        </div>
-
-        {/* Mobile Slide-down Menu Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#18181f] border-b border-white/10 px-4 py-4 space-y-3">
-            <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Navigate</div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+        {/* Subheader Bar (Mode & Location) - Unified across all devices */}
+        <div className="px-4 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
               <button
                 type="button"
-                onClick={() => {
-                  onNavigate('menu');
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
-                  currentView === 'menu'
-                    ? 'bg-rose-600 text-white border-rose-500'
-                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                onClick={() => setOrderMode('collection')}
+                className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  orderMode === 'collection' ? 'bg-rose-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                🔥 Food Menu
+                <span>🛍️ Collect</span>
+                {orderMode === 'collection' && <Check className="w-3 h-3" />}
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onNavigate('story');
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
-                  currentView === 'story'
-                    ? 'bg-rose-600 text-white border-rose-500'
-                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
+                onClick={() => setOrderMode('delivery')}
+                className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  orderMode === 'delivery' ? 'bg-rose-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                📖 Our Story
+                <span>🚗 Delivery</span>
+                {orderMode === 'delivery' && <Check className="w-3 h-3" />}
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate('team');
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
-                  currentView === 'team'
-                    ? 'bg-rose-600 text-white border-rose-500'
-                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
-                }`}
-              >
-                👥 Our Team
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onOpenStoreModal();
-                  setMobileMenuOpen(false);
-                }}
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-left hover:text-rose-400 text-zinc-200 cursor-pointer"
-              >
-                📍 Store Locator
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate('kitchen');
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer ${
-                  currentView === 'kitchen'
-                    ? 'bg-amber-500 text-zinc-950 border-amber-400'
-                    : 'bg-zinc-800/70 border-white/5 text-amber-300 hover:text-amber-200'
-                }`}
-              >
-                🍳 Kitchen Screen
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onNavigate('track');
-                  setMobileMenuOpen(false);
-                }}
-                className={`p-2.5 rounded-lg border text-left font-bold transition-colors cursor-pointer flex items-center justify-between ${
-                  currentView === 'track'
-                    ? 'bg-rose-600 text-white border-rose-500'
-                    : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-rose-400'
-                }`}
-              >
-                <span>📦 Track Order</span>
-                {activeOrderId && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30">
-                    Active
-                  </span>
-                )}
-              </button>
-              <a
-                href={SOCIAL_LINKS.tiktok}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 flex items-center gap-2.5 hover:text-white hover:bg-zinc-800"
-              >
-                <TikTokIcon className="w-4 h-4 text-zinc-400" />
-                <span>TikTok Profile</span>
-              </a>
-              <a
-                href={SOCIAL_LINKS.facebook}
-                target="_blank"
-                rel="noreferrer"
-                className="p-2.5 rounded-lg bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 flex items-center gap-2.5 hover:text-white hover:bg-zinc-800"
-              >
-                <FacebookIcon className="w-4 h-4 text-zinc-400" />
-                <span>Facebook Page</span>
-              </a>
             </div>
 
-            <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-              <span>Collection & Delivery Hotline:</span>
-              <a href={SOCIAL_LINKS.phoneDirect} className="text-rose-400 font-bold">068 886 3892</a>
+            <button
+              type="button"
+              onClick={onOpenStoreModal}
+              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white truncate cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5 transition-colors"
+            >
+              <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+              <span className="truncate max-w-[180px] sm:max-w-none">{selectedStore.mall}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+            </button>
+          </div>
+        </div>
+
+        {/* Slide-down Menu Drawer - Unified across all devices */}
+        {mobileMenuOpen && (
+          <div className="bg-[#18181f] border-b border-white/10 px-4 sm:px-6 py-5 shadow-2xl">
+            <div className="max-w-7xl mx-auto space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-wider">Navigation</span>
+                <span className="text-[11px] text-zinc-500 font-medium">Wrap & Wings Co. Pinetown</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('menu');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    currentView === 'menu'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                  }`}
+                >
+                  <div className="text-base mb-1">🔥</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Food Menu</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Wraps, Wings, Feast & Sides</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('story');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    currentView === 'story'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                  }`}
+                >
+                  <div className="text-base mb-1">📖</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Our Story</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Founder, Vision & Heart</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('team');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    currentView === 'team'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                  }`}
+                >
+                  <div className="text-base mb-1">👥</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Our Team</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Meet our front & kitchen crew</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenStoreModal();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-left hover:text-white hover:bg-zinc-800 hover:border-white/15 text-zinc-200 cursor-pointer transition-all"
+                >
+                  <div className="text-base mb-1">📍</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Store Locator</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Uniland Centre Pinetown</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('kitchen');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                    currentView === 'kitchen'
+                      ? 'bg-amber-500 text-zinc-950 border-amber-400 shadow-md font-black'
+                      : 'bg-zinc-800/70 border-white/5 text-amber-300 hover:text-amber-200 hover:bg-zinc-800 hover:border-white/15'
+                  }`}
+                >
+                  <div className="text-base mb-1">🍳</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Kitchen Display</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Live order screen</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('track');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between ${
+                    currentView === 'track'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                  }`}
+                >
+                  <div className="text-base mb-1 flex items-center justify-between">
+                    <span>📦</span>
+                    {activeOrderId && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold uppercase tracking-wide">Track Order</div>
+                    <div className="text-[11px] text-zinc-400 font-normal">Live GPS preparation tracker</div>
+                  </div>
+                </button>
+                <a
+                  href={SOCIAL_LINKS.tiktok}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/15 transition-all flex flex-col justify-between"
+                >
+                  <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
+                    <TikTokIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold uppercase tracking-wide">TikTok Profile</div>
+                    <div className="text-[11px] text-zinc-400 font-normal">@wrapwings.co</div>
+                  </div>
+                </a>
+                <a
+                  href={SOCIAL_LINKS.facebook}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/15 transition-all flex flex-col justify-between"
+                >
+                  <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
+                    <FacebookIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold uppercase tracking-wide">Facebook Page</div>
+                    <div className="text-[11px] text-zinc-400 font-normal">wrapandwingsco</div>
+                  </div>
+                </a>
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-400">
+                <span>Collection & Delivery Hotline:</span>
+                <a href={SOCIAL_LINKS.phoneDirect} className="text-rose-400 font-extrabold hover:underline flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>068 886 3892</span>
+                </a>
+              </div>
             </div>
           </div>
         )}

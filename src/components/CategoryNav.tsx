@@ -19,7 +19,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ activeCategory, onSele
   };
 
   return (
-    <div className="sticky top-[68px] sm:top-[76px] lg:top-[80px] z-30 bg-[#121217]/95 backdrop-blur-md border-y border-white/10 py-2.5 shadow-md">
+    <div className="sticky top-[104px] sm:top-[108px] z-30 bg-[#121217]/95 backdrop-blur-md border-y border-white/10 py-2.5 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative flex items-center">
         
         {/* Left Scroll Button */}

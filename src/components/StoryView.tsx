@@ -12,7 +12,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col selection:bg-rose-500 selection:text-white">
       
       {/* ── Breadcrumb & Top Bar ────────────────────────────────────────────── */}
-      <div className="bg-[#121217] border-b border-white/10 sticky top-[73px] z-30 backdrop-blur-md bg-opacity-95">
+      <div className="bg-[#121217] border-b border-white/10 sticky top-[104px] sm:top-[108px] z-30 backdrop-blur-md bg-opacity-95">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <button
             type="button"
