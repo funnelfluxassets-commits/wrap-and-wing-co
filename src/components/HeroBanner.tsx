@@ -85,20 +85,36 @@ export const HeroBanner: React.FC = () => {
 
             {/* Signature 5 Flavours Bar */}
             <div className="pt-3 border-t border-white/10">
-              <div className="text-[11px] font-extrabold uppercase tracking-widest text-zinc-400 mb-2.5 flex items-center justify-center lg:justify-start gap-1.5">
+              <div className="text-[11px] sm:text-xs font-extrabold uppercase tracking-widest text-zinc-400 mb-2.5 flex items-center justify-center lg:justify-start gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>5 Signature Flame Basting Flavours</span>
               </div>
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
-                {FLAVOURS.map((f) => (
-                  <span
-                    key={f.id}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900/90 border border-white/10 text-xs font-bold text-zinc-200"
-                  >
-                    <span>{f.emoji}</span>
-                    <span>{f.name}</span>
-                  </span>
-                ))}
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-2.5">
+                {/* First 3 Flavours: Lemony, Mild, Barbeque */}
+                <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+                  {FLAVOURS.slice(0, 3).map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-rose-500/50 hover:bg-zinc-800 transition-all cursor-default"
+                    >
+                      <span className="text-sm sm:text-base">{f.emoji}</span>
+                      <span>{f.name}</span>
+                    </span>
+                  ))}
+                </div>
+
+                {/* Last 2 Flavours: Sweet Chilli, Hot */}
+                <div className="flex items-center justify-center gap-2 sm:gap-2.5">
+                  {FLAVOURS.slice(3).map((f) => (
+                    <span
+                      key={f.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-rose-500/50 hover:bg-zinc-800 transition-all cursor-default"
+                    >
+                      <span className="text-sm sm:text-base">{f.emoji}</span>
+                      <span>{f.name}</span>
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
