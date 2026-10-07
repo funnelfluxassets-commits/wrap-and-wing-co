@@ -26,7 +26,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ activeCategory, onSele
         <button
           type="button"
           onClick={() => scroll('left')}
-          className="hidden md:flex absolute -left-1 z-10 w-8 h-8 rounded-full bg-zinc-900 border border-white/20 text-zinc-300 hover:text-white items-center justify-center shadow-lg hover:scale-105 cursor-pointer"
+          className="hidden md:flex absolute left-1 z-10 w-8 h-8 rounded-full bg-zinc-900 border border-white/20 text-zinc-300 hover:text-white items-center justify-center shadow-lg hover:scale-105 cursor-pointer"
           aria-label="Scroll left"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -35,16 +35,16 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ activeCategory, onSele
         {/* Scrollable Container */}
         <div
           ref={scrollRef}
-          className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth w-full px-1"
+          className="flex items-center gap-1.5 md:gap-1.5 overflow-x-auto no-scrollbar scroll-smooth w-full px-1 md:px-12"
         >
           {/* "All" Category Pill */}
           <button
             type="button"
             onClick={() => onSelectCategory('all')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+            className={`px-3 sm:px-3.5 md:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 border border-amber-400 ${
               activeCategory === 'all'
                 ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40 ring-2 ring-rose-500/50'
-                : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+                : 'bg-zinc-900/80 hover:bg-zinc-800 hover:border-amber-300 text-zinc-300'
             }`}
           >
             <span>✨</span>
@@ -59,10 +59,10 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ activeCategory, onSele
                 key={cat.id}
                 type="button"
                 onClick={() => onSelectCategory(cat.id)}
-                className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+                className={`px-3 sm:px-3.5 md:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0 border border-amber-400 ${
                   isSelected
                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40 ring-2 ring-rose-500/50'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+                    : 'bg-zinc-900/80 hover:bg-zinc-800 hover:border-amber-300 text-zinc-300'
                 }`}
               >
                 <span>{cat.icon}</span>
@@ -76,7 +76,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({ activeCategory, onSele
         <button
           type="button"
           onClick={() => scroll('right')}
-          className="hidden md:flex absolute -right-1 z-10 w-8 h-8 rounded-full bg-zinc-900 border border-white/20 text-zinc-300 hover:text-white items-center justify-center shadow-lg hover:scale-105 cursor-pointer"
+          className="hidden md:flex absolute right-1 z-10 w-8 h-8 rounded-full bg-zinc-900 border border-white/20 text-zinc-300 hover:text-white items-center justify-center shadow-lg hover:scale-105 cursor-pointer"
           aria-label="Scroll right"
         >
           <ChevronRight className="w-4 h-4" />

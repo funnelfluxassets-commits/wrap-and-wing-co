@@ -95,7 +95,7 @@ export const HeroBanner: React.FC = () => {
                   {FLAVOURS.slice(0, 3).map((f) => (
                     <span
                       key={f.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-rose-500/50 hover:bg-zinc-800 transition-all cursor-default"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-amber-400 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-amber-300 hover:bg-zinc-800 transition-all cursor-default"
                     >
                       <span className="text-sm sm:text-base">{f.emoji}</span>
                       <span>{f.name}</span>
@@ -108,7 +108,7 @@ export const HeroBanner: React.FC = () => {
                   {FLAVOURS.slice(3).map((f) => (
                     <span
                       key={f.id}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-white/15 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-rose-500/50 hover:bg-zinc-800 transition-all cursor-default"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 md:px-4 md:py-2 rounded-xl bg-zinc-900/90 border border-amber-400 text-xs sm:text-sm font-extrabold text-zinc-200 shadow-sm hover:border-amber-300 hover:bg-zinc-800 transition-all cursor-default"
                     >
                       <span className="text-sm sm:text-base">{f.emoji}</span>
                       <span>{f.name}</span>
