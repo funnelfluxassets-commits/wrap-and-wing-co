@@ -111,7 +111,7 @@ export const HeroBanner: React.FC = () => {
               {/* Main Featured Food Plate Frame */}
               <div className="relative rounded-3xl overflow-hidden border-2 border-white/15 shadow-2xl bg-zinc-900 group">
                 <img
-                  src="/images/menu/wrap-and-side.webp"
+                  src="/images/menu/wrap-and-side-1.webp"
                   alt="Wrap It Like A Shwarma Combo"
                   className="w-full h-80 sm:h-96 object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />

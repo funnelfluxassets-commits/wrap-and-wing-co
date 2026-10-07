@@ -71,24 +71,25 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           
           {/* Image 1: Counter Hospitality */}
-          <div className="lg:col-span-6 relative">
+          <div className="lg:col-span-6 relative pb-10 sm:pb-12 lg:pb-10">
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/team/front-counter-team.webp"
                 alt="Wrap & Wings Co front of house staff welcoming customers"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-              
-              <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
-                <div className="text-xs font-black text-rose-400 uppercase tracking-wider">Front of House Family</div>
-                <div className="text-sm font-bold text-white mt-0.5">
-                  Greeting every guest with genuine warmth, recommending flavours, and ensuring your meal is handed over piping hot.
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            </div>
+
+            {/* Floating Info Box (straddling bottom edge like Signature Special) */}
+            <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
+              <div className="text-xs font-black text-rose-400 uppercase tracking-wider">Front of House Family</div>
+              <div className="text-sm font-bold text-white mt-0.5">
+                Greeting every guest with genuine warmth, recommending flavours, and ensuring your meal is handed over piping hot.
               </div>
             </div>
 
-            <div className="hidden sm:flex absolute -bottom-3 -right-3 p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-xs shadow-xl items-center gap-1.5 border border-white/20">
+            <div className="hidden sm:flex absolute -top-4 -right-4 p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-xs shadow-xl items-center gap-1.5 border border-white/20 z-20">
               <Sparkles className="w-4 h-4 fill-white" />
               <span>Welcoming Every Guest Like Family</span>
             </div>
@@ -189,20 +190,21 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             </div>
 
             {/* Image 2: Kitchen Crew in Uniform */}
-            <div className="lg:col-span-6 order-1 lg:order-2">
+            <div className="lg:col-span-6 order-1 lg:order-2 relative pb-10 sm:pb-12 lg:pb-10">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
                   src="/images/team/kitchen-crew.webp"
                   alt="Wrap & Wings Co kitchen team member in professional chef attire"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-                
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
-                  <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Kitchen Professionalism</div>
-                  <div className="text-sm font-bold text-white mt-0.5">
-                    Our kitchen crew in clean chef attire and hairnets, ensuring peak hygiene and flame consistency on every dish.
-                  </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              </div>
+
+              {/* Floating Info Box (straddling bottom edge like Signature Special) */}
+              <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
+                <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Kitchen Professionalism</div>
+                <div className="text-sm font-bold text-white mt-0.5">
+                  Our kitchen crew in clean chef attire and hairnets, ensuring peak hygiene and flame consistency on every dish.
                 </div>
               </div>
             </div>

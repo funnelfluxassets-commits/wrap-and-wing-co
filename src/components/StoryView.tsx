@@ -70,25 +70,26 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           
           {/* Main Photo: Team (Nonto-4) */}
-          <div className="lg:col-span-6 relative">
+          <div className="lg:col-span-6 relative pb-10 sm:pb-12 lg:pb-10">
             <div className="relative rounded-3xl overflow-hidden border border-orange-500/30 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/story/nonto-4.webp"
                 alt="Nonto Magcugcwa - Founder of Wrap & Wings Co"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-              
-              <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-zinc-950/85 backdrop-blur-md border border-white/10">
-                <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Founder & Visionary</div>
-                <div className="text-sm font-bold text-white mt-0.5">
-                  Nonto Magcugcwa • Founder of Wrap & Wings Co.
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            </div>
+
+            {/* Floating Info Box (straddling bottom edge like Signature Special) */}
+            <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
+              <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Founder & Visionary</div>
+              <div className="text-sm font-bold text-white mt-0.5">
+                Nonto Magcugcwa • Founder of Wrap & Wings Co.
               </div>
             </div>
             
             {/* Accent badge */}
-            <div className="hidden sm:flex absolute -top-4 -right-4 p-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-500 text-white font-black text-xs shadow-xl items-center gap-1.5 border border-white/20">
+            <div className="hidden sm:flex absolute -top-4 -right-4 p-3 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-500 text-white font-black text-xs shadow-xl items-center gap-1.5 border border-white/20 z-20">
               <Heart className="w-4 h-4 fill-white" />
               <span>Born from Passion</span>
             </div>
@@ -172,20 +173,21 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             </div>
 
             {/* Photo: Restaurant Interior Sanctuary */}
-            <div className="lg:col-span-6 order-1 lg:order-2">
+            <div className="lg:col-span-6 order-1 lg:order-2 relative pb-10 sm:pb-12 lg:pb-10">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
                   src="/images/story/store-image.webp"
                   alt="Wrap & Wings Co dining space at Shop 1, Uniland Centre, Pinetown"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-                
-                <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
-                  <div className="text-xs font-black text-amber-400 uppercase tracking-wider">A Positive Space</div>
-                  <div className="text-sm font-bold text-white mt-0.5">
-                    Shop 1, Uniland Centre, Pinetown • Designed as an uplifting sanctuary for our community.
-                  </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+              </div>
+
+              {/* Floating Info Box (straddling bottom edge like Signature Special) */}
+              <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
+                <div className="text-xs font-black text-amber-400 uppercase tracking-wider">A Positive Space</div>
+                <div className="text-sm font-bold text-white mt-0.5">
+                  Shop 1, Uniland Centre, Pinetown • Designed as an uplifting sanctuary for our community.
                 </div>
               </div>
             </div>
@@ -199,20 +201,21 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           
           {/* Photo: Team & Community Gathering */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 relative pb-10 sm:pb-12 lg:pb-10">
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/story/staff-image-mocktails.webp"
                 alt="Community and team gathering at Wrap & Wings Co"
                 className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-              
-              <div className="absolute bottom-4 left-4 right-4 p-4 rounded-2xl bg-zinc-950/80 backdrop-blur-md border border-white/10">
-                <div className="text-xs font-black text-rose-400 uppercase tracking-wider">People First</div>
-                <div className="text-sm font-bold text-white mt-0.5">
-                  Behind every employee is a family, a dream, and a future.
-                </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+            </div>
+
+            {/* Floating Info Box (straddling bottom edge like Signature Special) */}
+            <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
+              <div className="text-xs font-black text-rose-400 uppercase tracking-wider">People First</div>
+              <div className="text-sm font-bold text-white mt-0.5">
+                Behind every employee is a family, a dream, and a future.
               </div>
             </div>
           </div>
