@@ -364,6 +364,15 @@ export const MENU_ITEMS: MenuItem[] = [
     image: '/images/menu/drinks/valpre-water-500ml.webp',
     badge: 'STILL WATER',
   },
+  {
+    id: 'drink-valpre-sparkling-500ml',
+    categoryId: 'drinks',
+    name: 'Valpré Sparkling Spring Water (500ml)',
+    description: 'Crisp, naturally bubbly, and effervescent sparkling spring water bottled at the source.',
+    price: 15.00,
+    image: '/images/menu/drinks/valpre-sparkling-500ml.webp',
+    badge: 'SPARKLING WATER',
+  },
 
   // 1.5L Sharing Bottle
   {
