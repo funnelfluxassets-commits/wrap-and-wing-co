@@ -173,10 +173,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onNavigate('menu');
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
                     currentView === 'menu'
-                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                   }`}
                 >
                   <div className="text-base mb-1">🔥</div>
@@ -189,10 +189,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onNavigate('story');
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
                     currentView === 'story'
-                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                   }`}
                 >
                   <div className="text-base mb-1">📖</div>
@@ -205,10 +205,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onNavigate('team');
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
                     currentView === 'team'
-                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                   }`}
                 >
                   <div className="text-base mb-1">👥</div>
@@ -221,7 +221,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onOpenStoreModal();
                     setMobileMenuOpen(false);
                   }}
-                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-left hover:text-white hover:bg-zinc-800 hover:border-white/15 text-zinc-200 cursor-pointer transition-all"
+                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-left hover:text-white hover:bg-zinc-800 hover:border-rose-500 text-zinc-200 cursor-pointer transition-all"
                 >
                   <div className="text-base mb-1">📍</div>
                   <div className="text-xs font-extrabold uppercase tracking-wide">Store Locator</div>
@@ -233,10 +233,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onNavigate('kitchen');
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
                     currentView === 'kitchen'
-                      ? 'bg-amber-500 text-zinc-950 border-amber-400 shadow-md font-black'
-                      : 'bg-zinc-800/70 border-white/5 text-amber-300 hover:text-amber-200 hover:bg-zinc-800 hover:border-white/15'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                   }`}
                 >
                   <div className="text-base mb-1">🍳</div>
@@ -249,10 +249,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                     onNavigate('track');
                     setMobileMenuOpen(false);
                   }}
-                  className={`p-3 rounded-xl border text-left font-bold transition-all cursor-pointer flex flex-col justify-between ${
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer flex flex-col justify-between ${
                     currentView === 'track'
-                      ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                      : 'bg-zinc-800/70 border-white/5 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-white/15'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                   }`}
                 >
                   <div className="text-base mb-1 flex items-center justify-between">
@@ -272,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                   href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/15 transition-all flex flex-col justify-between"
+                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-rose-500 transition-all flex flex-col justify-between"
                 >
                   <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
                     <TikTokIcon className="w-4 h-4" />
@@ -286,7 +286,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                   href={SOCIAL_LINKS.facebook}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-3 rounded-xl bg-zinc-800/70 border border-white/5 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-white/15 transition-all flex flex-col justify-between"
+                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-rose-500 transition-all flex flex-col justify-between"
                 >
                   <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
                     <FacebookIcon className="w-4 h-4" />
