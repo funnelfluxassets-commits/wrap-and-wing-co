@@ -159,8 +159,8 @@ export const MENU_ITEMS: MenuItem[] = [
   {
     id: 'chicken-full-family',
     categoryId: 'chicken',
-    name: 'Full Chicken Feast (4 Rolls, Side & 2L Soft Drink)',
-    description: 'Whole flame-grilled chicken generously basted to your taste, 4 warm rolls, 1 large regular side, and an ice-cold 2L soft drink. The ultimate family meal!',
+    name: 'Full Chicken Feast (4 Rolls, Side & 1.5L Soft Drink)',
+    description: 'Whole flame-grilled chicken generously basted to your taste, 4 warm rolls, 1 large regular side, and an ice-cold 1.5L soft drink. The ultimate family meal!',
     price: 149.90,
     image: '/images/menu/full-chicken.webp',
     popular: true,
