@@ -175,7 +175,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="lg:col-span-6 order-1 lg:order-2">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
-                  src="/images/story/restaurant-interior.webp"
+                  src="/images/story/store-image.webp"
                   alt="Wrap & Wings Co dining space at Shop 1, Uniland Centre, Pinetown"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
@@ -202,7 +202,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
           <div className="lg:col-span-6">
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
-                src="/images/story/community-gathering.webp"
+                src="/images/story/staff-image-mocktails.webp"
                 alt="Community and team gathering at Wrap & Wings Co"
                 className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
