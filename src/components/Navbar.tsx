@@ -242,22 +242,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 <button
                   type="button"
                   onClick={() => {
-                    onNavigate('kitchen');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
-                    currentView === 'kitchen'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1">🍳</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Kitchen Display</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Live order screen</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
                     onNavigate('track');
                     setMobileMenuOpen(false);
                   }}

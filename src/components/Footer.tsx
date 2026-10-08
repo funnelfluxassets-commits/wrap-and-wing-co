@@ -9,9 +9,10 @@ import { PageView } from '../types';
 interface FooterProps {
   onOpenLegal: (tab: LegalTab) => void;
   onNavigate?: (view: PageView) => void;
+  onOpenStaffLogin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
+export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenStaffLogin }) => {
   const store = STORES[0];
 
   const handleNav = (view: PageView) => {
@@ -112,15 +113,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
                   👥 Our Team & Kitchen
                 </button>
               </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => handleNav('kitchen')}
-                  className="text-amber-400/90 hover:text-amber-300 transition-colors cursor-pointer text-left font-bold"
-                >
-                  🍳 Staff Kitchen Screen
-                </button>
-              </li>
             </ul>
           </div>
 
@@ -196,6 +188,19 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate }) => {
               >
                 Terms of Service
               </button>
+              {onOpenStaffLogin && (
+                <>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={onOpenStaffLogin}
+                    className="text-zinc-500 hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-1 font-semibold"
+                    title="Staff Portal (Kitchen & Driver Access)"
+                  >
+                    <span>🔒 Staff Portal</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
 

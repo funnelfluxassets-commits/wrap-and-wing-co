@@ -15,10 +15,12 @@ import { CookieBanner } from './components/CookieBanner';
 import { StoryView } from './components/StoryView';
 import { TeamView } from './components/TeamView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
+import { DeliveryDriverView } from './components/DeliveryDriverView';
+import { StaffLoginModal } from './components/StaffLoginModal';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
-import { CategoryId, MenuItem, PageView, LiveOrder } from './types';
+import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload } from './services/payment';
 import { subscribeToOrders, getCurrentOrderId } from './services/orderService';
 import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
@@ -26,7 +28,7 @@ import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 const getInitialView = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
   const hash = window.location.hash.toLowerCase().replace('#', '');
-  if (['menu', 'story', 'team', 'kitchen', 'track'].includes(hash)) {
+  if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track'].includes(hash)) {
     return hash as PageView;
   }
   return 'menu';
@@ -44,12 +46,28 @@ const MainContent: React.FC = () => {
   const [activeOrder, setActiveOrder] = useState<LiveOrder | null>(null);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>('privacy');
+  const [staffRole, setStaffRole] = useState<StaffRole | null>(() => {
+    if (typeof window !== 'undefined') {
+      return (sessionStorage.getItem('wrap_wing_staff_role') as StaffRole) || null;
+    }
+    return null;
+  });
+  const [isStaffLoginOpen, setIsStaffLoginOpen] = useState(false);
+  const [staffLoginInitialRole, setStaffLoginInitialRole] = useState<StaffRole>('kitchen');
+
+  const handleStaffLogout = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('wrap_wing_staff_role');
+    }
+    setStaffRole(null);
+    handleNavigate('menu');
+  };
 
   // Sync hash routing and active orders
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase().replace('#', '');
-      if (['menu', 'story', 'team', 'kitchen', 'track'].includes(hash)) {
+      if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track'].includes(hash)) {
         setCurrentView(hash as PageView);
       }
     };
@@ -107,21 +125,60 @@ const MainContent: React.FC = () => {
       
       {/* ── View Routing ────────────────────────────────────────────────────── */}
       {currentView === 'kitchen' ? (
-        <ErrorBoundary fallbackTitle="Kitchen Display System Recovery">
-          <KitchenDisplayView
-            onBackToMenu={() => handleNavigate('menu')}
-            onViewOrderTracker={(orderId) => {
-              setTrackedOrderId(orderId);
-              handleNavigate('track');
+        staffRole === 'kitchen' ? (
+          <ErrorBoundary fallbackTitle="Kitchen Display System Recovery">
+            <KitchenDisplayView
+              onBackToMenu={() => handleNavigate('menu')}
+              onLogout={handleStaffLogout}
+              onViewOrderTracker={(orderId) => {
+                setTrackedOrderId(orderId);
+                handleNavigate('track');
+              }}
+            />
+          </ErrorBoundary>
+        ) : (
+          <StaffLoginModal
+            isOpen={true}
+            initialRole="kitchen"
+            onClose={() => handleNavigate('menu')}
+            onSuccess={(role) => {
+              setStaffRole(role);
+              if (role === 'driver') {
+                handleNavigate('delivery');
+              }
             }}
           />
-        </ErrorBoundary>
+        )
+      ) : currentView === 'delivery' ? (
+        staffRole === 'driver' ? (
+          <ErrorBoundary fallbackTitle="Delivery Driver System Recovery">
+            <DeliveryDriverView
+              onBackToMenu={() => handleNavigate('menu')}
+              onLogout={handleStaffLogout}
+              onViewOrderTracker={(orderId) => {
+                setTrackedOrderId(orderId);
+                handleNavigate('track');
+              }}
+            />
+          </ErrorBoundary>
+        ) : (
+          <StaffLoginModal
+            isOpen={true}
+            initialRole="driver"
+            onClose={() => handleNavigate('menu')}
+            onSuccess={(role) => {
+              setStaffRole(role);
+              if (role === 'kitchen') {
+                handleNavigate('kitchen');
+              }
+            }}
+          />
+        )
       ) : currentView === 'track' ? (
         <ErrorBoundary fallbackTitle="Order Tracker Recovery">
           <OrderTrackerView
             orderId={trackedOrderId || activeOrder?.orderId || ''}
             onBackToMenu={() => handleNavigate('menu')}
-            onOpenKitchen={() => handleNavigate('kitchen')}
           />
         </ErrorBoundary>
       ) : (
@@ -235,13 +292,17 @@ const MainContent: React.FC = () => {
         </>
       )}
 
-      {/* Footer with Legal Links */}
+      {/* Footer with Legal Links & Staff Portal */}
       <Footer
         onOpenLegal={(tab) => {
           setLegalTab(tab);
           setIsLegalModalOpen(true);
         }}
         onNavigate={handleNavigate}
+        onOpenStaffLogin={() => {
+          setStaffLoginInitialRole('kitchen');
+          setIsStaffLoginOpen(true);
+        }}
       />
     </>
   )}
@@ -271,6 +332,17 @@ const MainContent: React.FC = () => {
     onClose={() => setIsLegalModalOpen(false)}
   />
 
+  <StaffLoginModal
+    isOpen={isStaffLoginOpen}
+    initialRole={staffLoginInitialRole}
+    onClose={() => setIsStaffLoginOpen(false)}
+    onSuccess={(role) => {
+      setStaffRole(role);
+      setIsStaffLoginOpen(false);
+      handleNavigate(role === 'kitchen' ? 'kitchen' : 'delivery');
+    }}
+  />
+
   {/* Cookie & POPIA Privacy Notice */}
   <CookieBanner
     onOpenPrivacyPolicy={(tab) => {
@@ -284,6 +356,7 @@ const MainContent: React.FC = () => {
     activeOrder.status !== 'completed' &&
     activeOrder.status !== 'cancelled' &&
     currentView !== 'kitchen' &&
+    currentView !== 'delivery' &&
     currentView !== 'track' && (
       <div
         className={`fixed z-30 animate-slideUp transition-all ${
@@ -325,7 +398,7 @@ const MainContent: React.FC = () => {
     )}
 
   {/* Mobile Floating Bottom Cart Bar */}
-  {totalItemCount > 0 && currentView !== 'kitchen' && currentView !== 'track' && (
+  {totalItemCount > 0 && currentView !== 'kitchen' && currentView !== 'delivery' && currentView !== 'track' && (
     <div className="lg:hidden fixed bottom-3 left-3 right-3 z-30 animate-slideUp">
           <button
             type="button"

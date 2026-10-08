@@ -30,7 +30,8 @@ import {
   AlertCircle,
   RefreshCw,
   RotateCcw,
-  Trash2
+  Trash2,
+  LogOut
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DriverTicketModal } from './DriverTicketModal';
@@ -38,6 +39,7 @@ import { DriverTicketModal } from './DriverTicketModal';
 interface KitchenDisplayViewProps {
   onBackToMenu: () => void;
   onViewOrderTracker?: (orderId: string) => void;
+  onLogout?: () => void;
 }
 
 // Compute accurate cooking start timestamp from order metadata or timeline
@@ -69,6 +71,7 @@ function getOrderCookingStartTime(order: LiveOrder): number {
 export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
+  onLogout,
 }) => {
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
   const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed'>('active');
@@ -264,9 +267,16 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
   // Extract completion timestamp safely to sort history newest-first
   const getOrderCompletionEpoch = (order: LiveOrder): number => {
-    const completedEvent = order.timeline?.find((t) => t.status === 'completed');
+    if (typeof order.completedAt === 'number' && order.completedAt > 0) {
+      return order.completedAt;
+    }
+    const completedEvent = order.timeline?.slice().reverse().find((t) => t.status === 'completed');
     if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 0) {
       return completedEvent.epochTime;
+    }
+    const lastEvent = order.timeline?.[order.timeline.length - 1];
+    if (typeof lastEvent?.epochTime === 'number' && lastEvent.epochTime > 0) {
+      return lastEvent.epochTime;
     }
     if (completedEvent?.timestamp) {
       const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
@@ -290,8 +300,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     if (timeA && timeB && timeA !== timeB) {
       return timeB - timeA; // newest completed first (top-left)
     }
-    // Fallback: reverse order of original list so newest completed is first
-    return validOrders.indexOf(b) - validOrders.indexOf(a);
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
+    // In validOrders, new orders are added at index 0.
+    // IndexA - IndexB keeps index 0 (the latest order) at the top left!
+    return validOrders.indexOf(a) - validOrders.indexOf(b);
   });
 
   const displayedOrders =
@@ -357,6 +370,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-sm sm:text-base font-black text-amber-400">
             {currentTime}
           </div>
+
+          {onLogout && (
+            <button
+              type="button"
+              onClick={onLogout}
+              className="p-2 px-3 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/30 text-red-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+              title="Exit Staff Portal"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          )}
         </div>
       </header>
 

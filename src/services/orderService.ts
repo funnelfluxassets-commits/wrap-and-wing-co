@@ -986,11 +986,17 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
       ? (current.cookingStartedAt || Date.now())
       : current.cookingStartedAt;
 
+  const completedAt =
+    newStatus === 'completed'
+      ? (current.completedAt || Date.now())
+      : current.completedAt;
+
   const updatedOrder: LiveOrder = {
     ...current,
     status: newStatus,
     timeline: [...current.timeline, timelineEvent],
     cookingStartedAt,
+    completedAt,
   };
 
   orders[index] = updatedOrder;

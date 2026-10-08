@@ -120,7 +120,10 @@ export interface LiveOrder {
   estimatedMinutes: number;
   timeline: OrderTimelineEvent[];
   cookingStartedAt?: number;
+  completedAt?: number;
 }
 
-export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'track';
+export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'delivery' | 'track';
+
+export type StaffRole = 'kitchen' | 'driver';
 
