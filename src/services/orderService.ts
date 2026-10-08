@@ -589,6 +589,8 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
               orderMap.set(o.orderId, {
                 ...existing,
                 ...o,
+                completedAt: o.completedAt || existing.completedAt,
+                cookingStartedAt: o.cookingStartedAt || existing.cookingStartedAt,
                 status: resolvedStatus,
                 timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
               });
@@ -1012,7 +1014,7 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
 
   // Instant real-time status progression in Firestore if configured
   if (isFirebaseConfigured) {
-    updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent, cookingStartedAt).catch((e) =>
+    updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent, cookingStartedAt, completedAt).catch((e) =>
       console.warn('Firestore status update error:', e)
     );
   }
@@ -1024,6 +1026,8 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
     newStatus,
     note,
     timelineEvent,
+    cookingStartedAt,
+    completedAt,
     order: updatedOrder,
     timestamp: Date.now(),
   });

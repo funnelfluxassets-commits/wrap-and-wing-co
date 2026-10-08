@@ -25,8 +25,10 @@ import {
   Sparkles,
   PartyPopper,
   FileText,
-  Store
+  Store,
+  Smile
 } from 'lucide-react';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { LiveDriverMap } from './LiveDriverMap';
 
 interface OrderTrackerViewProps {
@@ -208,20 +210,20 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         },
         {
           step: 3,
-          label: 'Food Ready & Packed',
+          label: 'Food Ready',
           icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
         {
           step: 4,
           label: 'Out for Delivery',
-          icon: <Truck className="w-4 h-4 sm:w-5 sm:h-5" />,
+          icon: <DeliveryMotorbikeIcon className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
         {
           step: 5,
           label: 'Enjoy!',
-          icon: <span className="text-base sm:text-lg leading-none select-none">😋</span>,
+          icon: <Smile className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
       ]
@@ -247,7 +249,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         {
           step: 4,
           label: 'Enjoy!',
-          icon: <span className="text-base sm:text-lg leading-none select-none">😋</span>,
+          icon: <Smile className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
       ];
@@ -387,26 +389,38 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/40 border border-white/10 text-white mb-2">
-                {isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}
-                <span className="text-zinc-500">•</span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-black/40 border border-white/10 text-white mb-2 whitespace-nowrap overflow-hidden">
+                <span className="flex items-center gap-1 shrink-0">
+                  {isDelivery ? (
+                    <>
+                      <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>HOME DELIVERY</span>
+                    </>
+                  ) : (
+                    <span>🛍️ STORE COLLECTION</span>
+                  )}
+                </span>
+                <span className="text-zinc-500 shrink-0">•</span>
                 {order.status === 'received' && (
-                  <span className="text-amber-400 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping inline-block" />
-                    Awaiting Kitchen Acceptance
+                  <span className="text-amber-400 font-bold flex items-center gap-1 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping inline-block shrink-0" />
+                    <span>Awaiting Kitchen</span>
                   </span>
                 )}
                 {order.status === 'cooking' && (
-                  <span className="text-orange-400 font-bold">🔥 On Flame Grill</span>
+                  <span className="text-orange-400 font-bold shrink-0">🔥 On Flame Grill</span>
                 )}
                 {order.status === 'ready' && (
-                  <span className="text-teal-400 font-bold">📦 Food Ready & Packed</span>
+                  <span className="text-teal-400 font-bold shrink-0">📦 Food Ready</span>
                 )}
                 {order.status === 'dispatched' && (
-                  <span className="text-emerald-400 font-bold">🛵 Out For Delivery</span>
+                  <span className="text-emerald-400 font-bold flex items-center gap-1 shrink-0">
+                    <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Out For Delivery</span>
+                  </span>
                 )}
                 {order.status === 'completed' && (
-                  <span className="text-emerald-300 font-bold">🎉 Delivered & Complete</span>
+                  <span className="text-emerald-300 font-bold shrink-0">🎉 Delivered & Complete</span>
                 )}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">

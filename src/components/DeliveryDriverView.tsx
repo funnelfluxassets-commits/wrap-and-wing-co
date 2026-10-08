@@ -27,6 +27,7 @@ import {
   FileText,
   AlertCircle
 } from 'lucide-react';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
 
 interface DeliveryDriverViewProps {
@@ -120,11 +121,28 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const readyOrders = deliveryOrders.filter((o) => o.status === 'ready');
   const dispatchedOrders = deliveryOrders.filter((o) => o.status === 'dispatched');
   
-  // Sort completed delivery runs newest-first
+  // Helper to extract numeric order sequence (e.g. "D-0810" -> 810)
+  const extractOrderSequence = (orderId: string): number => {
+    const clean = String(orderId || '').replace(/[^0-9]/g, '');
+    const num = parseInt(clean, 10);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Sort completed delivery runs newest-first (top-left)
   const completedOrders = [...deliveryOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
     const timeA = a.completedAt || 0;
     const timeB = b.completedAt || 0;
-    if (timeA && timeB && timeA !== timeB) return timeB - timeA;
+    if (timeA && timeB && Math.abs(timeA - timeB) > 2000) return timeB - timeA;
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
+
+    // Sequence priority: #D-0810 (810) > #D-0809 (809) > #D-0601 (601)
+    const seqA = extractOrderSequence(a.orderId);
+    const seqB = extractOrderSequence(b.orderId);
+    if (seqA && seqB && seqA !== seqB) {
+      return seqB - seqA;
+    }
+
     return deliveryOrders.indexOf(a) - deliveryOrders.indexOf(b);
   });
 
@@ -157,7 +175,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base sm:text-lg font-black tracking-tight text-white uppercase flex items-center gap-1.5">
-                <Bike className="w-5 h-5 text-amber-400" />
+                <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
                 <span>DELIVERY DISPATCH RADAR</span>
               </span>
               <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -495,8 +513,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                         onClick={() => handleStatusChange(order.orderId, 'dispatched')}
                         className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        <Bike className="w-4 h-4" />
-                        <span>🛵 ACCEPT &amp; START DELIVERY</span>
+                        <DeliveryMotorbikeIcon className="w-4 h-4 text-zinc-950" />
+                        <span>ACCEPT &amp; START DELIVERY</span>
                       </button>
                     )}
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StaffRole } from '../types';
-import { Lock, X, KeyRound, ChefHat, Bike, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, X, KeyRound, ChefHat, ShieldCheck, AlertCircle } from 'lucide-react';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface StaffLoginModalProps {
   isOpen: boolean;
@@ -120,8 +121,8 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <Bike className="w-4 h-4" />
-            <span>🛵 Driver</span>
+            <DeliveryMotorbikeIcon className="w-4 h-4" />
+            <span>Driver</span>
           </button>
         </div>
 

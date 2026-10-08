@@ -62,7 +62,8 @@ export async function updateOrderStatusInFirestore(
   orderId: string,
   newStatus: OrderStatus,
   timelineEvent?: OrderTimelineEvent,
-  cookingStartedAt?: number
+  cookingStartedAt?: number,
+  completedAt?: number
 ): Promise<void> {
   if (!db || !orderId) return;
   try {
@@ -73,6 +74,9 @@ export async function updateOrderStatusInFirestore(
     }
     if (cookingStartedAt) {
       updateData.cookingStartedAt = cookingStartedAt;
+    }
+    if (completedAt) {
+      updateData.completedAt = completedAt;
     }
     await setDoc(docRef, updateData, { merge: true });
   } catch (err) {

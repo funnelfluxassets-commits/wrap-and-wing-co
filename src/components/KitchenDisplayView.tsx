@@ -293,17 +293,30 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     return 0;
   };
 
+  // Helper to extract numeric order sequence (e.g. "D-0810" -> 810, "D-0809" -> 809, "D-0601" -> 601)
+  const extractOrderSequence = (orderId: string): number => {
+    const clean = String(orderId || '').replace(/[^0-9]/g, '');
+    const num = parseInt(clean, 10);
+    return isNaN(num) ? 0 : num;
+  };
+
   // Latest completed orders at the top-left
   const completedOrders = [...validOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
     const timeA = getOrderCompletionEpoch(a);
     const timeB = getOrderCompletionEpoch(b);
-    if (timeA && timeB && timeA !== timeB) {
+    if (timeA && timeB && Math.abs(timeA - timeB) > 2000) {
       return timeB - timeA; // newest completed first (top-left)
     }
     if (timeA && !timeB) return -1;
     if (!timeA && timeB) return 1;
-    // In validOrders, new orders are added at index 0.
-    // IndexA - IndexB keeps index 0 (the latest order) at the top left!
+
+    // Numerical order sequence comparison: D-0810 (810) > D-0809 (809) > D-0601 (601)
+    const seqA = extractOrderSequence(a.orderId);
+    const seqB = extractOrderSequence(b.orderId);
+    if (seqA && seqB && seqA !== seqB) {
+      return seqB - seqA; // higher order number is newer -> top-left!
+    }
+
     return validOrders.indexOf(a) - validOrders.indexOf(b);
   });
 

@@ -212,6 +212,12 @@ export default async function handler(req: any, res: any) {
           if (allowedStatus) {
             store[existingIdx].status = allowedStatus;
           }
+          if (body.completedAt || order?.completedAt) {
+            store[existingIdx].completedAt = body.completedAt || order?.completedAt;
+          }
+          if (body.cookingStartedAt || order?.cookingStartedAt) {
+            store[existingIdx].cookingStartedAt = body.cookingStartedAt || order?.cookingStartedAt;
+          }
           if (timelineEvent) {
             const existingTimeline = Array.isArray(store[existingIdx].timeline) ? store[existingIdx].timeline : [];
             store[existingIdx].timeline = [
@@ -223,6 +229,7 @@ export default async function handler(req: any, res: any) {
             store[existingIdx] = {
               ...store[existingIdx],
               ...order,
+              completedAt: store[existingIdx].completedAt || order.completedAt,
               status: allowedStatus,
             };
           }
