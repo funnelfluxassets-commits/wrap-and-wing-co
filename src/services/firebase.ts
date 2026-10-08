@@ -61,7 +61,8 @@ export async function saveOrderToFirestore(order: LiveOrder): Promise<void> {
 export async function updateOrderStatusInFirestore(
   orderId: string,
   newStatus: OrderStatus,
-  timelineEvent?: OrderTimelineEvent
+  timelineEvent?: OrderTimelineEvent,
+  cookingStartedAt?: number
 ): Promise<void> {
   if (!db || !orderId) return;
   try {
@@ -69,6 +70,9 @@ export async function updateOrderStatusInFirestore(
     const updateData: Record<string, any> = { status: newStatus };
     if (timelineEvent) {
       updateData.timeline = arrayUnion(timelineEvent);
+    }
+    if (cookingStartedAt) {
+      updateData.cookingStartedAt = cookingStartedAt;
     }
     await setDoc(docRef, updateData, { merge: true });
   } catch (err) {

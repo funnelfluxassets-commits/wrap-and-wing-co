@@ -100,6 +100,7 @@ export interface OrderTimelineEvent {
   timestamp: string;
   label: string;
   note?: string;
+  epochTime?: number;
 }
 
 export interface LiveOrder {
@@ -118,6 +119,7 @@ export interface LiveOrder {
   createdAt: string;
   estimatedMinutes: number;
   timeline: OrderTimelineEvent[];
+  cookingStartedAt?: number;
 }
 
 export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'track';

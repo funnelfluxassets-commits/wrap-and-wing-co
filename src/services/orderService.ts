@@ -25,17 +25,44 @@ export const STATUS_RANK: Record<OrderStatus, number> = {
   cancelled: 6,
 };
 
-// Web Audio API Ding-Dong Chime for Kitchen Display
-export function playKitchenChime() {
+// Shared Web Audio Context across the application to prevent browser context exhaustion and guarantee instant playback
+let sharedAudioContext: AudioContext | null = null;
+
+export function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
   try {
     const AudioContextClass =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
+    if (!AudioContextClass) return null;
+    if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+      sharedAudioContext = new AudioContextClass();
+    }
+    if (sharedAudioContext.state === 'suspended') {
+      sharedAudioContext.resume().catch(() => {});
+    }
+    return sharedAudioContext;
+  } catch (err) {
+    console.warn('Could not initialize AudioContext:', err);
+    return null;
+  }
+}
 
+// User-gesture unlocker for tablets/browsers (iOS Safari, Android Chrome)
+export function unlockAudio() {
+  const ctx = getSharedAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+}
+
+// Web Audio API Ding-Dong Chime for Kitchen Display (New Order Arrival & Status Progression)
+export function playKitchenChime() {
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      ctx.resume().catch(() => {});
     }
 
     const now = ctx.currentTime;
@@ -46,7 +73,7 @@ export function playKitchenChime() {
     osc1.type = 'sine';
     osc1.frequency.setValueAtTime(880, now);
     gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(0.35, now + 0.04);
+    gain1.gain.linearRampToValueAtTime(0.4, now + 0.04);
     gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
@@ -59,7 +86,7 @@ export function playKitchenChime() {
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(1174.66, now + 0.15);
     gain2.gain.setValueAtTime(0, now + 0.15);
-    gain2.gain.linearRampToValueAtTime(0.4, now + 0.19);
+    gain2.gain.linearRampToValueAtTime(0.45, now + 0.19);
     gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
@@ -70,17 +97,47 @@ export function playKitchenChime() {
   }
 }
 
+// Web Audio API Urgent Cooking Alarm (Beep-Beep-Beep commercial kitchen timer alarm pattern)
+export function playCookingAlarm() {
+  try {
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+    const playBeep = (freq: number, start: number, dur: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      // Triangle wave delivers the authentic, penetrating timbre of commercial kitchen timers
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.4, start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur);
+    };
+
+    // 3 rapid pulsing kitchen alarm beeps (C6, E6, G6)
+    playBeep(1046.5, now, 0.11);
+    playBeep(1318.51, now + 0.15, 0.11);
+    playBeep(1567.98, now + 0.30, 0.22);
+  } catch (err) {
+    console.warn('Cooking alarm could not play:', err);
+  }
+}
+
 // Web Audio API Customer Update Ding (Upbeat C-E-G chime)
 export function playCustomerUpdateChime() {
   try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      ctx.resume().catch(() => {});
     }
 
     const now = ctx.currentTime;
@@ -627,6 +684,7 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         ...(event.order || {}),
         status: newStatus,
         timeline: hasTimeline,
+        cookingStartedAt: event.order?.cookingStartedAt || existing.cookingStartedAt,
       };
       currentOrders[existingIndex] = updated;
       saveOrders(currentOrders, true);
@@ -753,6 +811,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
                 : existing.timeline,
               customer: sanitized.customer?.customerName ? sanitized.customer : existing.customer,
               items: sanitized.items?.length > 0 ? sanitized.items : existing.items,
+              cookingStartedAt: sanitized.cookingStartedAt || existing.cookingStartedAt,
             });
           }
         }
@@ -919,12 +978,19 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
     timestamp: nowStr,
     label: statusLabels[newStatus] || newStatus,
     note,
+    epochTime: Date.now(),
   };
+
+  const cookingStartedAt =
+    newStatus === 'cooking'
+      ? (current.cookingStartedAt || Date.now())
+      : current.cookingStartedAt;
 
   const updatedOrder: LiveOrder = {
     ...current,
     status: newStatus,
     timeline: [...current.timeline, timelineEvent],
+    cookingStartedAt,
   };
 
   orders[index] = updatedOrder;
@@ -940,7 +1006,7 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
 
   // Instant real-time status progression in Firestore if configured
   if (isFirebaseConfigured) {
-    updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent).catch((e) =>
+    updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent, cookingStartedAt).catch((e) =>
       console.warn('Firestore status update error:', e)
     );
   }

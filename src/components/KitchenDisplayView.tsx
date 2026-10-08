@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LiveOrder, OrderStatus } from '../types';
 import {
   getAllOrders,
@@ -6,6 +6,8 @@ import {
   updateOrderStatus,
   deleteOrder,
   playKitchenChime,
+  playCookingAlarm,
+  unlockAudio,
   syncOrdersFromCloud,
   resetToDefaultOrders,
   clearAllOrders
@@ -37,6 +39,32 @@ interface KitchenDisplayViewProps {
   onViewOrderTracker?: (orderId: string) => void;
 }
 
+// Compute accurate cooking start timestamp from order metadata or timeline
+function getOrderCookingStartTime(order: LiveOrder): number {
+  if (typeof order.cookingStartedAt === 'number' && order.cookingStartedAt > 0) {
+    return order.cookingStartedAt;
+  }
+  const cookingEvent = order.timeline?.find((t) => t.status === 'cooking');
+  if (typeof cookingEvent?.epochTime === 'number' && cookingEvent.epochTime > 0) {
+    return cookingEvent.epochTime;
+  }
+  if (cookingEvent?.timestamp) {
+    const match = cookingEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
+    if (match) {
+      const d = new Date();
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      if (/pm/i.test(cookingEvent.timestamp) && hours < 12) hours += 12;
+      if (/am/i.test(cookingEvent.timestamp) && hours === 12) hours = 0;
+      d.setHours(hours, minutes, 0, 0);
+      if (d.getTime() <= Date.now()) {
+        return d.getTime();
+      }
+    }
+  }
+  return Date.now();
+}
+
 export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
@@ -46,27 +74,69 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [silencedAlarms, setSilencedAlarms] = useState<Set<string>>(new Set());
+
+  // Track known order IDs to immediately chime on brand new incoming orders
+  const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().map((o) => o.orderId)));
+  const isInitializedRef = useRef<boolean>(false);
+
+  // Unlock browser audio context on first user tap/click on tablet
+  useEffect(() => {
+    const handleGesture = () => unlockAudio();
+    window.addEventListener('click', handleGesture, { passive: true });
+    window.addEventListener('touchstart', handleGesture, { passive: true });
+    const initTimer = setTimeout(() => {
+      isInitializedRef.current = true;
+    }, 1000);
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+      clearTimeout(initTimer);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = subscribeToOrders((newOrders) => {
+      const currentKnown = knownOrderIdsRef.current;
+      const newIncoming = newOrders.filter((o) => !currentKnown.has(o.orderId));
+      if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
+        playKitchenChime();
+      }
+      newOrders.forEach((o) => currentKnown.add(o.orderId));
       setOrders(newOrders);
     });
 
     const clockTimer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString());
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString());
+
+      // Overdue Cooking Alarm: pulse alert chime every 4 seconds when cooking order exceeds 10 minutes
+      if (now.getSeconds() % 4 === 0 && soundEnabled) {
+        const currentOrders = getAllOrders();
+        const hasOverdueCookingOrder = currentOrders.some((order) => {
+          if (order.status !== 'cooking') return false;
+          if (silencedAlarms.has(order.orderId)) return false;
+          const startedAt = getOrderCookingStartTime(order);
+          const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+          return elapsedSeconds >= 600; // 10 minutes reached
+        });
+
+        if (hasOverdueCookingOrder) {
+          playCookingAlarm();
+        }
+      }
     }, 1000);
 
     // Active 2-second live kitchen radar to guarantee instant detection across devices
     const radarTimer = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
-      setOrders((prev) => {
-        const prevIds = new Set(prev.map((o) => o.orderId));
-        const newIncoming = freshOrders.filter((o) => !prevIds.has(o.orderId));
-        if (newIncoming.length > 0 && soundEnabled) {
-          playKitchenChime();
-        }
-        return freshOrders;
-      });
+      const currentKnown = knownOrderIdsRef.current;
+      const newIncoming = freshOrders.filter((o) => !currentKnown.has(o.orderId));
+      if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
+        playKitchenChime();
+      }
+      freshOrders.forEach((o) => currentKnown.add(o.orderId));
+      setOrders(freshOrders);
     }, 2000);
 
     return () => {
@@ -74,9 +144,30 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       clearInterval(clockTimer);
       clearInterval(radarTimer);
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, silencedAlarms]);
+
+  const toggleSilenceAlarm = (orderId: string) => {
+    setSilencedAlarms((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
 
   const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
+    // If order was in cooking or silenced, clear silence state
+    if (nextStatus !== 'cooking') {
+      setSilencedAlarms((prev) => {
+        const next = new Set(prev);
+        next.delete(orderId);
+        return next;
+      });
+    }
+
     const updated = updateOrderStatus(orderId, nextStatus);
     if (updated) {
       setOrders((prev) =>
@@ -464,7 +555,90 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      {/* 10-Minute Cooking Countdown Timer & Overdue Alarm */}
+                      {order.status === 'cooking' && (() => {
+                        const cookingStart = getOrderCookingStartTime(order);
+                        const elapsedSeconds = Math.max(0, Math.floor((Date.now() - cookingStart) / 1000));
+                        const remainingSeconds = 600 - elapsedSeconds;
+                        const isOverdue = remainingSeconds <= 0;
+                        const isSilenced = silencedAlarms.has(order.orderId);
+
+                        if (!isOverdue) {
+                          const mins = Math.floor(remainingSeconds / 60);
+                          const secs = remainingSeconds % 60;
+                          const formattedTime = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                          const isWarning = remainingSeconds <= 180; // under 3 minutes
+
+                          return (
+                            <div
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border font-mono font-black shadow-lg transition-all ${
+                                isWarning
+                                  ? 'bg-amber-500/25 border-amber-500/70 text-amber-300 animate-pulse'
+                                  : 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                              }`}
+                              title="Target grill & pack timer: 10 minutes"
+                            >
+                              <Flame
+                                className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${
+                                  isWarning ? 'text-amber-400 animate-bounce' : 'text-orange-400'
+                                }`}
+                              />
+                              <div className="text-right leading-none">
+                                <div className="text-base sm:text-xl tracking-tight font-black">
+                                  {formattedTime}
+                                </div>
+                                <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-zinc-400 font-sans font-extrabold mt-0.5">
+                                  Cook Timer
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          const overdueSeconds = Math.abs(remainingSeconds);
+                          const oMins = Math.floor(overdueSeconds / 60);
+                          const oSecs = overdueSeconds % 60;
+                          const formattedOverdue = `${String(oMins).padStart(2, '0')}:${String(oSecs).padStart(2, '0')}`;
+
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-red-600 border-2 border-red-400 text-white font-mono font-black shadow-xl shadow-red-600/50 animate-pulse"
+                                title="Cooking time exceeded 10 minutes! Order is overdue."
+                              >
+                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin shrink-0" />
+                                <div className="text-right leading-none">
+                                  <div className="text-sm sm:text-base tracking-tight font-black">
+                                    -{formattedOverdue}
+                                  </div>
+                                  <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-red-200 font-sans font-black mt-0.5">
+                                    OVERDUE
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => toggleSilenceAlarm(order.orderId)}
+                                className={`px-2.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1 shadow-md ${
+                                  isSilenced
+                                    ? 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
+                                    : 'bg-amber-400 hover:bg-amber-300 text-zinc-950 border-amber-300 animate-bounce'
+                                }`}
+                                title={isSilenced ? 'Alarm muted for this ticket' : 'Silence alarm for this ticket'}
+                              >
+                                {isSilenced ? (
+                                  <VolumeX className="w-3.5 h-3.5" />
+                                ) : (
+                                  <Volume2 className="w-3.5 h-3.5" />
+                                )}
+                                <span>{isSilenced ? 'Muted' : 'Silence'}</span>
+                              </button>
+                            </div>
+                          );
+                        }
+                      })()}
+
                       <button
                         type="button"
                         onClick={() => handlePrintSlip(order)}

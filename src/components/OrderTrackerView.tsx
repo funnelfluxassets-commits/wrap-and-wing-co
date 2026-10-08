@@ -45,6 +45,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const lastStatusRef = useRef<OrderStatus | null>(null);
 
   const effectiveOrderId = orderId || getCurrentOrderId() || '';
+  const isDelivery = order ? order.orderMode === 'delivery' : true;
 
   // Auto-dismiss/redirect once delivery or collection is completed
   useEffect(() => {
@@ -57,21 +58,27 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     }
   }, [order?.status, onBackToMenu]);
 
-  const triggerStatusAlert = (status: OrderStatus) => {
-    playCustomerUpdateChime();
-    triggerHapticFeedback();
-    if (status === 'cooking') {
-      setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');
-    } else if (status === 'ready') {
-      setToastMessage(
-        isDelivery
-          ? '📦 Kitchen Update: Food ready & packed in thermal bag! Assigned to your driver.'
-          : '🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.'
-      );
-    } else if (status === 'dispatched') {
-      setToastMessage('🛵 Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
-    } else if (status === 'completed') {
-      setToastMessage('🎉 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+  const triggerStatusAlert = (status: OrderStatus, currentOrder?: LiveOrder | null) => {
+    try {
+      playCustomerUpdateChime();
+      triggerHapticFeedback();
+      const isDeliv = (currentOrder?.orderMode || order?.orderMode || 'delivery') === 'delivery';
+
+      if (status === 'cooking') {
+        setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');
+      } else if (status === 'ready') {
+        setToastMessage(
+          isDeliv
+            ? '📦 Kitchen Update: Food ready & packed in thermal bag! Assigned to your driver.'
+            : '🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.'
+        );
+      } else if (status === 'dispatched') {
+        setToastMessage('🛵 Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
+      } else if (status === 'completed') {
+        setToastMessage('🎉 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+      }
+    } catch (err) {
+      console.warn('Status alert error:', err);
     }
   };
 
@@ -82,7 +89,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     const unsubscribe = subscribeToSingleOrder(effectiveOrderId, (liveOrder) => {
       if (liveOrder) {
         if (lastStatusRef.current && liveOrder.status !== lastStatusRef.current) {
-          triggerStatusAlert(liveOrder.status);
+          triggerStatusAlert(liveOrder.status, liveOrder);
         }
         lastStatusRef.current = liveOrder.status;
         setOrder(liveOrder);
@@ -95,7 +102,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       if (detail && (detail.orderId === effectiveOrderId || detailClean === cleanTarget)) {
         const next = detail.newStatus || detail.status;
         if (next && next !== lastStatusRef.current) {
-          triggerStatusAlert(next);
+          triggerStatusAlert(next, order);
           lastStatusRef.current = next;
         }
       }
@@ -110,7 +117,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       );
       if (current) {
         if (lastStatusRef.current && current.status !== lastStatusRef.current) {
-          triggerStatusAlert(current.status);
+          triggerStatusAlert(current.status, current);
         }
         lastStatusRef.current = current.status;
         setOrder(current);
@@ -161,7 +168,6 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     );
   }
 
-  const isDelivery = order.orderMode === 'delivery';
   const customer = order.customer || {
     customerName: 'Customer',
     phone: '',
@@ -205,7 +211,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         },
         {
           step: 3,
-          label: 'Food Ready',
+          label: 'Food Ready & Packed',
           icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-400 to-amber-500 text-zinc-950 shadow-yellow-500/40',
         },
