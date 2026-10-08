@@ -500,81 +500,50 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-const GITHUB_STORE_URL = 'https://api.github.com/repos/funnelfluxassets-commits/wrap-and-wing-co/issues/1';
-const GITHUB_TOKEN = String.fromCharCode(103,104,111,95,102,113,71,112,85,121,80,103,97,106,110,113,113,106,101,108,100,87,101,49,51,110,89,122,101,107,79,55,105,104,48,71,82,104,108,116);
-
-// Publish an event to same-domain Vercel API (/api/orders) and direct GitHub Issue #1 Master Store
+// Publish an event to same-domain Vercel API (/api/orders) as fallback
 async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   event.senderDeviceId = DEVICE_ID;
   const bodyText = JSON.stringify(event);
 
-  // 1. Direct same-domain Vercel Serverless Function (/api/orders) with keepalive
-  const vercelPromise = (async () => {
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyText,
-        keepalive: true,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && Array.isArray(data.orders)) {
-          const currentOrders = getAllOrders();
-          const orderMap = new Map<string, LiveOrder>();
-          for (const o of currentOrders) {
-            if (o && o.orderId) orderMap.set(o.orderId, o);
-          }
-          for (const o of data.orders) {
-            if (o && o.orderId) {
-              const existing = orderMap.get(o.orderId);
-              if (!existing) {
-                orderMap.set(o.orderId, o);
-              } else {
-                const existingRank = STATUS_RANK[existing.status] || 0;
-                const cloudRank = STATUS_RANK[o.status] || 0;
-                const resolvedStatus = existingRank >= cloudRank ? existing.status : o.status;
-                orderMap.set(o.orderId, {
-                  ...existing,
-                  ...o,
-                  status: resolvedStatus,
-                  timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
-                });
-              }
+  try {
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyText,
+      keepalive: true,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.orders)) {
+        const currentOrders = getAllOrders();
+        const orderMap = new Map<string, LiveOrder>();
+        for (const o of currentOrders) {
+          if (o && o.orderId) orderMap.set(o.orderId, o);
+        }
+        for (const o of data.orders) {
+          if (o && o.orderId) {
+            const existing = orderMap.get(o.orderId);
+            if (!existing) {
+              orderMap.set(o.orderId, o);
+            } else {
+              const existingRank = STATUS_RANK[existing.status] || 0;
+              const cloudRank = STATUS_RANK[o.status] || 0;
+              const resolvedStatus = existingRank >= cloudRank ? existing.status : o.status;
+              orderMap.set(o.orderId, {
+                ...existing,
+                ...o,
+                status: resolvedStatus,
+                timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
+              });
             }
           }
-          saveOrders(Array.from(orderMap.values()), true);
         }
+        saveOrders(Array.from(orderMap.values()), true);
       }
-    } catch (err) {
-      console.warn('Could not post to /api/orders:', err);
     }
-  })();
-
-  // 2. Direct persistent GitHub Master Store (guarantees cross-device sync across every container)
-  const masterStorePromise = (async () => {
-    try {
-      const allCurrent = getAllOrders();
-      await fetch(GITHUB_STORE_URL, {
-        method: 'PATCH',
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `token ${GITHUB_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          body: JSON.stringify(allCurrent.slice(0, 100)),
-        }),
-        keepalive: true,
-      });
-    } catch (err) {
-      console.warn('Could not put to GitHub master store:', err);
-    }
-  })();
-
-  try {
-    await Promise.allSettled([vercelPromise, masterStorePromise]);
-  } catch {}
+  } catch (err) {
+    console.warn('Could not post to /api/orders:', err);
+  }
 }
 
 // Handle an incoming cloud event from another phone/tablet/computer
@@ -721,54 +690,6 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         const data = await apiResp.json();
         if (Array.isArray(data) && data.length > 0) {
           cloudOrders = data;
-        }
-      }
-    } catch {}
-
-    // 2. Secondary: Direct persistent GitHub Master Store
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const resp = await fetch(GITHUB_STORE_URL, {
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'Authorization': `token ${GITHUB_TOKEN}`,
-        },
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (resp.ok) {
-        const json = await resp.json();
-        if (json && json.body) {
-          try {
-            const parsed = JSON.parse(json.body);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              if (!cloudOrders) {
-                cloudOrders = parsed;
-              } else {
-                const orderMap = new Map<string, LiveOrder>();
-                for (const o of cloudOrders) {
-                  if (o && o.orderId) orderMap.set(o.orderId, o);
-                }
-                for (const o of parsed) {
-                  if (o && o.orderId) {
-                    const existing = orderMap.get(o.orderId);
-                    if (!existing) {
-                      orderMap.set(o.orderId, o);
-                    } else {
-                      const existingRank = STATUS_RANK[existing.status] || 0;
-                      const masterRank = STATUS_RANK[o.status] || 0;
-                      if (masterRank > existingRank) {
-                        orderMap.set(o.orderId, { ...existing, ...o, status: o.status, timeline: o.timeline || existing.timeline });
-                      }
-                    }
-                  }
-                }
-                cloudOrders = Array.from(orderMap.values());
-              }
-            }
-          } catch {}
         }
       }
     } catch {}
