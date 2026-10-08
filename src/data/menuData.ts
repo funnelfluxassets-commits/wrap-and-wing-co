@@ -59,7 +59,7 @@ export const CATEGORIES: MenuCategory[] = [
   { id: 'seafood', name: 'Seafood', icon: '🐟', description: 'Crispy battered fish fillet with chips and tartar sauce' },
   { id: 'sides', name: 'Regular Sides', icon: '🍟', description: 'Hot golden chips, fragrant spicy rice, and creamy coleslaw' },
   { id: 'kids', name: 'Kids Menu', icon: '🧒', description: 'Crispy, tasty kid-friendly meals served with golden chips' },
-  { id: 'drinks', name: 'Drinks', icon: '🥤', description: 'Ice-cold 440ml buddy bottles, 1.5L sharing sodas, and pure spring water' },
+  { id: 'drinks', name: 'Drinks', icon: '🥤', description: 'Ice-cold 440ml buddy bottles, 1.5L sharing sodas, pure spring water, and refreshing craft mocktails' },
 ];
 
 export const SIDES_LIST = ['Chips', 'Spicy Rice', 'Coleslaw', 'Side Salad'];
@@ -384,5 +384,37 @@ export const MENU_ITEMS: MenuItem[] = [
     image: '/images/menu/drinks/coke-original-15l.webp',
     popular: true,
     badge: '1.5L SHARING',
+  },
+
+  // Refreshing Mocktails
+  {
+    id: 'drink-watermelon-mocktail',
+    categoryId: 'drinks',
+    name: 'Watermelon Mocktail',
+    description: 'Refreshing crisp watermelon mocktail infused with fresh mint and citrus, served ice-cold over crushed ice.',
+    price: 29.90,
+    image: '/images/menu/drinks/watermelon-mocktail.webp',
+    popular: true,
+    badge: 'MOCKTAIL',
+  },
+  {
+    id: 'drink-lime-mocktail',
+    categoryId: 'drinks',
+    name: 'Lime Mocktail',
+    description: 'Zesty fresh lime cooler layered with fragrant garden mint leaves and sparkling soda over ice.',
+    price: 29.90,
+    image: '/images/menu/drinks/lime-mocktail.webp',
+    popular: true,
+    badge: 'MOCKTAIL',
+  },
+  {
+    id: 'drink-blueberry-mocktail',
+    categoryId: 'drinks',
+    name: 'Blueberry Mocktail',
+    description: 'Vibrant wild blueberry cooler with hints of citrus and fresh mint, served chilled over ice.',
+    price: 29.90,
+    image: '/images/menu/drinks/blueberry-mocktail.webp',
+    popular: true,
+    badge: 'MOCKTAIL',
   },
 ];
