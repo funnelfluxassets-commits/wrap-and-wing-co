@@ -1,9 +1,10 @@
 import React from 'react';
 import { CheckoutPayload, generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
+import { LiveOrder } from '../types';
 import { X, Navigation, Phone, MessageSquare, MapPin, CheckCircle, Share2, AlertCircle } from 'lucide-react';
 
 interface DriverTicketModalProps {
-  order: CheckoutPayload | null;
+  order: CheckoutPayload | LiveOrder | null;
   onClose: () => void;
 }
 
@@ -115,7 +116,30 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                   className="py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10"
                 >
                   <MessageSquare className="w-3 h-3 text-emerald-400" />
-                  <span>WhatsApp</span>
+                  <span>WhatsApp Customer</span>
+                </a>
+              </div>
+
+              {/* WhatsApp Driver Dispatch Share */}
+              <div className="pt-1">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `🚗 *WRAP & WINGS CO - DRIVER DISPATCH TICKET #${order.orderId}*\n\n` +
+                    `📍 *Destination:* ${order.customer.address}, ${order.customer.suburb}\n` +
+                    (order.customer.complexOrUnit ? `🏢 Unit: ${order.customer.complexOrUnit}\n` : '') +
+                    (order.customer.gateCode ? `🔑 Gate Code: ${order.customer.gateCode}\n` : '') +
+                    (order.customer.notes ? `📝 Note: "${order.customer.notes}"\n` : '') +
+                    `👤 *Customer:* ${order.customer.customerName} (${order.customer.phone})\n\n` +
+                    `🗺️ *Google Maps GPS:* ${googleMapsUrl}\n` +
+                    `🗺️ *Waze Navigation:* ${wazeUrl}\n\n` +
+                    `💰 *Collection Amount:* R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)} (${order.paymentStatus === 'paid' ? 'PAID ONLINE' : 'COLLECT ON HANDOVER'})`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-950/40 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Send Ticket to Driver via WhatsApp</span>
                 </a>
               </div>
             </div>

@@ -198,34 +198,31 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           step: 1,
           label: order.status === 'received' ? 'Order Received' : 'Order Accepted',
           icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor:
-            order.status === 'received'
-              ? 'bg-amber-500 text-zinc-950 shadow-amber-500/40 animate-pulse'
-              : 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 2,
           label: 'On The Grill',
           icon: <Flame className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-amber-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 3,
           label: 'Food Ready & Packed',
           icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-yellow-400 to-amber-500 text-zinc-950 shadow-yellow-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 4,
           label: 'Out for Delivery',
           icon: <Truck className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-zinc-950 shadow-emerald-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 5,
           label: 'Enjoy!',
           icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-rose-500 to-amber-500 text-white shadow-rose-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
       ]
     : [
@@ -233,28 +230,25 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           step: 1,
           label: order.status === 'received' ? 'Order Received' : 'Order Accepted',
           icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor:
-            order.status === 'received'
-              ? 'bg-amber-500 text-zinc-950 shadow-amber-500/40 animate-pulse'
-              : 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 2,
           label: 'On The Grill',
           icon: <Flame className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-amber-500 to-rose-500 text-white shadow-amber-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 3,
           label: 'Ready at Counter',
           icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-yellow-400 to-amber-500 text-zinc-950 shadow-yellow-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
         {
           step: 4,
           label: 'Enjoy!',
           icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-gradient-to-tr from-rose-500 to-amber-500 text-white shadow-rose-500/40',
+          activeColor: 'bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950 shadow-orange-500/40',
         },
       ];
 
@@ -464,7 +458,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <div className="h-2 bg-zinc-800 rounded-full w-full absolute top-1/2 -translate-y-1/2 z-0" />
               {/* Active Fill Bar */}
               <div
-                className="h-2 bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500 rounded-full absolute top-1/2 -translate-y-1/2 z-0 transition-all duration-700"
+                className="h-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full absolute top-1/2 -translate-y-1/2 z-0 transition-all duration-700"
                 style={{ width: getProgressWidth() }}
               />
 
@@ -481,7 +475,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                           isDone
                             ? `${item.activeColor} scale-105`
                             : 'bg-zinc-850 text-zinc-500 border border-white/10'
-                        } ${isCurrent ? 'ring-4 ring-rose-500/30 animate-pulse' : ''}`}
+                        } ${isCurrent ? 'ring-4 ring-orange-500/40 animate-pulse' : ''}`}
                       >
                         {item.icon}
                       </div>

@@ -33,6 +33,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
+import { DriverTicketModal } from './DriverTicketModal';
 
 interface KitchenDisplayViewProps {
   onBackToMenu: () => void;
@@ -75,6 +76,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [silencedAlarms, setSilencedAlarms] = useState<Set<string>>(new Set());
+  const [viewingDriverOrder, setViewingDriverOrder] = useState<LiveOrder | null>(null);
 
   // Track known order IDs to immediately chime on brand new incoming orders
   const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().map((o) => o.orderId)));
@@ -259,7 +261,38 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const activeOrders = validOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
   const cookingOrders = validOrders.filter((o) => o.status === 'cooking');
   const readyOrders = validOrders.filter((o) => o.status === 'ready' || o.status === 'dispatched');
-  const completedOrders = validOrders.filter((o) => o.status === 'completed');
+
+  // Extract completion timestamp safely to sort history newest-first
+  const getOrderCompletionEpoch = (order: LiveOrder): number => {
+    const completedEvent = order.timeline?.find((t) => t.status === 'completed');
+    if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 0) {
+      return completedEvent.epochTime;
+    }
+    if (completedEvent?.timestamp) {
+      const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
+      if (match) {
+        const d = new Date();
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        if (/pm/i.test(completedEvent.timestamp) && hours < 12) hours += 12;
+        if (/am/i.test(completedEvent.timestamp) && hours === 12) hours = 0;
+        d.setHours(hours, minutes, 0, 0);
+        return d.getTime();
+      }
+    }
+    return 0;
+  };
+
+  // Latest completed orders at the top-left
+  const completedOrders = [...validOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
+    const timeA = getOrderCompletionEpoch(a);
+    const timeB = getOrderCompletionEpoch(b);
+    if (timeA && timeB && timeA !== timeB) {
+      return timeB - timeA; // newest completed first (top-left)
+    }
+    // Fallback: reverse order of original list so newest completed is first
+    return validOrders.indexOf(b) - validOrders.indexOf(a);
+  });
 
   const displayedOrders =
     filter === 'active'
@@ -684,60 +717,84 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                           <div className="italic text-zinc-400">"{customer.notes}"</div>
                         )}
 
-                        <div className="pt-1.5 flex gap-2">
+                        <div className="pt-2 flex gap-2">
                           <a
                             href={googleMapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 py-1.5 px-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] flex items-center justify-center gap-1"
+                            className="flex-1 py-2 px-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+                            title="Open Google Maps turn-by-turn navigation"
                           >
-                            <MapPin className="w-3 h-3" />
+                            <MapPin className="w-3.5 h-3.5" />
                             <span>Driver GPS</span>
                           </a>
+
+                          <button
+                            type="button"
+                            onClick={() => setViewingDriverOrder(order)}
+                            className="flex-1 py-2 px-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+                            title="View Driver Dispatch Details & WhatsApp link"
+                          >
+                            <Navigation className="w-3.5 h-3.5" />
+                            <span>Driver Dispatch</span>
+                          </button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Meal Checklist (The Kitchen's Core View) */}
-                  <div className="flex-1 p-4 space-y-2.5 overflow-y-auto max-h-64">
-                    <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                      Food Checklist ({items.length} items)
+                  {/* Meal Checklist (The Kitchen's Core View - High Visibility) */}
+                  <div className="flex-1 p-4 space-y-3 overflow-y-auto max-h-72">
+                    <div className="text-xs sm:text-sm font-black uppercase tracking-wider text-orange-400 flex items-center justify-between pb-1.5 border-b border-white/10">
+                      <span>📋 FOOD CHECKLIST</span>
+                      <span className="text-zinc-400 text-xs font-bold">
+                        ({items.length} {items.length === 1 ? 'item' : 'items'})
+                      </span>
                     </div>
+
                     {items.map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-2xl bg-zinc-900 border border-white/10 space-y-1 text-xs"
+                        className="p-3.5 rounded-2xl bg-zinc-900/95 border border-white/15 space-y-2 text-xs"
                       >
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-black text-white text-sm">
-                            {item.quantity || 1}x {item.menuItem?.name || 'Meal'}
+                        <div className="flex items-baseline gap-2">
+                          <span className="px-2.5 py-1 rounded-xl bg-orange-500 text-zinc-950 font-black text-sm sm:text-base shrink-0 shadow-sm">
+                            {item.quantity || 1}x
+                          </span>
+                          <span className="font-black text-white text-base sm:text-lg leading-snug">
+                            {item.menuItem?.name || 'Meal'}
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        <div className="flex flex-wrap gap-2 pt-0.5">
                           {item.customization?.flavour && (
-                            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-extrabold text-[11px] uppercase border border-rose-500/30">
-                              🔥 Baste: {item.customization.flavour}
+                            <span className="px-2.5 py-1 rounded-xl bg-rose-500/25 text-rose-300 font-black text-xs sm:text-sm uppercase border border-rose-500/35">
+                              🔥 BASTE: {item.customization.flavour}
                             </span>
                           )}
                           {item.customization?.side && (
-                            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-extrabold text-[11px] border border-amber-500/30">
-                              🍟 Side: {item.customization.side}
+                            <span className="px-2.5 py-1 rounded-xl bg-amber-500/25 text-amber-200 font-extrabold text-xs sm:text-sm border border-amber-500/35">
+                              🍟 SIDE: {item.customization.side}
                             </span>
                           )}
                         </div>
 
                         {Array.isArray(item.customization?.extras) &&
-                          item.customization.extras.map((e) => (
-                            <div key={e.name} className="text-[11px] text-amber-300/80 font-medium">
-                              + {e.name}
+                          item.customization.extras.length > 0 && (
+                            <div className="space-y-0.5 pt-0.5">
+                              {item.customization.extras.map((e) => (
+                                <div key={e.name} className="text-xs sm:text-sm text-amber-300 font-bold flex items-center gap-1.5">
+                                  <span className="text-amber-400 font-black">+</span>
+                                  <span>{e.name}</span>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
 
                         {item.customization?.notes && (
-                          <div className="text-[11px] text-yellow-300/90 italic bg-yellow-500/10 p-1.5 rounded-lg mt-1 border border-yellow-500/20">
-                            Note: "{item.customization.notes}"
+                          <div className="text-xs sm:text-sm text-yellow-200 font-bold italic bg-yellow-500/15 p-2 rounded-xl mt-1.5 border border-yellow-500/25 flex items-start gap-1.5">
+                            <span className="text-sm shrink-0">⚠️</span>
+                            <span>Note: "{item.customization.notes}"</span>
                           </div>
                         )}
                       </div>
@@ -849,6 +906,14 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           </div>
         )}
       </main>
+
+      {/* Driver Dispatch Ticket & Routing Modal */}
+      {viewingDriverOrder && (
+        <DriverTicketModal
+          order={viewingDriverOrder}
+          onClose={() => setViewingDriverOrder(null)}
+        />
+      )}
     </div>
   );
 };
