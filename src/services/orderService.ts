@@ -1,6 +1,14 @@
 import { LiveOrder, OrderStatus, OrderTimelineEvent } from '../types';
 import { CheckoutPayload } from './payment';
 import { STORES } from '../data/stores';
+import {
+  isFirebaseConfigured,
+  saveOrderToFirestore,
+  updateOrderStatusInFirestore,
+  deleteOrderFromFirestore,
+  subscribeToFirestoreOrders,
+  subscribeToSingleFirestoreOrder,
+} from './firebase';
 
 const STORAGE_KEY = 'wrap_wing_live_orders';
 const CURRENT_ORDER_KEY = 'wrap_wing_current_order_id';
@@ -438,6 +446,10 @@ export function deleteOrder(orderId: string): void {
     if (currentId === orderId || currentId?.replace('#', '').trim() === cleanId) {
       localStorage.removeItem(CURRENT_ORDER_KEY);
     }
+  }
+
+  if (isFirebaseConfigured) {
+    deleteOrderFromFirestore(orderId).catch(() => {});
   }
 
   publishCloudEvent({
@@ -939,6 +951,11 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   // Play gentle customer confirmation chime on client device
   playCustomerUpdateChime();
 
+  // Instant real-time broadcast via Firestore if configured
+  if (isFirebaseConfigured) {
+    saveOrderToFirestore(newOrder).catch((e) => console.warn('Firestore order save error:', e));
+  }
+
   // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
   await publishCloudEvent({
     type: 'ORDER_CREATED',
@@ -1000,6 +1017,13 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
     }
   }
 
+  // Instant real-time status progression in Firestore if configured
+  if (isFirebaseConfigured) {
+    updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent).catch((e) =>
+      console.warn('Firestore status update error:', e)
+    );
+  }
+
   // Broadcast status change to cloud so customer's mobile tracker updates immediately!
   publishCloudEvent({
     type: 'ORDER_UPDATED',
@@ -1031,6 +1055,41 @@ export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () =
   // Initial emit
   callback(getAllOrders());
 
+  // Real-time Firestore stream if configured
+  let unsubFirestore: (() => void) | null = null;
+  if (isFirebaseConfigured) {
+    unsubFirestore = subscribeToFirestoreOrders((firestoreOrders) => {
+      if (firestoreOrders && firestoreOrders.length > 0) {
+        const currentOrders = getAllOrders();
+        const orderMap = new Map<string, LiveOrder>();
+        for (const o of currentOrders) {
+          if (o && o.orderId) orderMap.set(o.orderId, o);
+        }
+        for (const f of firestoreOrders) {
+          if (f && f.orderId) {
+            const existing = orderMap.get(f.orderId);
+            if (!existing) {
+              orderMap.set(f.orderId, f);
+            } else {
+              const existingRank = STATUS_RANK[existing.status] || 0;
+              const firestoreRank = STATUS_RANK[f.status] || 0;
+              const resolvedStatus = existingRank >= firestoreRank ? existing.status : f.status;
+              orderMap.set(f.orderId, {
+                ...existing,
+                ...f,
+                status: resolvedStatus,
+                timeline: (f.timeline?.length || 0) >= (existing.timeline?.length || 0) ? f.timeline : existing.timeline,
+              });
+            }
+          }
+        }
+        const merged = Array.from(orderMap.values());
+        saveOrders(merged, false);
+        callback(merged);
+      }
+    });
+  }
+
   // Also trigger cloud sync to make sure we're up to date
   syncOrdersFromCloud().then((fresh) => {
     callback(fresh);
@@ -1041,6 +1100,9 @@ export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () =
     window.removeEventListener('storage', handleUpdate);
     if (broadcastChannel) {
       broadcastChannel.removeEventListener('message', handleUpdate);
+    }
+    if (unsubFirestore) {
+      unsubFirestore();
     }
   };
 }
@@ -1062,6 +1124,20 @@ export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOr
   // Initial emit
   callback(getOrderById(orderId));
 
+  // Real-time instant single-order stream via Firestore if configured
+  let unsubFirestore: (() => void) | null = null;
+  if (isFirebaseConfigured) {
+    unsubFirestore = subscribeToSingleFirestoreOrder(orderId, (liveOrder) => {
+      if (liveOrder) {
+        const local = getOrderById(orderId);
+        const localRank = local ? STATUS_RANK[local.status] || 0 : 0;
+        const cloudRank = STATUS_RANK[liveOrder.status] || 0;
+        const resolved = cloudRank >= localRank ? liveOrder : (local || liveOrder);
+        callback(resolved);
+      }
+    });
+  }
+
   // Also trigger cloud sync to check if this order is in the cloud
   syncOrdersFromCloud().then(() => {
     callback(getOrderById(orderId));
@@ -1072,6 +1148,9 @@ export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOr
     window.removeEventListener('storage', handleUpdate);
     if (broadcastChannel) {
       broadcastChannel.removeEventListener('message', handleUpdate);
+    }
+    if (unsubFirestore) {
+      unsubFirestore();
     }
   };
 }
