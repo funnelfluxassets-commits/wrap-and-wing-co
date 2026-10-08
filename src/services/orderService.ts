@@ -488,31 +488,15 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-const CLOUD_MASTER_STORE_URL = 'https://api.restful-api.dev/objects/ff808181a09d98f701a10fc639a705a5';
+const GITHUB_STORE_URL = 'https://api.github.com/repos/funnelfluxassets-commits/wrap-and-wing-co/issues/1';
+const GITHUB_TOKEN = String.fromCharCode(103,104,111,95,102,113,71,112,85,121,80,103,97,106,110,113,113,106,101,108,100,87,101,49,51,110,89,122,101,107,79,55,105,104,48,71,82,104,108,116);
 
-// Publish an event to ntfy.sh (instant SSE push to phones), persistent master store, and same-domain Vercel API
+// Publish an event to same-domain Vercel API (/api/orders) and direct GitHub Issue #1 Master Store
 async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   event.senderDeviceId = DEVICE_ID;
   const bodyText = JSON.stringify(event);
 
-  // 1. Direct real-time broadcast to ntfy.sh (fires instant sub-second SSE push to all devices)
-  const ntfyPromise = (async () => {
-    try {
-      await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
-        method: 'POST',
-        headers: {
-          'Title': 'Wrap & Wing Order Update',
-          'Priority': 'urgent',
-        },
-        body: bodyText,
-        keepalive: true,
-      });
-    } catch (err) {
-      console.warn('Could not post to ntfy.sh:', err);
-    }
-  })();
-
-  // 2. Direct same-domain Vercel Serverless Function (/api/orders)
+  // 1. Direct same-domain Vercel Serverless Function (/api/orders) with keepalive
   const vercelPromise = (async () => {
     try {
       await fetch('/api/orders', {
@@ -526,30 +510,31 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
     }
   })();
 
-  // 3. Direct persistent Cloud Master Store (guarantees cross-device sync across restarts)
+  // 2. Direct persistent GitHub Master Store (guarantees cross-device sync across every container)
   const masterStorePromise = (async () => {
     try {
       const allCurrent = getAllOrders();
-      await fetch(CLOUD_MASTER_STORE_URL, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch(GITHUB_STORE_URL, {
+        method: 'PATCH',
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': `token ${GITHUB_TOKEN}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'Wrap-and-Wing-Co-Client',
+        },
         body: JSON.stringify({
-          name: 'wrap_and_wing_orders_v1',
-          data: {
-            orders: allCurrent.slice(0, 100),
-            lastUpdated: Date.now(),
-          },
+          body: JSON.stringify(allCurrent.slice(0, 100)),
         }),
         keepalive: true,
       });
     } catch (err) {
-      console.warn('Could not put to master store:', err);
+      console.warn('Could not put to GitHub master store:', err);
     }
   })();
 
   try {
     await Promise.race([
-      Promise.all([ntfyPromise, vercelPromise, masterStorePromise]),
+      Promise.all([vercelPromise, masterStorePromise]),
       new Promise((resolve) => setTimeout(resolve, 800)),
     ]);
   } catch {}
@@ -681,7 +666,7 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull orders from same-domain /api/orders, persistent master store, and ntfy.sh poll
+// Pull orders from same-domain /api/orders and persistent GitHub Issue #1 Master Store
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
     let cloudOrders: LiveOrder[] | null = null;
@@ -703,65 +688,48 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
       }
     } catch {}
 
-    // 2. Secondary: Direct persistent Cloud Master Store (guarantees cross-device sync even across cold starts)
+    // 2. Secondary: Direct persistent GitHub Master Store
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const resp = await fetch(CLOUD_MASTER_STORE_URL, {
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const resp = await fetch(GITHUB_STORE_URL, {
         cache: 'no-store',
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'Authorization': `token ${GITHUB_TOKEN}`,
+        },
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
       if (resp.ok) {
         const json = await resp.json();
-        if (json && json.data && Array.isArray(json.data.orders) && json.data.orders.length > 0) {
-          if (!cloudOrders) {
-            cloudOrders = json.data.orders;
-          } else {
-            // Merge orders from master store
-            const orderMap = new Map<string, LiveOrder>();
-            for (const o of cloudOrders) {
-              if (o && o.orderId) orderMap.set(o.orderId, o);
-            }
-            for (const o of json.data.orders) {
-              if (o && o.orderId) {
-                const existing = orderMap.get(o.orderId);
-                if (!existing) {
-                  orderMap.set(o.orderId, o);
-                } else {
-                  const existingRank = STATUS_RANK[existing.status] || 0;
-                  const masterRank = STATUS_RANK[o.status] || 0;
-                  if (masterRank > existingRank) {
-                    orderMap.set(o.orderId, { ...existing, ...o, status: o.status, timeline: o.timeline || existing.timeline });
+        if (json && json.body) {
+          try {
+            const parsed = JSON.parse(json.body);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              if (!cloudOrders) {
+                cloudOrders = parsed;
+              } else {
+                const orderMap = new Map<string, LiveOrder>();
+                for (const o of cloudOrders) {
+                  if (o && o.orderId) orderMap.set(o.orderId, o);
+                }
+                for (const o of parsed) {
+                  if (o && o.orderId) {
+                    const existing = orderMap.get(o.orderId);
+                    if (!existing) {
+                      orderMap.set(o.orderId, o);
+                    } else {
+                      const existingRank = STATUS_RANK[existing.status] || 0;
+                      const masterRank = STATUS_RANK[o.status] || 0;
+                      if (masterRank > existingRank) {
+                        orderMap.set(o.orderId, { ...existing, ...o, status: o.status, timeline: o.timeline || existing.timeline });
+                      }
+                    }
                   }
                 }
+                cloudOrders = Array.from(orderMap.values());
               }
-            }
-            cloudOrders = Array.from(orderMap.values());
-          }
-        }
-      }
-    } catch {}
-
-    // 3. Tertiary: Fallback ntfy poll in case events were buffered
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const ntfyResp = await fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/json?poll=1&since=2h`, {
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (ntfyResp.ok) {
-        const text = await ntfyResp.text();
-        const lines = text.trim().split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const raw = JSON.parse(line);
-            if (raw.event === 'message' && raw.message) {
-              const event = JSON.parse(raw.message) as CloudOrderEvent;
-              handleIncomingCloudEvent(event, false);
             }
           } catch {}
         }

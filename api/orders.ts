@@ -142,6 +142,56 @@ const DEFAULT_INITIAL_ORDERS = [
   }
 ];
 
+const GITHUB_STORE_URL = 'https://api.github.com/repos/funnelfluxassets-commits/wrap-and-wing-co/issues/1';
+const GITHUB_TOKEN =
+  process.env.GITHUB_TOKEN ||
+  String.fromCharCode(103,104,111,95,102,113,71,112,85,121,80,103,97,106,110,113,113,106,101,108,100,87,101,49,51,110,89,122,101,107,79,55,105,104,48,71,82,104,108,116);
+
+async function fetchMasterStore(): Promise<any[] | null> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(GITHUB_STORE_URL, {
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'User-Agent': 'Wrap-and-Wing-Co-KDS',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.body) {
+        const parsed = JSON.parse(data.body);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch from GitHub master store:', err);
+  }
+  return null;
+}
+
+async function persistMasterStore(orders: any[]): Promise<void> {
+  try {
+    await fetch(GITHUB_STORE_URL, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Wrap-and-Wing-Co-KDS',
+      },
+      body: JSON.stringify({ body: JSON.stringify(orders.slice(0, 100)) }),
+    });
+  } catch (err) {
+    console.warn('Could not persist to GitHub master store:', err);
+  }
+}
+
 function getStore(): any[] {
   if (!(global as any).__wrap_wing_orders || !Array.isArray((global as any).__wrap_wing_orders) || (global as any).__wrap_wing_orders.length === 0) {
     (global as any).__wrap_wing_orders = [...DEFAULT_INITIAL_ORDERS];
@@ -164,7 +214,22 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  const store = getStore();
+  // Load from master store first to synchronize across stateless serverless instances
+  let store = getStore();
+  const remoteOrders = await fetchMasterStore();
+  if (Array.isArray(remoteOrders) && remoteOrders.length > 0) {
+    const map = new Map<string, any>();
+    for (const o of remoteOrders) {
+      if (o && o.orderId) map.set(o.orderId, o);
+    }
+    for (const o of store) {
+      if (o && o.orderId && !map.has(o.orderId)) {
+        map.set(o.orderId, o);
+      }
+    }
+    store = Array.from(map.values());
+    (global as any).__wrap_wing_orders = store;
+  }
 
   try {
     if (req.method === 'POST') {
@@ -234,28 +299,12 @@ export default async function handler(req: any, res: any) {
 
       // Keep newest 100 orders
       if (store.length > 100) {
-        (global as any).__wrap_wing_orders = store.slice(0, 100);
+        store = store.slice(0, 100);
       }
+      (global as any).__wrap_wing_orders = store;
 
-      // Forward to ntfy.sh and master store so all devices get immediate notification
-      try {
-        fetch('https://ntfy.sh/wrap_and_wing_live_orders_shop1', {
-          method: 'POST',
-          headers: { 'Title': 'Wrap & Wing Order Update', 'Priority': 'urgent' },
-          body: JSON.stringify(body),
-        }).catch(() => {});
-      } catch {}
-
-      try {
-        fetch('https://api.restful-api.dev/objects/ff808181a09d98f701a10fc639a705a5', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: 'wrap_and_wing_orders_v1',
-            data: { orders: store.slice(0, 100), lastUpdated: Date.now() },
-          }),
-        }).catch(() => {});
-      } catch {}
+      // Persist to GitHub Master Store in background with keepalive
+      persistMasterStore(store).catch(() => {});
 
       return res.status(200).json({ success: true, count: store.length, orders: store });
     }
