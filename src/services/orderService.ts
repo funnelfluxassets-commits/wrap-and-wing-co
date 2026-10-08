@@ -499,12 +499,41 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   // 1. Direct same-domain Vercel Serverless Function (/api/orders) with keepalive
   const vercelPromise = (async () => {
     try {
-      await fetch('/api/orders', {
+      const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: bodyText,
         keepalive: true,
       });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.orders)) {
+          const currentOrders = getAllOrders();
+          const orderMap = new Map<string, LiveOrder>();
+          for (const o of currentOrders) {
+            if (o && o.orderId) orderMap.set(o.orderId, o);
+          }
+          for (const o of data.orders) {
+            if (o && o.orderId) {
+              const existing = orderMap.get(o.orderId);
+              if (!existing) {
+                orderMap.set(o.orderId, o);
+              } else {
+                const existingRank = STATUS_RANK[existing.status] || 0;
+                const cloudRank = STATUS_RANK[o.status] || 0;
+                const resolvedStatus = existingRank >= cloudRank ? existing.status : o.status;
+                orderMap.set(o.orderId, {
+                  ...existing,
+                  ...o,
+                  status: resolvedStatus,
+                  timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
+                });
+              }
+            }
+          }
+          saveOrders(Array.from(orderMap.values()), true);
+        }
+      }
     } catch (err) {
       console.warn('Could not post to /api/orders:', err);
     }
@@ -520,7 +549,6 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
           'Accept': 'application/vnd.github.v3+json',
           'Authorization': `token ${GITHUB_TOKEN}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'Wrap-and-Wing-Co-Client',
         },
         body: JSON.stringify({
           body: JSON.stringify(allCurrent.slice(0, 100)),
@@ -533,10 +561,7 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   })();
 
   try {
-    await Promise.race([
-      Promise.all([vercelPromise, masterStorePromise]),
-      new Promise((resolve) => setTimeout(resolve, 800)),
-    ]);
+    await Promise.allSettled([vercelPromise, masterStorePromise]);
   } catch {}
 }
 

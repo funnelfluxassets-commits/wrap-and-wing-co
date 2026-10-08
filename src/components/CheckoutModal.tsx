@@ -154,7 +154,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
               {orderMode === 'delivery' ? '🚗 Delivery Checkout' : '🛍️ Collection Checkout'}
             </h2>
             <p className="text-xs text-zinc-400">
-              {selectedStore.name} • {selectedStore.mall}
+              Wrap &amp; Wings Co
             </p>
           </div>
           <button

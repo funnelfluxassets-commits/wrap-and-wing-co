@@ -40,7 +40,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight">Your Order</h2>
               <p className="text-[11px] text-zinc-400 font-medium">
-                {selectedStore.mall} ({selectedStore.landmark})
+                Wrap &amp; Wings Co
               </p>
             </div>
           </div>

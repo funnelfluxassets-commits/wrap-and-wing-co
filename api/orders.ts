@@ -223,8 +223,22 @@ export default async function handler(req: any, res: any) {
       if (o && o.orderId) map.set(o.orderId, o);
     }
     for (const o of store) {
-      if (o && o.orderId && !map.has(o.orderId)) {
-        map.set(o.orderId, o);
+      if (o && o.orderId) {
+        const existing = map.get(o.orderId);
+        if (!existing) {
+          map.set(o.orderId, o);
+        } else {
+          const existingRank = STATUS_RANK[existing.status] || 0;
+          const localRank = STATUS_RANK[o.status] || 0;
+          if (localRank > existingRank) {
+            map.set(o.orderId, {
+              ...existing,
+              ...o,
+              status: o.status,
+              timeline: o.timeline || existing.timeline,
+            });
+          }
+        }
       }
     }
     store = Array.from(map.values());
@@ -248,7 +262,10 @@ export default async function handler(req: any, res: any) {
         if (existingIdx === -1) {
           store.unshift(order);
         } else {
-          store[existingIdx] = { ...store[existingIdx], ...order };
+          const existingRank = STATUS_RANK[store[existingIdx].status] || 0;
+          const orderRank = STATUS_RANK[order.status] || 0;
+          const resolvedStatus = existingRank >= orderRank ? store[existingIdx].status : order.status;
+          store[existingIdx] = { ...store[existingIdx], ...order, status: resolvedStatus };
         }
       } else if (type === 'ORDER_DELETED' && (targetId || cleanTarget)) {
         const existingIdx = store.findIndex((o) =>
@@ -264,10 +281,12 @@ export default async function handler(req: any, res: any) {
           String(o.orderId).replace('#', '').trim() === cleanTarget
         );
 
+        const targetStatus = newStatus || order?.status;
+
         if (existingIdx !== -1) {
           const currentRank = STATUS_RANK[store[existingIdx].status] || 0;
-          const newRank = STATUS_RANK[newStatus] || 0;
-          const allowedStatus = newRank >= currentRank ? newStatus : store[existingIdx].status;
+          const newRank = STATUS_RANK[targetStatus] || 0;
+          const allowedStatus = newRank >= currentRank ? targetStatus : store[existingIdx].status;
 
           if (allowedStatus) {
             store[existingIdx].status = allowedStatus;
@@ -291,7 +310,7 @@ export default async function handler(req: any, res: any) {
         } else if (targetId) {
           store.unshift({
             orderId: targetId,
-            status: newStatus || 'received',
+            status: targetStatus || 'received',
             timeline: timelineEvent ? [timelineEvent] : [],
           });
         }
@@ -303,8 +322,12 @@ export default async function handler(req: any, res: any) {
       }
       (global as any).__wrap_wing_orders = store;
 
-      // Persist to GitHub Master Store in background with keepalive
-      persistMasterStore(store).catch(() => {});
+      // Persist to GitHub Master Store and await completion so container doesn't terminate prematurely
+      try {
+        await persistMasterStore(store);
+      } catch (persistErr) {
+        console.warn('Failed to persist to master store:', persistErr);
+      }
 
       return res.status(200).json({ success: true, count: store.length, orders: store });
     }

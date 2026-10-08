@@ -550,7 +550,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 </div>
               </div>
               <span className="text-[9px] sm:text-[10px] font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-zinc-800 text-zinc-300 border border-white/5 shrink-0 whitespace-nowrap">
-                Shop 1, Pinetown
+                Wrap &amp; Wings Co
               </span>
             </div>
 
@@ -593,7 +593,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <MapPin className="w-4 h-4 text-rose-500" />
               <span>{isDelivery ? 'Delivery Destination' : 'Collection Counter Details'}</span>
             </h3>
-            <span className="text-[11px] font-bold text-zinc-400">{store.name}</span>
+            <span className="text-[11px] font-bold text-zinc-400">Wrap &amp; Wings Co</span>
           </div>
 
           {!isDelivery ? (
