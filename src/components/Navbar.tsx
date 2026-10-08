@@ -20,8 +20,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
 
   useEffect(() => {
     const unsub = subscribeToOrders((orders) => {
-      const active = orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled');
-      setActiveOrderId(active ? active.orderId : (orders[0]?.orderId || null));
+      const myOrderId = getCurrentOrderId();
+      if (!myOrderId) {
+        setActiveOrderId(null);
+        return;
+      }
+      const cleanMyId = myOrderId.replace('#', '').trim();
+      const myOrder = orders.find(
+        (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
+      );
+      if (myOrder && myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
+        setActiveOrderId(myOrder.orderId);
+      } else {
+        setActiveOrderId(null);
+      }
     });
     return unsub;
   }, []);

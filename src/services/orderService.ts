@@ -8,6 +8,15 @@ const CHANNEL_NAME = 'wrap_wing_orders_channel';
 const CLOUD_TOPIC = 'wrap_and_wing_live_orders_shop1';
 const NTFY_BASE_URL = 'https://ntfy.sh';
 
+export const STATUS_RANK: Record<OrderStatus, number> = {
+  received: 1,
+  cooking: 2,
+  ready: 3,
+  dispatched: 4,
+  completed: 5,
+  cancelled: 6,
+};
+
 // Web Audio API Ding-Dong Chime for Kitchen Display
 export function playKitchenChime() {
   try {
@@ -380,21 +389,62 @@ export function resetToDefaultOrders(): LiveOrder[] {
 }
 
 export function getOrderById(orderId: string): LiveOrder | null {
+  const cleanId = orderId.replace('#', '').trim();
   const orders = getAllOrders();
-  return orders.find((o) => o.orderId === orderId) || null;
+  return orders.find((o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId) || null;
 }
 
 export function getCurrentOrderId(): string | null {
   if (typeof window === 'undefined') return null;
   const direct = localStorage.getItem(CURRENT_ORDER_KEY);
-  if (direct) return direct;
+  if (!direct) return null;
+  const clean = direct.replace('#', '').trim();
   const orders = getAllOrders();
-  return orders.length > 0 ? orders[0].orderId : null;
+  const order = orders.find(
+    (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
+  );
+  // If order does not exist or has finished (completed or cancelled), it is removed from customer device
+  if (!order || order.status === 'completed' || order.status === 'cancelled') {
+    localStorage.removeItem(CURRENT_ORDER_KEY);
+    return null;
+  }
+  return direct;
 }
 
 export function setCurrentOrderId(orderId: string) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(CURRENT_ORDER_KEY, orderId);
+  notifySubscribers();
+}
+
+export function clearCurrentOrder() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(CURRENT_ORDER_KEY);
+    notifySubscribers();
+  } catch {}
+}
+
+export function deleteOrder(orderId: string): void {
+  const cleanId = orderId.replace('#', '').trim();
+  const currentOrders = getAllOrders();
+  const filtered = currentOrders.filter(
+    (o) => o.orderId !== orderId && o.orderId?.replace('#', '').trim() !== cleanId
+  );
+  saveOrders(filtered, true);
+
+  if (typeof window !== 'undefined') {
+    const currentId = localStorage.getItem(CURRENT_ORDER_KEY);
+    if (currentId === orderId || currentId?.replace('#', '').trim() === cleanId) {
+      localStorage.removeItem(CURRENT_ORDER_KEY);
+    }
+  }
+
+  publishCloudEvent({
+    type: 'ORDER_DELETED',
+    orderId,
+    timestamp: Date.now(),
+  });
 }
 
 export function clearAllOrders() {
@@ -411,7 +461,7 @@ export function clearAllOrders() {
 // -------------------------------------------------------------
 
 export interface CloudOrderEvent {
-  type: 'ORDER_CREATED' | 'ORDER_UPDATED';
+  type: 'ORDER_CREATED' | 'ORDER_UPDATED' | 'ORDER_DELETED';
   senderDeviceId?: string;
   order?: LiveOrder;
   orderId?: string;
@@ -465,8 +515,26 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
 
   const currentOrders = getAllOrders();
 
+  if (event.type === 'ORDER_DELETED' && event.orderId) {
+    const cleanTarget = event.orderId.replace('#', '').trim();
+    const updated = currentOrders.filter(
+      (o) => o.orderId !== event.orderId && o.orderId?.replace('#', '').trim() !== cleanTarget
+    );
+    saveOrders(updated, true);
+    if (typeof window !== 'undefined') {
+      const currentActiveId = localStorage.getItem(CURRENT_ORDER_KEY);
+      if (currentActiveId === event.orderId || currentActiveId?.replace('#', '').trim() === cleanTarget) {
+        localStorage.removeItem(CURRENT_ORDER_KEY);
+      }
+    }
+    return;
+  }
+
   if (event.type === 'ORDER_CREATED' && event.order) {
-    const existingIndex = currentOrders.findIndex((o) => o.orderId === event.order!.orderId);
+    const orderCleanId = String(event.order.orderId).replace('#', '').trim();
+    const existingIndex = currentOrders.findIndex(
+      (o) => o.orderId === event.order!.orderId || o.orderId?.replace('#', '').trim() === orderCleanId
+    );
     if (existingIndex === -1) {
       // New order discovered from cloud!
       const updated = [event.order, ...currentOrders];
@@ -477,20 +545,35 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         playKitchenChime();
       }
     } else {
-      // If cloud order is more up to date, merge
+      // If cloud order is more up to date, merge without regressing status
       const existing = currentOrders[existingIndex];
-      if (
-        event.order.timeline &&
-        event.order.timeline.length > (existing.timeline ? existing.timeline.length : 0)
-      ) {
-        currentOrders[existingIndex] = event.order;
-        saveOrders(currentOrders, true);
-      }
+      const existingRank = STATUS_RANK[existing.status] || 0;
+      const cloudRank = STATUS_RANK[event.order.status] || 0;
+      const resolvedStatus = existingRank >= cloudRank ? existing.status : event.order.status;
+
+      currentOrders[existingIndex] = {
+        ...existing,
+        ...event.order,
+        status: resolvedStatus,
+        timeline: (event.order.timeline?.length || 0) >= (existing.timeline?.length || 0)
+          ? event.order.timeline
+          : existing.timeline,
+      };
+      saveOrders(currentOrders, true);
     }
   } else if (event.type === 'ORDER_UPDATED' && event.orderId && event.newStatus) {
-    const existingIndex = currentOrders.findIndex((o) => o.orderId === event.orderId);
+    const cleanTarget = event.orderId.replace('#', '').trim();
+    const existingIndex = currentOrders.findIndex(
+      (o) => o.orderId === event.orderId || o.orderId?.replace('#', '').trim() === cleanTarget
+    );
     if (existingIndex !== -1) {
       const existing = currentOrders[existingIndex];
+      const existingRank = STATUS_RANK[existing.status] || 0;
+      const newRank = STATUS_RANK[event.newStatus] || 0;
+
+      // Status can only move forward - never regress!
+      if (newRank < existingRank) return;
+
       if (existing.status !== event.newStatus || event.timelineEvent) {
         const hasTimeline = event.timelineEvent
           ? [...existing.timeline, event.timelineEvent]
@@ -503,6 +586,14 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         };
         currentOrders[existingIndex] = updated;
         saveOrders(currentOrders, true);
+
+        // If completed or cancelled, remove from customer device active storage
+        if (typeof window !== 'undefined' && (event.newStatus === 'completed' || event.newStatus === 'cancelled')) {
+          const currentActiveId = localStorage.getItem(CURRENT_ORDER_KEY);
+          if (currentActiveId === event.orderId || currentActiveId?.replace('#', '').trim() === cleanTarget) {
+            localStorage.removeItem(CURRENT_ORDER_KEY);
+          }
+        }
 
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
@@ -570,15 +661,24 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
               estimatedMinutes: raw.estimatedMinutes || (raw.orderMode === 'collection' ? 20 : 40),
             };
 
-            const existing = mergedMap.get(sanitized.orderId);
-            if (!existing) {
+            const cleanRawId = sanitized.orderId.replace('#', '').trim();
+            const existingKey = Array.from(mergedMap.keys()).find(
+              (k) => k === sanitized.orderId || k.replace('#', '').trim() === cleanRawId
+            );
+
+            if (!existingKey) {
               mergedMap.set(sanitized.orderId, sanitized);
             } else {
-              // Status progression from cloud takes precedence
-              mergedMap.set(sanitized.orderId, {
+              const existing = mergedMap.get(existingKey)!;
+              const existingRank = STATUS_RANK[existing.status] || 0;
+              const cloudRank = STATUS_RANK[sanitized.status] || 0;
+              // Forward progression only: status never regresses backwards
+              const resolvedStatus = existingRank >= cloudRank ? existing.status : sanitized.status;
+
+              mergedMap.set(existingKey, {
                 ...existing,
                 ...sanitized,
-                status: sanitized.status,
+                status: resolvedStatus,
                 timeline: (sanitized.timeline?.length || 0) >= (existing.timeline?.length || 0)
                   ? sanitized.timeline
                   : existing.timeline,
@@ -715,12 +815,22 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
 }
 
 export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?: string): LiveOrder | null {
+  const cleanId = orderId.replace('#', '').trim();
   const orders = getAllOrders();
-  const index = orders.findIndex((o) => o.orderId === orderId);
+  const index = orders.findIndex(
+    (o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId
+  );
   if (index === -1) return null;
 
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const current = orders[index];
+
+  // Prevent status regression
+  const currentRank = STATUS_RANK[current.status] || 0;
+  const nextRank = STATUS_RANK[newStatus] || 0;
+  if (nextRank < currentRank) {
+    return current;
+  }
 
   const statusLabels: Record<OrderStatus, string> = {
     received: 'Order Received',
@@ -745,12 +855,20 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
   };
 
   orders[index] = updatedOrder;
-  saveOrders(orders);
+  saveOrders(orders, true);
+
+  // If order is completed or cancelled, remove from customer device active storage so it disappears
+  if (typeof window !== 'undefined' && (newStatus === 'completed' || newStatus === 'cancelled')) {
+    const currentActiveId = localStorage.getItem(CURRENT_ORDER_KEY);
+    if (currentActiveId === orderId || currentActiveId?.replace('#', '').trim() === cleanId) {
+      localStorage.removeItem(CURRENT_ORDER_KEY);
+    }
+  }
 
   // Broadcast status change to cloud so customer's mobile tracker updates immediately!
   publishCloudEvent({
     type: 'ORDER_UPDATED',
-    orderId,
+    orderId: updatedOrder.orderId,
     newStatus,
     note,
     timelineEvent,

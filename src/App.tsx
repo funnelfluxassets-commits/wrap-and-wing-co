@@ -56,14 +56,23 @@ const MainContent: React.FC = () => {
     window.addEventListener('hashchange', handleHash);
 
     const unsub = subscribeToOrders((orders) => {
-      const active = orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled');
-      if (active) {
-        setActiveOrder(active);
-        if (!trackedOrderId) {
-          setTrackedOrderId(active.orderId);
-        }
-      } else if (orders.length > 0) {
-        setActiveOrder(orders[0]);
+      const myOrderId = getCurrentOrderId();
+      if (!myOrderId) {
+        setActiveOrder(null);
+        setTrackedOrderId(null);
+        return;
+      }
+      const cleanMyId = myOrderId.replace('#', '').trim();
+      const myOrder = orders.find(
+        (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
+      );
+      if (myOrder && myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
+        setActiveOrder(myOrder);
+        setTrackedOrderId(myOrder.orderId);
+      } else {
+        // Order finished or delivered -> remove from customer device
+        setActiveOrder(null);
+        setTrackedOrderId(null);
       }
     });
 

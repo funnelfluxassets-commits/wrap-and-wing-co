@@ -3,6 +3,15 @@
 
 const todayDay = String(new Date().getDate()).padStart(2, '0');
 
+const STATUS_RANK: Record<string, number> = {
+  received: 1,
+  cooking: 2,
+  ready: 3,
+  dispatched: 4,
+  completed: 5,
+  cancelled: 6,
+};
+
 const DEFAULT_INITIAL_ORDERS = [
   {
     orderId: `D-${todayDay}01`,
@@ -176,6 +185,14 @@ export default async function handler(req: any, res: any) {
         } else {
           store[existingIdx] = { ...store[existingIdx], ...order };
         }
+      } else if (type === 'ORDER_DELETED' && (targetId || cleanTarget)) {
+        const existingIdx = store.findIndex((o) =>
+          o.orderId === targetId ||
+          String(o.orderId).replace('#', '').trim() === cleanTarget
+        );
+        if (existingIdx !== -1) {
+          store.splice(existingIdx, 1);
+        }
       } else if (type === 'ORDER_UPDATED' && (targetId || cleanTarget)) {
         const existingIdx = store.findIndex((o) =>
           o.orderId === targetId ||
@@ -183,13 +200,17 @@ export default async function handler(req: any, res: any) {
         );
 
         if (existingIdx !== -1) {
-          if (newStatus) {
-            store[existingIdx].status = newStatus;
+          const currentRank = STATUS_RANK[store[existingIdx].status] || 0;
+          const newRank = STATUS_RANK[newStatus] || 0;
+          const allowedStatus = newRank >= currentRank ? newStatus : store[existingIdx].status;
+
+          if (allowedStatus) {
+            store[existingIdx].status = allowedStatus;
           }
           if (timelineEvent) {
             const existingTimeline = Array.isArray(store[existingIdx].timeline) ? store[existingIdx].timeline : [];
             store[existingIdx].timeline = [
-              ...existingTimeline.filter((t: any) => t.status !== newStatus),
+              ...existingTimeline.filter((t: any) => t.status !== allowedStatus),
               timelineEvent,
             ];
           }
@@ -197,7 +218,7 @@ export default async function handler(req: any, res: any) {
             store[existingIdx] = {
               ...store[existingIdx],
               ...order,
-              status: newStatus || order.status || store[existingIdx].status,
+              status: allowedStatus,
             };
           }
         } else if (order) {

@@ -3,6 +3,7 @@ import { LiveOrder, OrderStatus } from '../types';
 import {
   subscribeToSingleOrder,
   getCurrentOrderId,
+  clearCurrentOrder,
   getAllOrders,
   syncOrdersFromCloud,
   playCustomerUpdateChime,
@@ -43,7 +44,18 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const lastStatusRef = useRef<OrderStatus | null>(null);
 
-  const effectiveOrderId = orderId || getCurrentOrderId() || getAllOrders()[0]?.orderId || '';
+  const effectiveOrderId = orderId || getCurrentOrderId() || '';
+
+  // Auto-dismiss/redirect once delivery or collection is completed
+  useEffect(() => {
+    if (order?.status === 'completed') {
+      const redirectTimer = setTimeout(() => {
+        clearCurrentOrder();
+        onBackToMenu();
+      }, 7000);
+      return () => clearTimeout(redirectTimer);
+    }
+  }, [order?.status, onBackToMenu]);
 
   const triggerStatusAlert = (status: OrderStatus) => {
     playCustomerUpdateChime();
@@ -307,7 +319,12 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       <header className="sticky top-0 z-40 bg-[#14141a]/95 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-3.5 flex items-center justify-between">
         <button
           type="button"
-          onClick={onBackToMenu}
+          onClick={() => {
+            if (order.status === 'completed') {
+              clearCurrentOrder();
+            }
+            onBackToMenu();
+          }}
           className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -366,6 +383,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               ? 'bg-gradient-to-br from-teal-950/60 via-zinc-900 to-zinc-950 border-teal-500/40'
               : order.status === 'dispatched'
               ? 'bg-gradient-to-br from-emerald-950/70 via-zinc-900 to-zinc-950 border-emerald-500/50'
+              : order.status === 'completed'
+              ? 'bg-gradient-to-br from-emerald-950/80 via-zinc-900 to-zinc-950 border-emerald-500/50'
               : 'bg-zinc-900 border-white/10'
           }`}
         >
@@ -449,6 +468,35 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             </div>
           </div>
         </div>
+
+        {/* Order Completed Celebration & Auto-Dismissal Notice */}
+        {order.status === 'completed' && (
+          <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-zinc-900 border-2 border-emerald-500/60 shadow-2xl space-y-4 text-center">
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-3xl shadow-inner shadow-emerald-500/20">
+              🎉
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                Order Completed &amp; Delivered!
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-200/90 mt-1.5 max-w-md mx-auto">
+                Thank you for choosing Wrap &amp; Wings Co. Your active tracking session is complete. Hope you enjoy every bite!
+              </p>
+            </div>
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  clearCurrentOrder();
+                  onBackToMenu();
+                }}
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs uppercase tracking-wider transition-all transform hover:scale-105 shadow-xl cursor-pointer"
+              >
+                Done &amp; Return to Menu
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Live Interactive Driver GPS Map & Telemetry - ONLY SHOWN WHEN OUT FOR DELIVERY OR COMPLETED */}
         {isDelivery && (order.status === 'dispatched' || order.status === 'completed') && (
@@ -653,10 +701,19 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         <div className="pt-2 text-center">
           <button
             type="button"
-            onClick={onBackToMenu}
-            className="w-full py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs tracking-wide transition-colors cursor-pointer"
+            onClick={() => {
+              if (order.status === 'completed') {
+                clearCurrentOrder();
+              }
+              onBackToMenu();
+            }}
+            className={`w-full py-3.5 rounded-2xl font-bold text-xs tracking-wide transition-colors cursor-pointer ${
+              order.status === 'completed'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-950/50 font-black'
+                : 'bg-zinc-800 hover:bg-zinc-700 text-white'
+            }`}
           >
-            Order More / Return to Menu
+            {order.status === 'completed' ? 'Order Finished — Back to Menu' : 'Order More / Return to Menu'}
           </button>
         </div>
 
