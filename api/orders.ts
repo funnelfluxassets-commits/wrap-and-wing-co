@@ -237,6 +237,26 @@ export default async function handler(req: any, res: any) {
         (global as any).__wrap_wing_orders = store.slice(0, 100);
       }
 
+      // Forward to ntfy.sh and master store so all devices get immediate notification
+      try {
+        fetch('https://ntfy.sh/wrap_and_wing_live_orders_shop1', {
+          method: 'POST',
+          headers: { 'Title': 'Wrap & Wing Order Update', 'Priority': 'urgent' },
+          body: JSON.stringify(body),
+        }).catch(() => {});
+      } catch {}
+
+      try {
+        fetch('https://api.restful-api.dev/objects/ff808181a09d98f701a10fc639a705a5', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'wrap_and_wing_orders_v1',
+            data: { orders: store.slice(0, 100), lastUpdated: Date.now() },
+          }),
+        }).catch(() => {});
+      } catch {}
+
       return res.status(200).json({ success: true, count: store.length, orders: store });
     }
 

@@ -190,9 +190,12 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     ? [
         {
           step: 1,
-          label: 'Order Accepted',
+          label: order.status === 'received' ? 'Order Received' : 'Order Accepted',
           icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+          activeColor:
+            order.status === 'received'
+              ? 'bg-amber-500 text-zinc-950 shadow-amber-500/40 animate-pulse'
+              : 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
         },
         {
           step: 2,
@@ -222,9 +225,12 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     : [
         {
           step: 1,
-          label: 'Order Accepted',
+          label: order.status === 'received' ? 'Order Received' : 'Order Accepted',
           icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
-          activeColor: 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
+          activeColor:
+            order.status === 'received'
+              ? 'bg-amber-500 text-zinc-950 shadow-amber-500/40 animate-pulse'
+              : 'bg-emerald-500 text-zinc-950 shadow-emerald-500/40',
         },
         {
           step: 2,
@@ -376,9 +382,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         <div
           className={`p-6 rounded-3xl border shadow-2xl relative overflow-hidden transition-all ${
             order.status === 'received'
-              ? 'bg-gradient-to-br from-rose-950/60 via-zinc-900 to-zinc-950 border-rose-500/40'
+              ? 'bg-gradient-to-br from-amber-950/50 via-zinc-900 to-zinc-950 border-amber-500/40'
               : order.status === 'cooking'
-              ? 'bg-gradient-to-br from-amber-950/60 via-zinc-900 to-zinc-950 border-amber-500/40'
+              ? 'bg-gradient-to-br from-rose-950/60 via-zinc-900 to-zinc-950 border-rose-500/40'
               : order.status === 'ready'
               ? 'bg-gradient-to-br from-teal-950/60 via-zinc-900 to-zinc-950 border-teal-500/40'
               : order.status === 'dispatched'
@@ -392,10 +398,29 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-black/40 border border-white/10 text-white mb-2">
                 {isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}
+                <span className="text-zinc-500">•</span>
+                {order.status === 'received' && (
+                  <span className="text-amber-400 font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping inline-block" />
+                    Awaiting Kitchen Acceptance
+                  </span>
+                )}
+                {order.status === 'cooking' && (
+                  <span className="text-orange-400 font-bold">🔥 On Flame Grill</span>
+                )}
+                {order.status === 'ready' && (
+                  <span className="text-teal-400 font-bold">📦 Food Ready & Packed</span>
+                )}
+                {order.status === 'dispatched' && (
+                  <span className="text-emerald-400 font-bold">🛵 Out For Delivery</span>
+                )}
+                {order.status === 'completed' && (
+                  <span className="text-emerald-300 font-bold">🎉 Delivered & Complete</span>
+                )}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {order.status === 'received' && 'Order Accepted! 📝'}
-                {order.status === 'cooking' && 'On The Flame Grill! 🔥'}
+                {order.status === 'received' && 'Order Received by Kitchen ⏳'}
+                {order.status === 'cooking' && 'Order Accepted & On Grill! 🔥'}
                 {order.status === 'ready' &&
                   (isDelivery ? 'Food Ready & Packed! 📦' : 'Hot & Ready For Pickup! 🛍️')}
                 {order.status === 'dispatched' && 'Driver Is On The Way! 🛵'}
@@ -403,9 +428,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-md leading-relaxed">
                 {order.status === 'received' &&
-                  'The Pinetown kitchen has accepted your ticket and is preparing fresh ingredients for the grill.'}
+                  'Your order has been transmitted to the Pinetown kitchen. Standing by for staff to accept your ticket and begin grilling.'}
                 {order.status === 'cooking' &&
-                  'Your chicken and meals are sizzling on the grill with your selected baste flavour.'}
+                  'The kitchen has accepted your ticket! Your chicken and meals are sizzling on the flame grill with your selected baste flavour.'}
                 {order.status === 'ready' &&
                   (isDelivery
                     ? 'Your meal is freshly cooked and packed in thermal insulation! Waiting for driver departure.'
@@ -518,8 +543,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                     Kitchen Preparation in Progress
                   </div>
                   <h3 className="text-xs sm:text-base font-black text-white whitespace-nowrap truncate">
-                    {order.status === 'received' && 'Step 1 of 4: Order Accepted & Queued'}
-                    {order.status === 'cooking' && 'Step 2 of 4: Sizzling on the Flame Grill'}
+                    {order.status === 'received' && 'Step 1 of 4: Ticket Sent — Awaiting Kitchen Acceptance'}
+                    {order.status === 'cooking' && 'Step 2 of 4: Order Accepted — Sizzling on Flame Grill'}
                     {order.status === 'ready' && 'Step 3 of 4: Food Ready & Thermal Packed'}
                   </h3>
                 </div>
@@ -534,8 +559,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <div className="flex items-center gap-2 text-white font-bold">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
                 <span>
-                  {order.status === 'received' && 'Kitchen crew reviewing your ticket items and sides.'}
-                  {order.status === 'cooking' && 'Chicken is basted and grilling hot over open flame.'}
+                  {order.status === 'received' && 'Ticket received at kitchen. Standing by for staff to accept ticket.'}
+                  {order.status === 'cooking' && 'Order accepted! Chicken is basted and grilling hot over open flame.'}
                   {order.status === 'ready' && 'Order packed in thermal insulation, assigned to delivery driver.'}
                 </span>
               </div>
