@@ -216,7 +216,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <div class="center">Shop 1, Uniland Centre, Pinetown</div>
           <div class="line"></div>
           <div class="bold" style="font-size: 18px;">ORDER #${order.orderId}</div>
-          <div class="badge">${isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}</div>
+          <div class="badge">${isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}</div>
           <div>Time: ${order.createdAt} (${order.preferredTime})</div>
           <div class="line"></div>
           <div><span class="bold">Customer:</span> ${order.customer?.customerName || 'Customer'}</div>
@@ -632,7 +632,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                             isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
                           }`}
                         >
-                          {isDelivery ? '🚗 DELIVERY' : '🛍️ COLLECTION'}
+                          {isDelivery ? '🏍️ DELIVERY' : '🛍️ COLLECTION'}
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">

@@ -3,7 +3,8 @@ import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag } from 'lucide-react';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface SavedCustomerProfile {
   customerName?: string;
@@ -150,8 +151,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-zinc-950">
           <div>
-            <h2 className="text-lg sm:text-xl font-black text-white">
-              {orderMode === 'delivery' ? '🚗 Delivery Checkout' : '🛍️ Collection Checkout'}
+            <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+              {orderMode === 'delivery' ? (
+                <>
+                  <DeliveryMotorbikeIcon className="w-5 h-5 text-yellow-400 shrink-0" />
+                  <span>Delivery Checkout</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="w-5 h-5 text-rose-400 shrink-0" />
+                  <span>Collection Checkout</span>
+                </>
+              )}
             </h2>
             <p className="text-xs text-zinc-400">
               Wrap &amp; Wings Co

@@ -17,6 +17,7 @@ import {
   Truck
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface OrderConfirmationModalProps {
   order: CheckoutPayload | null;
@@ -59,8 +60,15 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({ 
               <CheckCircle className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-200">
-                {isDelivery ? '🚗 DELIVERY ORDER PLACED' : '🛍️ COLLECTION ORDER PLACED'}
+              <div className="text-[10px] font-black uppercase tracking-wider text-emerald-200 flex items-center gap-1.5">
+                {isDelivery ? (
+                  <>
+                    <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                    <span>DELIVERY ORDER PLACED</span>
+                  </>
+                ) : (
+                  <span>🛍️ COLLECTION ORDER PLACED</span>
+                )}
               </div>
               <h2 className="text-base sm:text-lg font-black tracking-tight">
                 Order #{order.orderId}
@@ -167,7 +175,11 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({ 
 
                   <div className="p-2.5 rounded-xl bg-zinc-800/80 border border-white/5">
                     <div className="w-7 h-7 mx-auto rounded-full bg-zinc-700 text-zinc-400 flex items-center justify-center text-xs font-black mb-1">
-                      {isDelivery ? '🚗' : '🛍️'}
+                      {isDelivery ? (
+                        <DeliveryMotorbikeIcon className="w-4 h-4 text-amber-300" />
+                      ) : (
+                        <span>🛍️</span>
+                      )}
                     </div>
                     <div className="text-[11px] font-bold text-zinc-300">
                       {isDelivery ? 'Driver En Route' : 'Ready for Pickup'}

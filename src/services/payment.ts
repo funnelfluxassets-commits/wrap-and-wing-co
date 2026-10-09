@@ -33,7 +33,7 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
 
   let msg = `🔥 *NEW ORDER - WRAP & WINGS CO.*\n`;
   msg += `*Order Ref:* #${orderId}\n`;
-  msg += `*Type:* ${isDelivery ? '🚗 HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
+  msg += `*Type:* ${isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
   msg += `*Store:* ${store.name} (${store.mall})\n`;
   if (preferredTime) {
     msg += `*Requested Time:* ⏰ ${preferredTime}\n`;
@@ -49,7 +49,7 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
     if (customer.complexOrUnit) msg += `🏢 *Unit/Complex:* ${customer.complexOrUnit}\n`;
     if (customer.gateCode) msg += `🔑 *Gate Code:* ${customer.gateCode}\n`;
     if (customer.notes) msg += `📝 *Notes:* ${customer.notes}\n`;
-    msg += `\n🚗 *DRIVER GPS LINK:* \n${generateGoogleMapsUrl(customer.address, customer.suburb)}\n`;
+    msg += `\n🏍️ *DRIVER GPS LINK:* \n${generateGoogleMapsUrl(customer.address, customer.suburb)}\n`;
   }
 
   msg += `─────────────────────────\n`;

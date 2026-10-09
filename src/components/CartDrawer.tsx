@@ -2,6 +2,7 @@ import React from 'react';
 import { useCart } from '../context/CartContext';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface CartDrawerProps {
   onOpenCheckout: () => void;
@@ -76,7 +77,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                 orderMode === 'delivery' ? 'bg-rose-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <span>🚗 Delivery (+R25)</span>
+              <DeliveryMotorbikeIcon className="w-4 h-4 shrink-0 text-amber-300" />
+              <span>Delivery (+R25)</span>
             </button>
           </div>
         </div>

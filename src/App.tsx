@@ -386,7 +386,7 @@ const MainContent: React.FC = () => {
                 {activeOrder.status === 'received' && '📝 Kitchen preparing ticket'}
                 {activeOrder.status === 'cooking' && '🔥 On The Flame Grill'}
                 {activeOrder.status === 'ready' && '🛍️ Hot & ready for collection'}
-                {activeOrder.status === 'dispatched' && '🚗 Out for delivery with driver'}
+                {activeOrder.status === 'dispatched' && '🏍️ Out for delivery with driver'}
               </div>
             </div>
           </div>

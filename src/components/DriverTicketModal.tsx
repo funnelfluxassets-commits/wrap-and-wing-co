@@ -124,7 +124,7 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
               <div className="pt-1">
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `🚗 *WRAP & WINGS CO - DRIVER DISPATCH TICKET #${order.orderId}*\n\n` +
+                    `🏍️ *WRAP & WINGS CO - DRIVER DISPATCH TICKET #${order.orderId}*\n\n` +
                     `📍 *Destination:* ${order.customer.address}, ${order.customer.suburb}\n` +
                     (order.customer.complexOrUnit ? `🏢 Unit: ${order.customer.complexOrUnit}\n` : '') +
                     (order.customer.gateCode ? `🔑 Gate Code: ${order.customer.gateCode}\n` : '') +
@@ -156,22 +156,37 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                   key={idx}
                   className="p-3 rounded-xl bg-zinc-900/90 border border-white/10 flex items-start justify-between text-xs"
                 >
-                  <div>
+                  <div className="flex-1 pr-2">
                     <span className="font-extrabold text-white">
                       {item.quantity}x {item.menuItem.name}
                     </span>
-                    <div className="text-[11px] text-zinc-400 mt-0.5">
+                    <div className="text-[11px] text-zinc-400 mt-0.5 space-y-0.5">
                       {item.customization?.flavour && (
-                        <span className="text-rose-400 font-semibold mr-2 capitalize">
+                        <div className="text-rose-400 font-semibold capitalize">
                           Flavour: {item.customization.flavour}
-                        </span>
+                        </div>
                       )}
                       {item.customization?.side && (
-                        <span>Side: {item.customization.side}</span>
+                        <div className="text-amber-200/90 font-medium">🍟 Side: {item.customization.side}</div>
+                      )}
+                      {Array.isArray(item.customization?.extras) && item.customization.extras.length > 0 && (
+                        <div className="space-y-0.5 pt-0.5">
+                          {item.customization.extras.map((extra, eIdx) => (
+                            <div key={eIdx} className="text-amber-300 font-extrabold flex items-center gap-1 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/25">
+                              <span className="text-amber-400 font-black">+</span>
+                              <span>{extra.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {item.customization?.notes && (
+                        <div className="text-[10px] text-yellow-200/90 italic bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">
+                          Note: "{item.customization.notes}"
+                        </div>
                       )}
                     </div>
                   </div>
-                  <span className="font-bold text-amber-400">R{item.itemTotal.toFixed(2)}</span>
+                  <span className="font-bold text-amber-400 shrink-0">R{item.itemTotal.toFixed(2)}</span>
                 </div>
               ))}
             </div>

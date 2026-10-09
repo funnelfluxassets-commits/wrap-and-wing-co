@@ -456,7 +456,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {order.status === 'dispatched' &&
                   'Our delivery driver has your hot meal and is heading directly to your address.'}
                 {order.status === 'completed' &&
-                  'Thank you for ordering with Wrap & Wings Co.! We hope you enjoy every bite.'}
+                  'Thank you for ordering with Wrap & Wings Co.! We hope you enjoy your meal.'}
               </p>
             </div>
 
@@ -523,7 +523,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 Order Completed &amp; Delivered!
               </h3>
               <p className="text-xs sm:text-sm text-emerald-200/90 mt-1.5 max-w-md mx-auto">
-                Thank you for choosing Wrap &amp; Wings Co. Your active tracking session is complete. Hope you enjoy every bite!
+                Thank you for choosing Wrap &amp; Wings Co. Your active tracking session is complete. Hope you enjoy your meal!
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">

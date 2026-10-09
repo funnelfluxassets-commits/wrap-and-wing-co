@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { STORES, SOCIAL_LINKS } from '../data/stores';
 import { TikTokIcon } from './icons/TikTokIcon';
 import { FacebookIcon } from './icons/FacebookIcon';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { OrderMode, PageView } from '../types';
 import { subscribeToOrders, getCurrentOrderId } from '../services/orderService';
 
@@ -153,7 +154,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                   orderMode === 'delivery' ? 'bg-rose-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                <span>🚗 Delivery</span>
+                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span>Delivery</span>
                 {orderMode === 'delivery' && <Check className="w-3 h-3" />}
               </button>
             </div>

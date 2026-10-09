@@ -550,17 +550,32 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                     </div>
 
                     {items.map((item, idx) => (
-                      <div key={idx} className="text-xs flex items-start gap-2 py-1">
+                      <div key={idx} className="text-xs flex items-start gap-2 py-1.5 border-b border-white/5 last:border-0">
                         <span className="px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-black text-[11px] shrink-0">
                           {item.quantity || 1}x
                         </span>
-                        <div className="text-zinc-200 leading-tight">
+                        <div className="text-zinc-200 leading-tight space-y-0.5 flex-1">
                           <span className="font-bold text-white">{item.menuItem?.name || 'Meal'}</span>
                           {item.customization?.flavour && (
-                            <span className="text-rose-400 ml-1">({item.customization.flavour})</span>
+                            <span className="text-rose-400 ml-1 font-semibold">({item.customization.flavour})</span>
                           )}
                           {item.customization?.side && (
-                            <span className="text-zinc-400 block text-[10px]">+ {item.customization.side}</span>
+                            <span className="text-zinc-400 block text-[11px]">🍟 Side: {item.customization.side}</span>
+                          )}
+                          {Array.isArray(item.customization?.extras) && item.customization.extras.length > 0 && (
+                            <div className="space-y-0.5 pt-0.5">
+                              {item.customization.extras.map((extra, eIdx) => (
+                                <div key={eIdx} className="text-[11px] text-amber-300 font-extrabold flex items-center gap-1 bg-amber-500/15 px-1.5 py-0.5 rounded border border-amber-500/25">
+                                  <span className="text-amber-400 font-black">+</span>
+                                  <span>{extra.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {item.customization?.notes && (
+                            <div className="text-[10px] text-yellow-200/90 italic bg-yellow-500/10 px-1.5 py-0.5 rounded mt-0.5 border border-yellow-500/20">
+                              Note: "{item.customization.notes}"
+                            </div>
                           )}
                         </div>
                       </div>
