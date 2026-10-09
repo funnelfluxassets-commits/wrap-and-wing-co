@@ -150,7 +150,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
               <h2 className="text-xl sm:text-2xl font-black text-white">{item.name}</h2>
               <span className="text-xl font-black text-amber-400">R{item.price.toFixed(2)}</span>
             </div>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">{item.description}</p>
+            <p className="text-[13px] sm:text-[15px] text-zinc-200 mt-1 leading-relaxed">{item.description}</p>
           </div>
 
           {/* 1. Flavour / Heat Choice */}

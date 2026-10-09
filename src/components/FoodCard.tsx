@@ -54,7 +54,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
             </h3>
           </div>
 
-          <p className="text-xs sm:text-[13px] text-zinc-400 line-clamp-2 mb-3 leading-relaxed">
+          <p className="text-[13px] sm:text-[14px] text-zinc-200 line-clamp-2 mb-3 leading-relaxed">
             {item.description}
           </p>
 
