@@ -182,7 +182,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                         <span className="text-xl">{f.emoji}</span>
                         <div>
                           <div className="text-xs font-black">{f.name}</div>
-                          <div className="text-[10px] text-zinc-400 leading-tight">{f.description}</div>
+                          <div className="text-[11px] sm:text-xs text-zinc-200 leading-tight mt-0.5">{f.description}</div>
                         </div>
                       </div>
                       <div
@@ -220,7 +220,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold text-xs ${
                         isSelected
                           ? 'bg-amber-500/20 border-amber-500 ring-1 ring-amber-500 text-white'
-                          : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-400'
+                          : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
                       }`}
                     >
                       <div>{side}</div>
@@ -253,7 +253,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                     className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
                       isSelected
                         ? 'bg-rose-500/10 border-rose-500/60 text-white'
-                        : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-white/5 text-zinc-300'
+                        : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-white/5 text-zinc-200'
                     }`}
                   >
                     <span className="text-xs font-semibold">{extra.name}</span>
@@ -307,7 +307,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-zinc-400 truncate">
+                          <div className="text-[11px] text-zinc-200 truncate">
                             {hasSelectedDrinks
                               ? selectedDrinkItems.map((d) => d.name).join(', ')
                               : '1.5L Coke, Waters, 3 Mocktails & 440ml Sodas'}
@@ -463,7 +463,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
 
           {/* 4. Special Kitchen Instructions */}
           <div className="space-y-1.5 pt-2 border-t border-white/10">
-            <label className="text-xs font-bold text-zinc-400">Special Instructions for Kitchen:</label>
+            <label className="text-xs font-bold text-zinc-200">Special Instructions for Kitchen:</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

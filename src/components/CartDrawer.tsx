@@ -40,7 +40,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black tracking-tight">Your Order</h2>
-              <p className="text-[11px] text-zinc-400 font-medium">
+              <p className="text-[11px] text-zinc-200 font-medium">
                 Wrap &amp; Wings Co
               </p>
             </div>
@@ -126,7 +126,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                   </div>
 
                   {/* Customizations */}
-                  <div className="text-[11px] text-zinc-400 mt-0.5 space-y-0.5">
+                  <div className="text-[11px] text-zinc-200 mt-0.5 space-y-0.5">
                     {item.customization?.flavour && (
                       <div className="capitalize text-rose-400 font-semibold">
                         Flavour: {item.customization.flavour}
@@ -141,7 +141,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                       </div>
                     ))}
                     {item.customization?.notes && (
-                      <div className="italic text-zinc-500">"{item.customization.notes}"</div>
+                      <div className="italic text-zinc-300">"{item.customization.notes}"</div>
                     )}
                   </div>
 
@@ -183,13 +183,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
         {/* Drawer Footer / Summary & Checkout */}
         {items.length > 0 && (
           <div className="p-4 sm:p-5 bg-zinc-950 border-t border-white/10 space-y-3">
-            <div className="space-y-1.5 text-xs text-zinc-400">
+            <div className="space-y-1.5 text-xs text-zinc-200">
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span className="text-white font-bold">R{subtotal.toFixed(2)}</span>
               </div>
               {orderMode === 'delivery' && (
-                <div className="flex justify-between text-zinc-400">
+                <div className="flex justify-between text-zinc-200">
                   <span>Delivery Fee</span>
                   <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
                 </div>

@@ -235,7 +235,7 @@ const MainContent: React.FC = () => {
                   : CATEGORIES.find((c) => c.id === activeCategory)?.name || 'Menu'}
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">
+            <p className="text-xs sm:text-sm text-zinc-200 mt-0.5">
               {activeCategory === 'all'
                 ? 'All flame-grilled chicken, wraps, wings, burgers, sides, and ice-cold drinks.'
                 : CATEGORIES.find((c) => c.id === activeCategory)?.description}
@@ -260,7 +260,7 @@ const MainContent: React.FC = () => {
           <div className="p-12 text-center rounded-3xl bg-zinc-900/60 border border-white/5 space-y-2">
             <span className="text-3xl">🔍</span>
             <h3 className="text-base font-bold text-white">No items found</h3>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-200">
               Try searching for something else or reset your category filter.
             </p>
             <button

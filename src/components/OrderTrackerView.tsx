@@ -473,11 +473,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             </div>
 
             <div className="p-4 rounded-2xl bg-black/50 border border-white/10 text-center shrink-0">
-              <div className="text-[10px] font-black uppercase text-zinc-400">Target Time</div>
+              <div className="text-[11px] font-black uppercase text-zinc-200">Target Time</div>
               <div className="text-lg sm:text-xl font-black text-amber-400 mt-0.5">
                 {preferredTime}
               </div>
-              <div className="text-[10px] text-zinc-500 mt-0.5">Placed: {createdAt}</div>
+              <div className="text-[11px] text-zinc-300 mt-0.5">Placed: {createdAt}</div>
             </div>
           </div>
 
@@ -594,7 +594,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   {order.status === 'ready' && 'Order packed in thermal insulation, assigned to delivery driver.'}
                 </span>
               </div>
-              <p className="text-zinc-400 text-[11px] leading-relaxed">
+              <p className="text-zinc-200 text-[12px] leading-relaxed">
                 {order.status === 'ready'
                   ? 'Your driver is collecting the sealed hot bag right now. As soon as the driver departs from the kitchen, the Live Driver GPS Tracker map will automatically activate on this screen!'
                   : 'Live Driver GPS Tracking will unlock automatically as soon as your meal finishes cooking, is packed, and our driver departs for your address.'}
@@ -623,14 +623,14 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               <MapPin className="w-4 h-4 text-rose-500" />
               <span>{isDelivery ? 'Delivery Destination' : 'Collection Counter Details'}</span>
             </h3>
-            <span className="text-[11px] font-bold text-zinc-400">Wrap &amp; Wings Co</span>
+            <span className="text-[11px] font-bold text-zinc-200">Wrap &amp; Wings Co</span>
           </div>
 
           {!isDelivery ? (
-            <div className="text-xs text-zinc-300 space-y-2">
+            <div className="text-xs text-zinc-200 space-y-2">
               <div>
                 <div className="font-extrabold text-white text-base">Shop 1, Uniland Centre, Pinetown</div>
-                <div className="text-zinc-400 mt-0.5">Behind Hollywoodbets • Durban, KZN</div>
+                <div className="text-zinc-200 mt-0.5">Behind Hollywoodbets • Durban, KZN</div>
               </div>
               <div className="text-[11px] text-emerald-400 font-bold">
                 ⏰ Open Monday – Sunday: 9:00 AM – 6:00 PM
@@ -659,10 +659,10 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="text-xs text-zinc-300 space-y-1.5">
+            <div className="text-xs text-zinc-200 space-y-1.5">
               <div>
                 <div className="font-extrabold text-white text-base">{customer.address || 'Address on file'}</div>
-                <div className="text-zinc-400">{customer.suburb || 'Pinetown'}, Durban</div>
+                <div className="text-zinc-200">{customer.suburb || 'Pinetown'}, Durban</div>
               </div>
               {customer.complexOrUnit && (
                 <div className="text-amber-300 font-semibold">Unit: {customer.complexOrUnit}</div>
@@ -671,7 +671,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 <div className="text-amber-300 font-semibold">🔑 Gate Code: {customer.gateCode}</div>
               )}
               {customer.notes && (
-                <div className="italic text-zinc-400 pt-0.5">"{customer.notes}"</div>
+                <div className="italic text-zinc-200 pt-0.5">"{customer.notes}"</div>
               )}
             </div>
           )}
@@ -679,7 +679,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
         {/* Items Ordered Card */}
         <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">
-          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
+          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-200">
             Your Meal ({items.length} items)
           </h3>
 
@@ -693,7 +693,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   <span className="font-extrabold text-white text-sm">
                     {item.quantity || 1}x {item.menuItem?.name || 'Meal'}
                   </span>
-                  <div className="text-[11px] text-zinc-400 mt-1 space-y-0.5">
+                  <div className="text-[11px] text-zinc-200 mt-1 space-y-0.5">
                     {item.customization?.flavour && (
                       <div className="text-rose-400 font-bold capitalize">
                         Baste: {item.customization.flavour}
@@ -705,7 +705,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                         <div key={e.name} className="text-amber-300">+ {e.name}</div>
                       ))}
                     {item.customization?.notes && (
-                      <div className="italic text-zinc-500">"{item.customization.notes}"</div>
+                      <div className="italic text-zinc-300">"{item.customization.notes}"</div>
                     )}
                   </div>
                 </div>
@@ -717,7 +717,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </div>
 
           {/* Pricing Totals */}
-          <div className="pt-3 border-t border-white/10 space-y-1.5 text-xs text-zinc-400">
+          <div className="pt-3 border-t border-white/10 space-y-1.5 text-xs text-zinc-200">
             <div className="flex justify-between">
               <span>Subtotal</span>
               <span className="text-white font-bold">R{subtotal.toFixed(2)}</span>

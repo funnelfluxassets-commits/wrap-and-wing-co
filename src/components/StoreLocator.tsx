@@ -111,7 +111,7 @@ export const StoreLocatorSection: React.FC = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
             VISIT OUR PINETOWN SHOP
           </h2>
-          <p className="text-sm sm:text-base text-zinc-400 mt-2 font-medium">
+          <p className="text-sm sm:text-base text-zinc-200 mt-2 font-medium">
             Fresh flame-grilled food served daily. Drop in for collection or order straight to your doorstep.
           </p>
         </div>
@@ -136,8 +136,8 @@ export const StoreLocatorSection: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-extrabold text-white">Physical Address</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">{flagship.address}</div>
-                    <div className="text-xs text-zinc-400">{flagship.city}</div>
+                    <div className="text-xs text-zinc-200 mt-0.5">{flagship.address}</div>
+                    <div className="text-xs text-zinc-200">{flagship.city}</div>
                   </div>
                 </div>
 
@@ -147,7 +147,7 @@ export const StoreLocatorSection: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-extrabold text-white">Opening Times</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">{flagship.hours}</div>
+                    <div className="text-xs text-zinc-200 mt-0.5">{flagship.hours}</div>
                     <div className="text-[11px] text-emerald-400 font-bold">Open Every Day of the Week</div>
                   </div>
                 </div>
@@ -158,7 +158,7 @@ export const StoreLocatorSection: React.FC = () => {
                   </div>
                   <div>
                     <div className="font-extrabold text-white">Hotline & WhatsApp</div>
-                    <div className="text-xs text-zinc-400 mt-0.5">{flagship.phone}</div>
+                    <div className="text-xs text-zinc-200 mt-0.5">{flagship.phone}</div>
                   </div>
                 </div>
               </div>
@@ -231,7 +231,7 @@ export const StoreLocatorSection: React.FC = () => {
                   <span>Expansion In Motion</span>
                 </div>
                 <h4 className="text-lg font-black text-white">More Branches Opening Across KZN</h4>
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-200">
                   Targeting Westville, Umhlanga & Durban North. Follow our socials for opening dates!
                 </p>
               </div>

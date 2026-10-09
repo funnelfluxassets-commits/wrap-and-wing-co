@@ -22,7 +22,7 @@ export const BrandHighlights: React.FC = () => {
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase">
             BOLD FLAVOUR. HOT & FRESH.
           </h2>
-          <p className="text-sm sm:text-base text-zinc-400 mt-2 font-medium">
+          <p className="text-sm sm:text-base text-zinc-200 mt-2 font-medium">
             We don't cut corners. Every order is freshly grilled to order over genuine flame.
           </p>
         </div>
@@ -35,7 +35,7 @@ export const BrandHighlights: React.FC = () => {
               🔥
             </div>
             <h3 className="text-base font-black text-white">Flame-Grilled To Order</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-zinc-200 leading-relaxed">
               Charred over open fire to seal in natural juices and infuse authentic smoky aroma into every bite.
             </p>
           </div>
@@ -45,7 +45,7 @@ export const BrandHighlights: React.FC = () => {
               <ChickenWingIcon className="w-6 h-6" />
             </div>
             <h3 className="text-base font-black text-white">100% Fresh Poultry</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-zinc-200 leading-relaxed">
               Delivered fresh daily, trimmed and marinated in our secret blend of spices before hitting the grill.
             </p>
           </div>
@@ -55,7 +55,7 @@ export const BrandHighlights: React.FC = () => {
               🌶️
             </div>
             <h3 className="text-base font-black text-white">5 Signature Basting Sauces</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-zinc-200 leading-relaxed">
               From zesty Lemony and smoky Barbeque to fire-roasted Hot — customize every wing and chicken piece.
             </p>
           </div>
@@ -65,7 +65,7 @@ export const BrandHighlights: React.FC = () => {
               ⚡
             </div>
             <h3 className="text-base font-black text-white">Fast Takeaway & Delivery</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-zinc-200 leading-relaxed">
               Packaged piping hot for collection in minutes or dispatched with live GPS routing straight to your gate.
             </p>
           </div>
@@ -78,7 +78,7 @@ export const BrandHighlights: React.FC = () => {
             <div className="space-y-1 text-center md:text-left">
               <span className="text-[11px] font-black uppercase tracking-wider text-rose-400">FIND YOUR SWEET SPOT</span>
               <h3 className="text-xl sm:text-2xl font-black text-white">The Wrap & Wings Flavour Meter</h3>
-              <p className="text-xs text-zinc-400 max-w-md">
+              <p className="text-xs sm:text-[13px] text-zinc-200 max-w-md">
                 Choose the exact flame profile that suits your mood today.
               </p>
             </div>
@@ -91,7 +91,7 @@ export const BrandHighlights: React.FC = () => {
                 >
                   <div className="text-2xl">{f.emoji}</div>
                   <div className="text-xs font-black text-white">{f.name}</div>
-                  <div className="text-[10px] text-zinc-400 line-clamp-1">{f.description.split('(')[0]}</div>
+                  <div className="text-[11px] text-zinc-200 line-clamp-1">{f.description.split('(')[0]}</div>
                 </div>
               ))}
             </div>

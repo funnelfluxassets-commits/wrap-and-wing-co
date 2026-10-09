@@ -164,7 +164,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 </>
               )}
             </h2>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-200">
               Wrap &amp; Wings Co
             </p>
           </div>
@@ -201,7 +201,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 block mb-1">Your Full Name *</label>
+                <label className="text-[11px] font-bold text-zinc-200 block mb-1">Your Full Name *</label>
                 <input
                   type="text"
                   name="name"
@@ -214,7 +214,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 />
               </div>
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 block mb-1">Mobile / WhatsApp Number *</label>
+                <label className="text-[11px] font-bold text-zinc-200 block mb-1">Mobile / WhatsApp Number *</label>
                 <input
                   type="tel"
                   name="tel"
@@ -237,11 +237,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   <MapPin className="w-4 h-4 text-rose-500" />
                   <span>2. Delivery Address</span>
                 </h3>
-                <span className="text-[10px] text-zinc-400">Connected to Driver GPS</span>
+                <span className="text-[11px] text-zinc-200">Connected to Driver GPS</span>
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-zinc-400 block mb-1">Street Address *</label>
+                <label className="text-[11px] font-bold text-zinc-200 block mb-1">Street Address *</label>
                 <input
                   type="text"
                   name="address"
@@ -256,7 +256,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 block mb-1">Suburb / Area</label>
+                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Suburb / Area</label>
                   <select
                     value={suburb}
                     onChange={(e) => setSuburb(e.target.value)}
@@ -272,7 +272,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   </select>
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 block mb-1">Complex / Unit (Optional)</label>
+                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Complex / Unit (Optional)</label>
                   <input
                     type="text"
                     value={complexOrUnit}
@@ -285,7 +285,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 block mb-1">Gate Code / Access</label>
+                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Gate Code / Access</label>
                   <input
                     type="text"
                     value={gateCode}
@@ -295,7 +295,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-400 block mb-1">Driver Instructions</label>
+                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Driver Instructions</label>
                   <input
                     type="text"
                     value={notes}
@@ -373,7 +373,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                     <span>PayFast</span>
                     <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">POPULAR</span>
                   </div>
-                  <div className="text-[10px] text-zinc-400">Instant EFT, Capitec Pay, Cards</div>
+                  <div className="text-[11px] text-zinc-200">Instant EFT, Capitec Pay, Cards</div>
                 </div>
                 <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'payfast' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
               </button>
@@ -385,12 +385,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                   paymentMethod === 'yoco'
                     ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-300'
+                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
                 }`}
               >
                 <div>
                   <div className="text-xs font-black">Yoco Checkout</div>
-                  <div className="text-[10px] text-zinc-400">Credit / Debit Card & Apple Pay</div>
+                  <div className="text-[11px] text-zinc-200">Credit / Debit Card & Apple Pay</div>
                 </div>
                 <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'yoco' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
               </button>
@@ -402,12 +402,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                   paymentMethod === 'whatsapp'
                     ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-300'
+                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
                 }`}
               >
                 <div>
                   <div className="text-xs font-black text-emerald-400">WhatsApp Order</div>
-                  <div className="text-[10px] text-zinc-400">Confirm order directly with kitchen</div>
+                  <div className="text-[11px] text-zinc-200">Confirm order directly with kitchen</div>
                 </div>
                 <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'whatsapp' ? 'border-emerald-500 bg-emerald-500' : 'border-zinc-600'}`} />
               </button>
@@ -419,12 +419,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                   paymentMethod === 'cod'
                     ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-300'
+                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
                 }`}
               >
                 <div>
                   <div className="text-xs font-black">Pay On Handover</div>
-                  <div className="text-[10px] text-zinc-400">Cash or Speedpoint card machine</div>
+                  <div className="text-[11px] text-zinc-200">Cash or Speedpoint card machine</div>
                 </div>
                 <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'cod' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
               </button>
@@ -432,7 +432,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           </div>
 
           {/* Trust Banner */}
-          <div className="p-3 rounded-xl bg-zinc-900/90 border border-white/5 flex items-center gap-2.5 text-xs text-zinc-400">
+          <div className="p-3 rounded-xl bg-zinc-900/90 border border-white/5 flex items-center gap-2.5 text-xs text-zinc-200">
             <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Encrypted 256-bit checkout • Food freshly prepared upon confirmation</span>
           </div>

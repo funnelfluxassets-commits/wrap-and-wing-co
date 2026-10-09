@@ -61,7 +61,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
           {/* Flavours Available Pills */}
           {item.hasFlavourChoice && (
             <div className="flex items-center gap-1 mb-3 pt-1 border-t border-white/5">
-              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mr-1">5 Basting Sauces:</span>
+              <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider mr-1">5 Basting Sauces:</span>
               <div className="flex -space-x-1">
                 {FLAVOURS.map((f) => (
                   <span
@@ -81,7 +81,7 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
       {/* Footer / Price & Add Button */}
       <div className="px-4 pb-4 sm:px-5 sm:pb-5 pt-0 flex items-center justify-between gap-3 border-t border-white/5 mt-auto">
         <div>
-          <span className="text-[10px] font-bold text-zinc-500 uppercase block">Price</span>
+          <span className="text-[11px] font-bold text-zinc-300 uppercase block">Price</span>
           <span className="text-lg sm:text-xl font-black text-amber-400">
             R{item.price.toFixed(2)}
           </span>

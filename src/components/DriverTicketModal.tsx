@@ -62,9 +62,9 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
               </div>
 
               {/* Destination Address Card */}
-              <div className="text-xs text-zinc-300 space-y-0.5 pt-1">
+              <div className="text-xs text-zinc-200 space-y-0.5 pt-1">
                 <div className="font-extrabold text-white text-sm">{order.customer.address}</div>
-                <div className="text-zinc-400">{order.customer.suburb}, Durban, South Africa</div>
+                <div className="text-zinc-200">{order.customer.suburb}, Durban, South Africa</div>
                 {order.customer.complexOrUnit && (
                   <div className="text-amber-300 font-semibold">Unit: {order.customer.complexOrUnit}</div>
                 )}
@@ -72,7 +72,7 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                   <div className="text-amber-300 font-semibold">🔑 Gate Code: {order.customer.gateCode}</div>
                 )}
                 {order.customer.notes && (
-                  <div className="italic text-zinc-400 pt-1">"{order.customer.notes}"</div>
+                  <div className="italic text-zinc-200 pt-1">"{order.customer.notes}"</div>
                 )}
               </div>
 
@@ -147,8 +147,8 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
 
           {/* Kitchen Packaging Checklist */}
           <div className="space-y-2">
-            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
-              Kitchen & Bag Checklist ({order.items.length} items)
+            <h3 className="text-xs font-black uppercase tracking-wider text-zinc-200">
+              Kitchen &amp; Bag Checklist ({order.items.length} items)
             </h3>
             <div className="space-y-1.5">
               {order.items.map((item, idx) => (
@@ -160,7 +160,7 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                     <span className="font-extrabold text-white">
                       {item.quantity}x {item.menuItem.name}
                     </span>
-                    <div className="text-[11px] text-zinc-400 mt-0.5 space-y-0.5">
+                    <div className="text-[11px] text-zinc-200 mt-0.5 space-y-0.5">
                       {item.customization?.flavour && (
                         <div className="text-rose-400 font-semibold capitalize">
                           Flavour: {item.customization.flavour}

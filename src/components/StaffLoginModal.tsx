@@ -84,7 +84,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
           <h2 className="text-xl font-black text-white uppercase tracking-tight">
             Staff Portal Login
           </h2>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-200">
             Authorized personnel only. Select your department and enter your access PIN.
           </p>
         </div>
@@ -129,9 +129,9 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
         {/* PIN Input Display */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-extrabold uppercase text-zinc-400 tracking-wider flex items-center justify-between">
+            <label className="text-[11px] font-extrabold uppercase text-zinc-200 tracking-wider flex items-center justify-between">
               <span>{role === 'kitchen' ? 'Kitchen Passcode' : 'Driver Passcode'}</span>
-              <span className="text-[10px] text-zinc-500 font-mono">
+              <span className="text-[11px] text-zinc-300 font-mono">
                 {role === 'kitchen' ? 'Default: 4820' : 'Default: 7788'}
               </span>
             </label>

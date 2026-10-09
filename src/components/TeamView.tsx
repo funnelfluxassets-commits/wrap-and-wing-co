@@ -118,11 +118,11 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 space-y-1">
                 <div className="text-rose-400 font-black text-base">Instant Smiles</div>
-                <div className="text-xs text-zinc-400">Trained to embody the warmth of South African hospitality.</div>
+                <div className="text-xs text-zinc-200">Trained to embody the warmth of South African hospitality.</div>
               </div>
               <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 space-y-1">
                 <div className="text-amber-400 font-black text-base">Speed & Care</div>
-                <div className="text-xs text-zinc-400">Streamlined order and collection stations to minimize waiting.</div>
+                <div className="text-xs text-zinc-200">Streamlined order and collection stations to minimize waiting.</div>
               </div>
             </div>
           </div>
@@ -157,7 +157,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">Flame Temperature Control</h4>
-                    <p className="text-xs text-zinc-400 mt-0.5">
+                    <p className="text-xs text-zinc-200 mt-0.5">
                       Understanding open fire zones to achieve that signature smoky char without drying out the tender meat inside.
                     </p>
                   </div>
@@ -169,7 +169,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">Strict Hygiene & Uniform Standards</h4>
-                    <p className="text-xs text-zinc-400 mt-0.5">
+                    <p className="text-xs text-zinc-200 mt-0.5">
                       Every team member wears clean chef uniforms and protective hairnets, following strict commercial food safety protocols.
                     </p>
                   </div>
@@ -181,7 +181,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-white">HACCP-Aligned Kitchen Workflow</h4>
-                    <p className="text-xs text-zinc-400 mt-0.5">
+                    <p className="text-xs text-zinc-200 mt-0.5">
                       Separated linear stations for fresh raw preparation, open-flame cooking, basting, and hot bagging ensure zero cross-contamination.
                     </p>
                   </div>
@@ -223,7 +223,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
           <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight uppercase">
             Team In Action
           </h2>
-          <p className="text-sm sm:text-base text-zinc-400">
+          <p className="text-sm sm:text-base text-zinc-200">
             A look into our daily rhythm at Shop 1 Uniland Centre, Pinetown.
           </p>
         </div>
@@ -246,11 +246,11 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="p-6 space-y-2 flex-1 flex flex-col justify-between">
               <div>
                 <h3 className="text-lg font-black text-white">Attention to Every Detail</h3>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-200 mt-1 leading-relaxed">
                   Every order is checked twice: verifying your basting flavour selection, ensuring extra sauces and sides are packed securely, and greeting you with a smile.
                 </p>
               </div>
-              <div className="pt-3 border-t border-white/5 text-[11px] font-bold text-zinc-500 flex items-center justify-between">
+              <div className="pt-3 border-t border-white/5 text-[11px] font-bold text-zinc-300 flex items-center justify-between">
                 <span>Speedpoint & Cash Supported</span>
                 <span className="text-emerald-400">Collection Ready in Minutes</span>
               </div>
@@ -273,7 +273,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="p-6 space-y-2 flex-1 flex flex-col justify-between">
               <div>
                 <h3 className="text-lg font-black text-white">Local Pride & Empowerment</h3>
-                <p className="text-xs sm:text-sm text-zinc-400 mt-1 leading-relaxed">
+                <p className="text-xs sm:text-sm text-zinc-200 mt-1 leading-relaxed">
                   We are deeply proud to employ and train local talent from Pinetown and surrounding communities. We foster an environment of growth, mutual respect, and culinary excellence.
                 </p>
               </div>
@@ -297,7 +297,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                 🤝
               </div>
               <h3 className="text-base font-black text-white">Warm Hospitality</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-200 leading-relaxed">
                 Treating every visitor as family with attentive service, genuine smiles, and helpful suggestions.
               </p>
             </div>
@@ -307,7 +307,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                 🔥
               </div>
               <h3 className="text-base font-black text-white">Grill Mastery</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-200 leading-relaxed">
                 Trained over real open fire to lock in juices and deliver consistent flavor across every single piece.
               </p>
             </div>
@@ -317,7 +317,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                 🧼
               </div>
               <h3 className="text-base font-black text-white">Pristine Hygiene</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-200 leading-relaxed">
                 Clean chef attire, hairnets, and regular sanitization across all preparation and service counters.
               </p>
             </div>
@@ -327,7 +327,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
                 🌱
               </div>
               <h3 className="text-base font-black text-white">Team Growth</h3>
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-200 leading-relaxed">
                 Continuous mentorship in kitchen management, customer service, and culinary craftsmanship.
               </p>
             </div>
@@ -352,7 +352,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
               <MapPin className="w-4 h-4" />
               <span>Shop 1, Uniland Centre, Pinetown</span>
             </div>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-200">
               Conveniently located behind Hollywoodbets with ample secure customer parking.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-zinc-300 pt-2 border-t border-white/5">

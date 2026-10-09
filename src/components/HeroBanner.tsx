@@ -46,7 +46,7 @@ export const HeroBanner: React.FC = () => {
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-zinc-400 uppercase">Shop 1, Uniland Centre</div>
+                  <div className="text-[11px] font-bold text-zinc-200 uppercase">Shop 1, Uniland Centre</div>
                   <div className="text-xs font-extrabold text-white">Pinetown (Behind Hollywoodbets)</div>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export const HeroBanner: React.FC = () => {
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-[11px] font-bold text-zinc-400 uppercase">Trading Hours</div>
+                  <div className="text-[11px] font-bold text-zinc-200 uppercase">Trading Hours</div>
                   <div className="text-xs font-extrabold text-white">Mon – Sun: 9:00 AM – 6:00 PM</div>
                 </div>
               </div>
@@ -85,7 +85,7 @@ export const HeroBanner: React.FC = () => {
 
             {/* Signature 5 Flavours Bar */}
             <div className="pt-3 border-t border-white/10">
-              <div className="text-[11px] sm:text-xs font-extrabold uppercase tracking-widest text-zinc-400 mb-2.5 flex items-center justify-center lg:justify-start gap-1.5">
+              <div className="text-[11px] sm:text-xs font-extrabold uppercase tracking-widest text-zinc-200 mb-2.5 flex items-center justify-center lg:justify-start gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 <span>5 Signature Flame Basting Flavours</span>
               </div>
@@ -138,7 +138,7 @@ export const HeroBanner: React.FC = () => {
                 <div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-rose-400">SIGNATURE SPECIAL</span>
                   <h3 className="text-sm sm:text-base font-extrabold text-white">Wrap It Like A Shwarma + Side</h3>
-                  <p className="text-[11px] text-zinc-300">Served with hot chips or spicy rice</p>
+                  <p className="text-[12px] text-zinc-200">Served with hot chips or spicy rice</p>
                 </div>
                 <div className="text-right shrink-0 pl-3">
                   <span className="text-xs text-zinc-400 line-through">R79</span>
@@ -152,7 +152,7 @@ export const HeroBanner: React.FC = () => {
                   <ChickenWingIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-zinc-400 uppercase">Flame-Grilled Wings</div>
+                  <div className="text-[11px] font-bold text-zinc-200 uppercase">Flame-Grilled Wings</div>
                   <div className="text-xs font-black text-white">From R49.90 with Side</div>
                 </div>
               </div>

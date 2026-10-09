@@ -412,7 +412,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({ 
 
               {/* Kitchen Checklist */}
               <div className="space-y-2">
-                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
+                <h3 className="text-xs font-black uppercase tracking-wider text-zinc-200">
                   Kitchen Bag & Order Checklist
                 </h3>
                 <div className="space-y-1.5">
@@ -425,7 +425,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({ 
                         <span className="font-extrabold text-white">
                           {item.quantity}x {item.menuItem.name}
                         </span>
-                        <div className="text-[11px] text-zinc-400 mt-0.5">
+                        <div className="text-[11px] text-zinc-200 mt-0.5">
                           {item.customization?.flavour && (
                             <span className="text-rose-400 font-semibold mr-2 capitalize">
                               Baste: {item.customization.flavour}
