@@ -13,6 +13,7 @@ import {
   LocateFixed,
   Maximize2
 } from 'lucide-react';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface LiveDriverMapProps {
   order: LiveOrder;
@@ -165,8 +166,19 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         html: `
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;">
             <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(239,68,68,0.35);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
-            <div style="background:linear-gradient(135deg, #f59e0b, #ef4444);color:white;border-radius:50%;width:36px;height:36px;border:3px solid white;box-shadow:0 4px 15px rgba(245,158,11,0.8);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;z-index:2;">
-              🛵
+            <div style="background:linear-gradient(135deg, #f59e0b, #ef4444);color:white;border-radius:50%;width:36px;height:36px;border:3px solid white;box-shadow:0 4px 15px rgba(245,158,11,0.8);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
+                <rect x="2" y="5.5" width="6.5" height="7" rx="1" />
+                <line x1="2" y1="9" x2="8.5" y2="9" />
+                <circle cx="5.5" cy="18" r="2.5" />
+                <circle cx="18.5" cy="18" r="2.5" />
+                <line x1="5.5" y1="12.5" x2="5.5" y2="15.5" />
+                <path d="M8.5 12.5h3l2.5-3.5h2.5" />
+                <line x1="15" y1="6.5" x2="17.5" y2="6.5" />
+                <line x1="16.5" y1="6.5" x2="16.5" y2="9" />
+                <line x1="16.5" y1="9" x2="18.5" y2="18" />
+                <path d="M8 18h4l2-3.5" />
+              </svg>
             </div>
           </div>
         `,
@@ -296,7 +308,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
       <div className="p-4 bg-zinc-950 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-base">
-            🛵
+            <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
           </div>
           <div>
             <div className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
@@ -360,8 +372,8 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         {/* Driver Profile */}
         <div className="flex items-center gap-3.5">
           <div className="relative shrink-0">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center text-xl font-black text-white shadow-lg shadow-rose-950/60">
-              🛵
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center font-black text-white shadow-lg shadow-rose-950/60">
+              <DeliveryMotorbikeIcon className="w-6 h-6 text-white" />
             </div>
             <span className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-emerald-500 text-zinc-950 text-[10px]">
               <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-400 text-zinc-950" />

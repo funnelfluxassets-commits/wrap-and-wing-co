@@ -48,10 +48,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
           <button
             type="button"
             onClick={() => setIsCartOpen(false)}
-            className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-            aria-label="Close"
+            className="py-1.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white transition-all text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm"
+            aria-label="Add More Items"
+            title="Return to menu to add more items"
           >
-            <X className="w-5 h-5" />
+            <Plus className="w-3.5 h-3.5 text-amber-400 stroke-[3]" />
+            <span>ADD ITEMS</span>
           </button>
         </div>
 
@@ -206,6 +208,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             >
               <span>PROCEED TO CHECKOUT</span>
               <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(false)}
+              className="w-full py-2 text-center text-xs font-bold text-zinc-400 hover:text-amber-300 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add More Items to Order</span>
             </button>
           </div>
         )}

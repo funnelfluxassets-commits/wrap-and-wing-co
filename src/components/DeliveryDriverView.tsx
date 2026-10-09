@@ -24,7 +24,8 @@ import {
   ShoppingBag,
   Key,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Smile
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
@@ -278,7 +279,10 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span>📦 Ready at Kitchen</span>
+              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2]" />
+              </span>
+              <span>Ready at Kitchen</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 filter === 'ready' ? 'bg-black/30 text-zinc-950' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
@@ -295,7 +299,9 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
+                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
+              </span>
               <span>On Road</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 filter === 'dispatched' ? 'bg-black/30 text-white' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
@@ -313,7 +319,10 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span>✅ Completed Runs</span>
+              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
+                <Smile className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
+              </span>
+              <span>Completed Runs</span>
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
                 filter === 'completed' ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
               }`}>
@@ -330,7 +339,15 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span>📋 All ({deliveryOrders.length})</span>
+              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
+                <FileText className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
+              </span>
+              <span>All Tickets</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                filter === 'all' ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
+              }`}>
+                {deliveryOrders.length}
+              </span>
             </button>
           </div>
 
@@ -417,14 +434,24 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                               : 'bg-emerald-500/20 text-emerald-400'
                           }`}
                         >
-                          {order.status === 'ready' && '📦 READY FOR PICKUP'}
+                          {order.status === 'ready' && (
+                            <span className="inline-flex items-center gap-1">
+                              <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                              <span>READY FOR PICKUP</span>
+                            </span>
+                          )}
                           {order.status === 'dispatched' && (
                             <span className="inline-flex items-center gap-1">
                               <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-white" />
                               <span>ON ROAD</span>
                             </span>
                           )}
-                          {order.status === 'completed' && '✅ DELIVERED'}
+                          {order.status === 'completed' && (
+                            <span className="inline-flex items-center gap-1">
+                              <Smile className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                              <span>DELIVERED</span>
+                            </span>
+                          )}
                         </span>
                       </div>
 
@@ -580,7 +607,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                         className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <CheckCircle className="w-4 h-4" />
-                        <span>✅ CONFIRM DELIVERED &amp; COMPLETE RUN</span>
+                        <span>CONFIRM DELIVERED &amp; COMPLETE RUN</span>
                       </button>
                     )}
 
