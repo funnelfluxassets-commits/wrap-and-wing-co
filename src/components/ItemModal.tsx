@@ -44,6 +44,14 @@ const DRINK_GROUPS = [
     ],
   },
   {
+    id: 'coffee' as const,
+    title: '☕ Hot Brewed Coffee',
+    priceText: '+R19.90',
+    drinks: [
+      { id: 'drink-cuppaccino', name: 'Cuppaccino (Medium)', price: 19.90, badge: 'HOT COFFEE' },
+    ],
+  },
+  {
     id: 'buddies' as const,
     title: '🥤 440ml Cold Buddy Sodas',
     priceText: '+R18.00',
@@ -73,7 +81,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
   const availableSides = item.sideOptions || (item.includesSide ? SIDES_LIST : []);
   const availableDrinks = MENU_ITEMS.filter((m) => m.categoryId === 'drinks');
   const [isDrinksExpanded, setIsDrinksExpanded] = useState(false);
-  const [drinkCategoryFilter, setDrinkCategoryFilter] = useState<'all' | 'water' | 'sharing' | 'mocktails' | 'buddies'>('all');
+  const [drinkCategoryFilter, setDrinkCategoryFilter] = useState<'all' | 'water' | 'sharing' | 'mocktails' | 'coffee' | 'buddies'>('all');
   const [selectedSide, setSelectedSide] = useState<string>(
     availableSides.length > 0 ? availableSides[0] : ''
   );
@@ -372,6 +380,17 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                             }`}
                           >
                             🍹 Mocktails (3)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('coffee')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'coffee'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            ☕ Coffee (1)
                           </button>
                           <button
                             type="button"

@@ -59,7 +59,7 @@ export const CATEGORIES: MenuCategory[] = [
   { id: 'seafood', name: 'Seafood', icon: '🐟', description: 'Crispy battered fish fillet with chips and tartar sauce' },
   { id: 'sides', name: 'Regular Sides', icon: '🍟', description: 'Hot golden chips, fragrant spicy rice, and creamy coleslaw' },
   { id: 'kids', name: 'Kids Menu', icon: '🧒', description: 'Crispy, tasty kid-friendly meals served with golden chips' },
-  { id: 'drinks', name: 'Drinks', icon: '🥤', description: 'Ice-cold 440ml buddy bottles, 1.5L sharing sodas, pure spring water, and refreshing craft mocktails' },
+  { id: 'drinks', name: 'Drinks', icon: '🥤', description: 'Ice-cold 440ml buddy bottles, 1.5L sharing sodas, pure spring water, refreshing craft mocktails, and hot brewed cuppaccino' },
 ];
 
 export const SIDES_LIST = ['Chips', 'Spicy Rice', 'Coleslaw', 'Side Salad'];
@@ -416,5 +416,17 @@ export const MENU_ITEMS: MenuItem[] = [
     image: '/images/menu/drinks/blueberry-mocktail.webp',
     popular: true,
     badge: 'MOCKTAIL',
+  },
+
+  // Hot Coffee & Beverages
+  {
+    id: 'drink-cuppaccino',
+    categoryId: 'drinks',
+    name: 'Cuppaccino (Medium)',
+    description: 'Rich, smooth, and perfectly brewed espresso topped with velvety steamed milk and creamy textured foam.',
+    price: 19.90,
+    image: '/images/menu/drinks/cuppaccino.webp',
+    popular: true,
+    badge: 'HOT COFFEE',
   },
 ];
