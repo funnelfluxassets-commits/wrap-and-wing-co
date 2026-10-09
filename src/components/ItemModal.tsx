@@ -15,6 +15,52 @@ const BASE_EXTRAS_OPTIONS = [
   { name: 'Add 3 Flame-Grilled Wings', price: 45.0 },
 ];
 
+const DRINK_GROUPS = [
+  {
+    id: 'water' as const,
+    title: '💧 Still & Sparkling Spring Water',
+    priceText: '+R15.00',
+    drinks: [
+      { id: 'drink-valpre-water-500ml', name: 'Valpré Still Spring Water (500ml)', price: 15.00, badge: 'STILL WATER' },
+      { id: 'drink-valpre-sparkling-500ml', name: 'Valpré Sparkling Spring Water (500ml)', price: 15.00, badge: 'SPARKLING WATER' },
+    ],
+  },
+  {
+    id: 'sharing' as const,
+    title: '🍾 1.5L Sharing Bottles',
+    priceText: '+R25.00',
+    drinks: [
+      { id: 'drink-coke-original-15l', name: 'Coca-Cola Original (1.5L)', price: 25.00, badge: '1.5L SHARING' },
+    ],
+  },
+  {
+    id: 'mocktails' as const,
+    title: '🍹 Refreshing Craft Mocktails',
+    priceText: '+R29.90',
+    drinks: [
+      { id: 'drink-watermelon-mocktail', name: 'Watermelon Mocktail', price: 29.90, badge: 'MOCKTAIL' },
+      { id: 'drink-lime-mocktail', name: 'Lime Mocktail', price: 29.90, badge: 'MOCKTAIL' },
+      { id: 'drink-blueberry-mocktail', name: 'Blueberry Mocktail', price: 29.90, badge: 'MOCKTAIL' },
+    ],
+  },
+  {
+    id: 'buddies' as const,
+    title: '🥤 440ml Cold Buddy Sodas',
+    priceText: '+R18.00',
+    drinks: [
+      { id: 'drink-coke-original-440ml', name: 'Coca-Cola Original (440ml)', price: 18.00, badge: '440ML BUDDY' },
+      { id: 'drink-coke-zero-440ml', name: 'Coca-Cola Zero Sugar (440ml)', price: 18.00, badge: 'ZERO SUGAR' },
+      { id: 'drink-coke-light-440ml', name: 'Coca-Cola Light (440ml)', price: 18.00, badge: 'LIGHT' },
+      { id: 'drink-coke-zero-caffeine-440ml', name: 'Coca-Cola No Sugar No Caffeine (440ml)', price: 18.00, badge: 'NO CAFFEINE' },
+      { id: 'drink-fanta-orange-440ml', name: 'Fanta Orange (440ml)', price: 18.00, badge: '440ML BUDDY' },
+      { id: 'drink-sprite-440ml', name: 'Sprite (440ml)', price: 18.00, badge: '440ML BUDDY' },
+      { id: 'drink-sprite-no-sugar-440ml', name: 'Sprite No Sugar (440ml)', price: 18.00, badge: 'ZERO SUGAR' },
+      { id: 'drink-stoney-440ml', name: 'Stoney Ginger Beer (440ml)', price: 18.00, badge: 'KWETZA' },
+      { id: 'drink-creme-soda-440ml', name: 'Spar-letta Creme Soda (440ml)', price: 18.00, badge: 'THE GREEN ONE' },
+    ],
+  },
+];
+
 export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
   const { addItem } = useCart();
 
@@ -27,6 +73,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
   const availableSides = item.sideOptions || (item.includesSide ? SIDES_LIST : []);
   const availableDrinks = MENU_ITEMS.filter((m) => m.categoryId === 'drinks');
   const [isDrinksExpanded, setIsDrinksExpanded] = useState(false);
+  const [drinkCategoryFilter, setDrinkCategoryFilter] = useState<'all' | 'water' | 'sharing' | 'mocktails' | 'buddies'>('all');
   const [selectedSide, setSelectedSide] = useState<string>(
     availableSides.length > 0 ? availableSides[0] : ''
   );
@@ -223,9 +270,14 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                 );
                 const hasSelectedDrinks = selectedDrinkItems.length > 0;
 
+                const filteredGroups =
+                  drinkCategoryFilter === 'all'
+                    ? DRINK_GROUPS
+                    : DRINK_GROUPS.filter((g) => g.id === drinkCategoryFilter);
+
                 return (
                   <div
-                    className={`rounded-xl border transition-all overflow-hidden ${
+                    className={`rounded-2xl border transition-all overflow-hidden ${
                       hasSelectedDrinks
                         ? 'border-amber-500/50 bg-amber-500/5'
                         : 'border-white/10 bg-zinc-900/60'
@@ -250,7 +302,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                           <div className="text-[10px] text-zinc-400 truncate">
                             {hasSelectedDrinks
                               ? selectedDrinkItems.map((d) => d.name).join(', ')
-                              : 'Tap to view all available drinks & pricing'}
+                              : '1.5L Coke, Waters, 3 Mocktails & 440ml Sodas'}
                           </div>
                         </div>
                       </div>
@@ -273,47 +325,115 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
 
                     {/* Expanded View of All Available Menu Drinks with Relative Pricing */}
                     {isDrinksExpanded && (
-                      <div className="p-2.5 pt-1 border-t border-white/10 bg-black/40 space-y-1.5 max-h-60 overflow-y-auto">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 py-1 flex items-center justify-between border-b border-white/5">
-                          <span>Available Drinks</span>
-                          <span>Relative Pricing</span>
+                      <div className="p-3 pt-2 border-t border-white/10 bg-black/50 space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
+                        
+                        {/* Quick Category Filter Pills */}
+                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[11px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('all')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'all'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            All ({availableDrinks.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('water')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'water'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            💧 Water (2)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('sharing')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'sharing'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            🍾 1.5L Coke (1)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('mocktails')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'mocktails'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            🍹 Mocktails (3)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDrinkCategoryFilter('buddies')}
+                            className={`px-2.5 py-1 rounded-lg transition-colors shrink-0 cursor-pointer ${
+                              drinkCategoryFilter === 'buddies'
+                                ? 'bg-amber-400 text-zinc-950 font-black'
+                                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                            }`}
+                          >
+                            🥤 440ml Buddies (9)
+                          </button>
                         </div>
-                        {availableDrinks.map((drink) => {
-                          const isSelected = selectedExtras.some((e) => e.name === drink.name);
-                          return (
-                            <button
-                              key={drink.id}
-                              type="button"
-                              onClick={() => toggleExtra({ name: drink.name, price: drink.price })}
-                              className={`w-full p-2 rounded-lg border text-left transition-all flex items-center justify-between cursor-pointer ${
-                                isSelected
-                                  ? 'bg-amber-500/15 border-amber-500/60 text-white shadow-sm'
-                                  : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-white/5 text-zinc-300'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 min-w-0 pr-2">
-                                <span className="text-xs font-medium truncate">{drink.name}</span>
-                                {drink.badge && (
-                                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-zinc-800 text-amber-300 border border-white/10 shrink-0 hidden sm:inline">
-                                    {drink.badge}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs font-bold text-amber-400">+R{drink.price.toFixed(2)}</span>
-                                <div
-                                  className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
-                                    isSelected
-                                      ? 'border-amber-400 bg-amber-400 text-zinc-950 font-black'
-                                      : 'border-zinc-600 bg-zinc-800/50'
-                                  }`}
-                                >
-                                  {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
+
+                        {/* Grouped Drink Sections */}
+                        {filteredGroups.map((group) => (
+                          <div key={group.id} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-amber-300/90 pt-1.5 border-t border-white/5 first:border-0 first:pt-0">
+                              <span>{group.title}</span>
+                              <span className="text-zinc-500 font-bold">{group.priceText}</span>
+                            </div>
+
+                            <div className="space-y-1">
+                              {group.drinks.map((drink) => {
+                                const isSelected = selectedExtras.some((e) => e.name === drink.name);
+                                return (
+                                  <button
+                                    key={drink.id}
+                                    type="button"
+                                    onClick={() => toggleExtra({ name: drink.name, price: drink.price })}
+                                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-amber-500/15 border-amber-500/60 text-white shadow-sm ring-1 ring-amber-500/30'
+                                        : 'bg-zinc-900/70 hover:bg-zinc-800/80 border-white/5 text-zinc-200'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                                      <span className="text-xs font-semibold truncate">{drink.name}</span>
+                                      {drink.badge && (
+                                        <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-zinc-800 text-amber-300 border border-white/10 shrink-0 hidden sm:inline">
+                                          {drink.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-xs font-bold text-amber-400">+R{drink.price.toFixed(2)}</span>
+                                      <div
+                                        className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
+                                          isSelected
+                                            ? 'border-amber-400 bg-amber-400 text-zinc-950 font-black'
+                                            : 'border-zinc-600 bg-zinc-800/50'
+                                        }`}
+                                      >
+                                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
