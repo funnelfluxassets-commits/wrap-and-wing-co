@@ -75,9 +75,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             : '🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.'
         );
       } else if (status === 'dispatched') {
-        setToastMessage('🛵 Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
+        setToastMessage('🏍️ Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
       } else if (status === 'completed') {
-        setToastMessage('🎉 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+        setToastMessage('😊 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
       }
     } catch (err) {
       console.warn('Status alert error:', err);
@@ -420,7 +420,10 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   </span>
                 )}
                 {order.status === 'completed' && (
-                  <span className="text-emerald-300 font-bold shrink-0">🎉 Delivered & Complete</span>
+                  <span className="text-emerald-300 font-bold flex items-center gap-1.5 shrink-0">
+                    <Smile className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>Delivered &amp; Complete</span>
+                  </span>
                 )}
               </span>
               <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
@@ -428,8 +431,18 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {order.status === 'cooking' && 'Order Accepted & On Grill! 🔥'}
                 {order.status === 'ready' &&
                   (isDelivery ? 'Food Ready & Packed! 📦' : 'Hot & Ready For Pickup! 🛍️')}
-                {order.status === 'dispatched' && 'Driver Is On The Way! 🛵'}
-                {order.status === 'completed' && 'Order Completed! 🎉'}
+                {order.status === 'dispatched' && (
+                  <span className="inline-flex items-center gap-2">
+                    <span>Driver Is On The Way!</span>
+                    <DeliveryMotorbikeIcon className="w-6 h-6 sm:w-7 sm:h-7 inline text-amber-400 shrink-0" />
+                  </span>
+                )}
+                {order.status === 'completed' && (
+                  <span className="inline-flex items-center gap-2">
+                    <span>Order Completed!</span>
+                    <Smile className="w-6 h-6 sm:w-7 sm:h-7 inline text-amber-400 shrink-0" />
+                  </span>
+                )}
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-md leading-relaxed">
                 {order.status === 'received' &&
@@ -459,11 +472,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           {/* Animated Multi-Step Progress Bar */}
           <div className="pt-8">
             <div className="relative">
-              {/* Background Connecting Bar */}
-              <div className="h-2 bg-zinc-800 rounded-full w-full absolute top-1/2 -translate-y-1/2 z-0" />
-              {/* Active Fill Bar */}
+              {/* Background Connecting Bar - centered vertically through icon boxes */}
+              <div className="h-1.5 sm:h-2 bg-zinc-800 rounded-full w-full absolute top-[18px] sm:top-[22px] -translate-y-1/2 z-0" />
+              {/* Active Fill Bar - centered vertically through icon boxes */}
               <div
-                className="h-2 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 rounded-full absolute top-1/2 -translate-y-1/2 z-0 transition-all duration-700"
+                className="h-1.5 sm:h-2 bg-gradient-to-r from-yellow-300 via-yellow-400 to-amber-400 rounded-full absolute top-[18px] sm:top-[22px] -translate-y-1/2 z-0 transition-all duration-700"
                 style={{ width: getProgressWidth() }}
               />
 
@@ -502,8 +515,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         {/* Order Completed Celebration & Auto-Dismissal Notice */}
         {order.status === 'completed' && (
           <div className="p-6 rounded-3xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-zinc-900 border-2 border-emerald-500/60 shadow-2xl space-y-4 text-center">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-3xl shadow-inner shadow-emerald-500/20">
-              🎉
+            <div className="w-16 h-16 mx-auto rounded-3xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shadow-inner shadow-emerald-500/20">
+              <Smile className="w-9 h-9 text-emerald-300" />
             </div>
             <div>
               <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">

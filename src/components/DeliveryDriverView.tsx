@@ -116,9 +116,6 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const deliveryOrders = orders.filter(
     (o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId && o.orderMode === 'delivery')
   );
-
-  const readyOrders = deliveryOrders.filter((o) => o.status === 'ready');
-  const dispatchedOrders = deliveryOrders.filter((o) => o.status === 'dispatched');
   
   // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
   const extractOrderSequence = (orderId: string): number => {
@@ -169,23 +166,30 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     return 0;
   };
 
-  // Sort completed delivery runs newest-first (top-left), descending to oldest
-  const completedOrders = [...deliveryOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
-    const timeA = getOrderCompletionEpoch(a);
-    const timeB = getOrderCompletionEpoch(b);
-    if (timeA && timeB && Math.abs(timeA - timeB) > 2000) return timeB - timeA;
+  // Universal helper to sort any delivery order list newest-first (top-left) descending to oldest
+  const sortOrdersNewestFirst = (orderList: LiveOrder[]): LiveOrder[] => {
+    return [...orderList].sort((a, b) => {
+      const timeA = getOrderCompletionEpoch(a);
+      const timeB = getOrderCompletionEpoch(b);
+      if (timeA && timeB && Math.abs(timeA - timeB) > 2000) return timeB - timeA;
 
-    const seqA = extractOrderSequence(a.orderId);
-    const seqB = extractOrderSequence(b.orderId);
-    if (seqA && seqB && seqA !== seqB) {
-      return seqB - seqA;
-    }
+      const seqA = extractOrderSequence(a.orderId);
+      const seqB = extractOrderSequence(b.orderId);
+      if (seqA && seqB && seqA !== seqB) {
+        return seqB - seqA;
+      }
 
-    if (timeA && !timeB) return -1;
-    if (!timeA && timeB) return 1;
+      if (timeA && !timeB) return -1;
+      if (!timeA && timeB) return 1;
 
-    return deliveryOrders.indexOf(a) - deliveryOrders.indexOf(b);
-  });
+      return orderList.indexOf(a) - orderList.indexOf(b);
+    });
+  };
+
+  const sortedAllDeliveryOrders = sortOrdersNewestFirst(deliveryOrders);
+  const readyOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'ready');
+  const dispatchedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'dispatched');
+  const completedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'completed');
 
   const displayedOrders =
     filter === 'ready'
@@ -194,67 +198,68 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       ? dispatchedOrders
       : filter === 'completed'
       ? completedOrders
-      : deliveryOrders;
+      : sortedAllDeliveryOrders;
 
   return (
     <div className="min-h-screen bg-[#0c0d12] text-zinc-100 flex flex-col font-sans pb-16">
       
       {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-[#13141b] border-b border-white/10 px-4 sm:px-6 py-3 shadow-xl">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <header className="sticky top-0 z-40 bg-[#13141b] border-b border-white/10 px-4 sm:px-6 py-2.5 shadow-xl">
+        <div className="max-w-7xl mx-auto flex flex-col gap-2">
+          {/* Top Bar Row: Navigation on left & Controls on right */}
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={onBackToMenu}
-              className="p-2 sm:px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+              className="p-2 sm:px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Customer Menu</span>
             </button>
-          </div>
 
-          {/* Top Title: DELIVERY DISPATCH RADAR (strictly all on one line) */}
-          <div className="flex items-center justify-center gap-2 text-center whitespace-nowrap min-w-0">
-            <DeliveryMotorbikeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
-            <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white uppercase whitespace-nowrap">
-              DELIVERY DISPATCH RADAR
-            </h1>
-          </div>
-
-          {/* Header Right Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                playKitchenChime();
-                setSoundEnabled(!soundEnabled);
-              }}
-              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                soundEnabled
-                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                  : 'bg-zinc-800 border-white/10 text-zinc-500'
-              }`}
-              title="Toggle notification chime"
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              <span className="hidden lg:inline">{soundEnabled ? 'Chime ON' : 'Muted'}</span>
-            </button>
-
-            <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-xs sm:text-sm font-black text-amber-400 whitespace-nowrap">
-              {currentTime}
-            </div>
-
-            {onLogout && (
+            {/* Utility Controls: Sound Toggle, Clock, Logout */}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={onLogout}
-                className="p-2 sm:px-3 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/30 text-red-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
-                title="Exit Staff Portal"
+                onClick={() => {
+                  playKitchenChime();
+                  setSoundEnabled(!soundEnabled);
+                }}
+                className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  soundEnabled
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
+                    : 'bg-zinc-800 border-white/10 text-zinc-500'
+                }`}
+                title="Toggle notification chime"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden md:inline">Logout</span>
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                <span className="hidden sm:inline">{soundEnabled ? 'Chime ON' : 'Muted'}</span>
               </button>
-            )}
+
+              <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-xs sm:text-sm font-black text-amber-400 whitespace-nowrap">
+                {currentTime}
+              </div>
+
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-2 sm:px-3 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/30 text-red-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm shrink-0"
+                  title="Exit Staff Portal"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden md:inline">Logout</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Top Title: DELIVERY DISPATCH RADAR (centered on its own dedicated line, completely uncrowded!) */}
+          <div className="flex items-center justify-center gap-2 text-center whitespace-nowrap py-0.5">
+            <DeliveryMotorbikeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
+            <h1 className="text-base sm:text-lg md:text-xl font-black tracking-wider text-white uppercase whitespace-nowrap">
+              DELIVERY DISPATCH RADAR
+            </h1>
           </div>
         </div>
       </header>
