@@ -3,7 +3,7 @@ import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, Sparkles } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare } from 'lucide-react';
 
 interface SavedCustomerProfile {
   customerName?: string;
@@ -171,15 +171,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           
           {/* Saved Profile Autofill Notice */}
           {hasAutofilled && (
-            <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Welcome back! Your details have been auto-filled.</span>
-              </div>
+            <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs whitespace-nowrap">
+              <span className="truncate">Welcome back! Your details have been auto-filled.</span>
               <button
                 type="button"
                 onClick={handleClearSavedDetails}
-                className="text-[11px] font-bold text-zinc-400 hover:text-white underline cursor-pointer ml-2 shrink-0"
+                className="text-[11px] font-bold text-zinc-400 hover:text-amber-200 underline cursor-pointer ml-2 shrink-0"
               >
                 Clear
               </button>
@@ -307,7 +304,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 <Clock className="w-3.5 h-3.5" />
                 <span>Preparation Timing</span>
               </label>
-              <span className="text-[10px] text-emerald-400 font-bold">
+              <span className="text-[10px] text-amber-400 font-bold">
                 {orderMode === 'collection' ? '⚡ Ready in ~15–20 mins' : '⚡ Delivery in ~35–45 mins'}
               </span>
             </div>
@@ -425,7 +422,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
           {/* Trust Banner */}
           <div className="p-3 rounded-xl bg-zinc-900/90 border border-white/5 flex items-center gap-2.5 text-xs text-zinc-400">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Encrypted 256-bit checkout • Food freshly prepared upon confirmation</span>
           </div>
 

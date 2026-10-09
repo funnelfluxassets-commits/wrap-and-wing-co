@@ -278,6 +278,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     if (typeof lastEvent?.epochTime === 'number' && lastEvent.epochTime > 0) {
       return lastEvent.epochTime;
     }
+    const firstEvent = order.timeline?.[0];
+    if (typeof firstEvent?.epochTime === 'number' && firstEvent.epochTime > 0) {
+      return firstEvent.epochTime;
+    }
     if (completedEvent?.timestamp) {
       const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
       if (match) {
@@ -287,35 +291,48 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         if (/pm/i.test(completedEvent.timestamp) && hours < 12) hours += 12;
         if (/am/i.test(completedEvent.timestamp) && hours === 12) hours = 0;
         d.setHours(hours, minutes, 0, 0);
+        // If parsed time is ahead of current time, it belonged to a previous day
+        if (d.getTime() > Date.now()) {
+          d.setDate(d.getDate() - 1);
+        }
         return d.getTime();
       }
     }
     return 0;
   };
 
-  // Helper to extract numeric order sequence (e.g. "D-0810" -> 810, "D-0809" -> 809, "D-0601" -> 601)
+  // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
   const extractOrderSequence = (orderId: string): number => {
-    const clean = String(orderId || '').replace(/[^0-9]/g, '');
-    const num = parseInt(clean, 10);
+    const cleanId = String(orderId || '').replace('#', '').trim();
+    const match = cleanId.match(/^[A-Za-z]*-?(\d{2})(\d{2,})$/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const counter = parseInt(match[2], 10);
+      const currentDay = new Date().getDate();
+      const effectiveDay = day > currentDay ? day - 31 : day;
+      return effectiveDay * 10000 + counter;
+    }
+    const num = parseInt(cleanId.replace(/[^0-9]/g, ''), 10);
     return isNaN(num) ? 0 : num;
   };
 
-  // Latest completed orders at the top-left
+  // Latest completed orders at the top-left, descending to oldest
   const completedOrders = [...validOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
     const timeA = getOrderCompletionEpoch(a);
     const timeB = getOrderCompletionEpoch(b);
     if (timeA && timeB && Math.abs(timeA - timeB) > 2000) {
       return timeB - timeA; // newest completed first (top-left)
     }
-    if (timeA && !timeB) return -1;
-    if (!timeA && timeB) return 1;
 
-    // Numerical order sequence comparison: D-0810 (810) > D-0809 (809) > D-0601 (601)
+    // Numerical order sequence comparison: D-0903 (90003) > D-0902 (90002) > D-0810 (80010)
     const seqA = extractOrderSequence(a.orderId);
     const seqB = extractOrderSequence(b.orderId);
     if (seqA && seqB && seqA !== seqB) {
       return seqB - seqA; // higher order number is newer -> top-left!
     }
+
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
 
     return validOrders.indexOf(a) - validOrders.indexOf(b);
   });

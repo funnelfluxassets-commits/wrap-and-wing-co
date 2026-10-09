@@ -10,7 +10,6 @@ import {
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
-  Bike,
   MapPin,
   Phone,
   Navigation,
@@ -121,27 +120,69 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const readyOrders = deliveryOrders.filter((o) => o.status === 'ready');
   const dispatchedOrders = deliveryOrders.filter((o) => o.status === 'dispatched');
   
-  // Helper to extract numeric order sequence (e.g. "D-0810" -> 810)
+  // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
   const extractOrderSequence = (orderId: string): number => {
-    const clean = String(orderId || '').replace(/[^0-9]/g, '');
-    const num = parseInt(clean, 10);
+    const cleanId = String(orderId || '').replace('#', '').trim();
+    const match = cleanId.match(/^[A-Za-z]*-?(\d{2})(\d{2,})$/);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const counter = parseInt(match[2], 10);
+      const currentDay = new Date().getDate();
+      const effectiveDay = day > currentDay ? day - 31 : day;
+      return effectiveDay * 10000 + counter;
+    }
+    const num = parseInt(cleanId.replace(/[^0-9]/g, ''), 10);
     return isNaN(num) ? 0 : num;
   };
 
-  // Sort completed delivery runs newest-first (top-left)
-  const completedOrders = [...deliveryOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
-    const timeA = a.completedAt || 0;
-    const timeB = b.completedAt || 0;
-    if (timeA && timeB && Math.abs(timeA - timeB) > 2000) return timeB - timeA;
-    if (timeA && !timeB) return -1;
-    if (!timeA && timeB) return 1;
+  const getOrderCompletionEpoch = (order: LiveOrder): number => {
+    if (typeof order.completedAt === 'number' && order.completedAt > 0) {
+      return order.completedAt;
+    }
+    const completedEvent = order.timeline?.slice().reverse().find((t) => t.status === 'completed');
+    if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 0) {
+      return completedEvent.epochTime;
+    }
+    const lastEvent = order.timeline?.[order.timeline.length - 1];
+    if (typeof lastEvent?.epochTime === 'number' && lastEvent.epochTime > 0) {
+      return lastEvent.epochTime;
+    }
+    const firstEvent = order.timeline?.[0];
+    if (typeof firstEvent?.epochTime === 'number' && firstEvent.epochTime > 0) {
+      return firstEvent.epochTime;
+    }
+    if (completedEvent?.timestamp) {
+      const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
+      if (match) {
+        const d = new Date();
+        let hours = parseInt(match[1], 10);
+        const minutes = parseInt(match[2], 10);
+        if (/pm/i.test(completedEvent.timestamp) && hours < 12) hours += 12;
+        if (/am/i.test(completedEvent.timestamp) && hours === 12) hours = 0;
+        d.setHours(hours, minutes, 0, 0);
+        if (d.getTime() > Date.now()) {
+          d.setDate(d.getDate() - 1);
+        }
+        return d.getTime();
+      }
+    }
+    return 0;
+  };
 
-    // Sequence priority: #D-0810 (810) > #D-0809 (809) > #D-0601 (601)
+  // Sort completed delivery runs newest-first (top-left), descending to oldest
+  const completedOrders = [...deliveryOrders.filter((o) => o.status === 'completed')].sort((a, b) => {
+    const timeA = getOrderCompletionEpoch(a);
+    const timeB = getOrderCompletionEpoch(b);
+    if (timeA && timeB && Math.abs(timeA - timeB) > 2000) return timeB - timeA;
+
     const seqA = extractOrderSequence(a.orderId);
     const seqB = extractOrderSequence(b.orderId);
     if (seqA && seqB && seqA !== seqB) {
       return seqB - seqA;
     }
+
+    if (timeA && !timeB) return -1;
+    if (!timeA && timeB) return 1;
 
     return deliveryOrders.indexOf(a) - deliveryOrders.indexOf(b);
   });
@@ -159,152 +200,156 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     <div className="min-h-screen bg-[#0c0d12] text-zinc-100 flex flex-col font-sans pb-16">
       
       {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-[#13141b] border-b border-white/10 px-4 sm:px-6 py-3 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBackToMenu}
-            className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Customer Menu</span>
-          </button>
-
-          <div className="h-6 w-px bg-white/10 hidden sm:block" />
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-base sm:text-lg font-black tracking-tight text-white uppercase flex items-center gap-1.5">
-                <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
-                <span>DELIVERY DISPATCH RADAR</span>
-              </span>
-              <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                DRIVER DESK
-              </span>
-            </div>
-            <div className="text-[11px] text-zinc-400">
-              Turn-by-turn routing &amp; live run updates
-            </div>
-          </div>
-        </div>
-
-        {/* Header Right Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              playKitchenChime();
-              setSoundEnabled(!soundEnabled);
-            }}
-            className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-              soundEnabled
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
-                : 'bg-zinc-800 border-white/10 text-zinc-500'
-            }`}
-            title="Toggle notification chime"
-          >
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="hidden md:inline">{soundEnabled ? 'Chime ON' : 'Muted'}</span>
-          </button>
-
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-sm sm:text-base font-black text-amber-400">
-            {currentTime}
-          </div>
-
-          {onLogout && (
+      <header className="sticky top-0 z-40 bg-[#13141b] border-b border-white/10 px-4 sm:px-6 py-3 shadow-xl">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               type="button"
-              onClick={onLogout}
-              className="p-2 px-3 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/30 text-red-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
-              title="Exit Staff Portal"
+              onClick={onBackToMenu}
+              className="p-2 sm:px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Customer Menu</span>
             </button>
-          )}
+          </div>
+
+          {/* Top Title: DELIVERY DISPATCH RADAR (strictly all on one line) */}
+          <div className="flex items-center justify-center gap-2 text-center whitespace-nowrap min-w-0">
+            <DeliveryMotorbikeIcon className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400 shrink-0" />
+            <h1 className="text-sm sm:text-base md:text-lg font-black tracking-tight text-white uppercase whitespace-nowrap">
+              DELIVERY DISPATCH RADAR
+            </h1>
+          </div>
+
+          {/* Header Right Controls */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                playKitchenChime();
+                setSoundEnabled(!soundEnabled);
+              }}
+              className={`p-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                soundEnabled
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-400'
+                  : 'bg-zinc-800 border-white/10 text-zinc-500'
+              }`}
+              title="Toggle notification chime"
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              <span className="hidden lg:inline">{soundEnabled ? 'Chime ON' : 'Muted'}</span>
+            </button>
+
+            <div className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-xs sm:text-sm font-black text-amber-400 whitespace-nowrap">
+              {currentTime}
+            </div>
+
+            {onLogout && (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="p-2 sm:px-3 rounded-xl bg-red-950/50 hover:bg-red-900/70 border border-red-500/30 text-red-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shadow-sm"
+                title="Exit Staff Portal"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline">Logout</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* ── Filter Tabs & Radar Bar ─────────────────────────────────────────── */}
-      <div className="bg-[#121217] border-b border-white/10 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => setFilter('ready')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              filter === 'ready'
-                ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 shadow-md font-black'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
-            }`}
-          >
-            <span>📦 Ready at Kitchen</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
-              {readyOrders.length}
-            </span>
-          </button>
+      {/* ── Driver Action Deck & Status Filters ─────────────────────────────── */}
+      <div className="bg-[#121217] border-b border-white/10 px-4 sm:px-6 py-3.5 shadow-md">
+        <div className="max-w-4xl mx-auto space-y-3">
+          {/* Block of 4 Buttons (2 per line), styled like the navigation block */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setFilter('ready')}
+              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+                filter === 'ready'
+                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 shadow-md shadow-amber-500/20'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+              }`}
+            >
+              <span>📦 Ready at Kitchen</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                filter === 'ready' ? 'bg-black/30 text-zinc-950' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+              }`}>
+                {readyOrders.length}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setFilter('dispatched')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              filter === 'dispatched'
-                ? 'bg-orange-600 text-white shadow-md'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
-            }`}
-          >
-            <span>🛵 On Road</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
-              {dispatchedOrders.length}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setFilter('dispatched')}
+              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+                filter === 'dispatched'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/30'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+              }`}
+            >
+              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>On Road</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                filter === 'dispatched' ? 'bg-black/30 text-white' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+              }`}>
+                {dispatchedOrders.length}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setFilter('completed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              filter === 'completed'
-                ? 'bg-zinc-700 text-white shadow-md'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
-            }`}
-          >
-            <span>✅ Completed Runs</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
-              {completedOrders.length}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setFilter('completed')}
+              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+                filter === 'completed'
+                  ? 'bg-zinc-700 text-white shadow-md border border-white/20'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+              }`}
+            >
+              <span>✅ Completed Runs</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                filter === 'completed' ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
+              }`}>
+                {completedOrders.length}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              filter === 'all'
-                ? 'bg-zinc-800 text-white shadow-md border border-white/20'
-                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
-            }`}
-          >
-            <span>All ({deliveryOrders.length})</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setFilter('all')}
+              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+                filter === 'all'
+                  ? 'bg-zinc-800 text-white shadow-md border border-white/20'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
+              }`}
+            >
+              <span>📋 All ({deliveryOrders.length})</span>
+            </button>
+          </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={async () => {
-              setIsSyncing(true);
-              const fresh = await syncOrdersFromCloud();
-              setOrders(fresh);
-              setTimeout(() => setIsSyncing(false), 500);
-            }}
-            disabled={isSyncing}
-            className="p-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
-          </button>
+          {/* Helper bar below the block of 4 */}
+          <div className="flex items-center justify-between pt-0.5 text-xs text-zinc-400">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-[11px] font-bold text-zinc-300">Live GPS Radar Active</span>
+            </div>
 
-          <div className="text-xs text-zinc-400 flex items-center gap-1.5">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="hidden sm:inline">GPS Radar</span>
+            <button
+              type="button"
+              onClick={async () => {
+                setIsSyncing(true);
+                const fresh = await syncOrdersFromCloud();
+                setOrders(fresh);
+                setTimeout(() => setIsSyncing(false), 500);
+              }}
+              disabled={isSyncing}
+              className="py-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -313,8 +358,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full">
         {displayedOrders.length === 0 ? (
           <div className="h-96 flex flex-col items-center justify-center text-center p-8 bg-zinc-900/40 rounded-3xl border border-white/5 text-zinc-500">
-            <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-3">
-              🛵
+            <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center mb-3">
+              <DeliveryMotorbikeIcon className="w-8 h-8 text-amber-400" />
             </div>
             <h3 className="text-lg font-black text-zinc-300">
               No delivery runs in this section
@@ -368,7 +413,12 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                           }`}
                         >
                           {order.status === 'ready' && '📦 READY FOR PICKUP'}
-                          {order.status === 'dispatched' && '🛵 ON ROAD'}
+                          {order.status === 'dispatched' && (
+                            <span className="inline-flex items-center gap-1">
+                              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-white" />
+                              <span>ON ROAD</span>
+                            </span>
+                          )}
                           {order.status === 'completed' && '✅ DELIVERED'}
                         </span>
                       </div>

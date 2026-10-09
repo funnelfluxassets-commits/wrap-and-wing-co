@@ -212,8 +212,8 @@ export default async function handler(req: any, res: any) {
           if (allowedStatus) {
             store[existingIdx].status = allowedStatus;
           }
-          if (body.completedAt || order?.completedAt) {
-            store[existingIdx].completedAt = body.completedAt || order?.completedAt;
+          if (body.completedAt || order?.completedAt || targetStatus === 'completed') {
+            store[existingIdx].completedAt = body.completedAt || order?.completedAt || store[existingIdx].completedAt || Date.now();
           }
           if (body.cookingStartedAt || order?.cookingStartedAt) {
             store[existingIdx].cookingStartedAt = body.cookingStartedAt || order?.cookingStartedAt;

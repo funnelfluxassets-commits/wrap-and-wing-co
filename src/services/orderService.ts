@@ -686,7 +686,8 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
         ...(event.order || {}),
         status: newStatus,
         timeline: hasTimeline,
-        cookingStartedAt: event.order?.cookingStartedAt || existing.cookingStartedAt,
+        cookingStartedAt: event.cookingStartedAt || event.order?.cookingStartedAt || existing.cookingStartedAt,
+        completedAt: event.completedAt || event.order?.completedAt || existing.completedAt || (newStatus === 'completed' ? Date.now() : undefined),
       };
       currentOrders[existingIndex] = updated;
       saveOrders(currentOrders, true);
@@ -814,6 +815,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
               customer: sanitized.customer?.customerName ? sanitized.customer : existing.customer,
               items: sanitized.items?.length > 0 ? sanitized.items : existing.items,
               cookingStartedAt: sanitized.cookingStartedAt || existing.cookingStartedAt,
+              completedAt: sanitized.completedAt || existing.completedAt || (resolvedStatus === 'completed' ? (existing.completedAt || Date.now()) : undefined),
             });
           }
         }
@@ -904,6 +906,7 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
       timestamp: nowStr,
       label: 'Order Placed & Received',
       note: `Ticket sent to ${payload.store.name}`,
+      epochTime: Date.now(),
     },
   ];
 
