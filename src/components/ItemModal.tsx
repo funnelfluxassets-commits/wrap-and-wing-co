@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { MenuItem, FlavourId } from '../types';
-import { FLAVOURS, SIDES_LIST } from '../data/menuData';
+import { FLAVOURS, SIDES_LIST, MENU_ITEMS } from '../data/menuData';
 import { useCart } from '../context/CartContext';
-import { X, Plus, Minus, Flame, Check, Sparkles } from 'lucide-react';
+import { X, Plus, Minus, Flame, Check, Sparkles, ChevronDown } from 'lucide-react';
 
 interface ItemModalProps {
   item: MenuItem | null;
   onClose: () => void;
 }
 
-const EXTRAS_OPTIONS = [
-  { name: 'Extra Signature Peri Sauce', price: 10.0 },
+const BASE_EXTRAS_OPTIONS = [
+  { name: 'Extra Sauce', price: 8.0 },
   { name: 'Extra Melted Cheese Slice', price: 12.0 },
   { name: 'Add 3 Flame-Grilled Wings', price: 45.0 },
-  { name: 'Add Cold Buddy Soda (440ml)', price: 18.0 },
 ];
 
 export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
@@ -26,6 +25,8 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
     item.hasFlavourChoice ? 'mild' : 'mild'
   );
   const availableSides = item.sideOptions || (item.includesSide ? SIDES_LIST : []);
+  const availableDrinks = MENU_ITEMS.filter((m) => m.categoryId === 'drinks');
+  const [isDrinksExpanded, setIsDrinksExpanded] = useState(false);
   const [selectedSide, setSelectedSide] = useState<string>(
     availableSides.length > 0 ? availableSides[0] : ''
   );
@@ -177,13 +178,17 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
 
           {/* 3. Add-ons & Extras */}
           <div className="space-y-3 pt-2 border-t border-white/10">
-            <label className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-200 flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Delicious Extras (Optional)</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
+                <span className="w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-md border border-amber-400 bg-amber-400/15 flex items-center justify-center shrink-0 shadow-[0_0_6px_rgba(251,191,36,0.25)]">
+                  <Plus className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300 stroke-[3]" />
+                </span>
+                <span>Delicious Optional Extras (Optional)</span>
+              </label>
+            </div>
 
             <div className="space-y-2">
-              {EXTRAS_OPTIONS.map((extra) => {
+              {BASE_EXTRAS_OPTIONS.map((extra) => {
                 const isSelected = selectedExtras.some((e) => e.name === extra.name);
                 return (
                   <button
@@ -210,6 +215,110 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                   </button>
                 );
               })}
+
+              {/* Add Drink - Expandable View of All Available Menu Drinks */}
+              {(() => {
+                const selectedDrinkItems = selectedExtras.filter((e) =>
+                  availableDrinks.some((d) => d.name === e.name)
+                );
+                const hasSelectedDrinks = selectedDrinkItems.length > 0;
+
+                return (
+                  <div
+                    className={`rounded-xl border transition-all overflow-hidden ${
+                      hasSelectedDrinks
+                        ? 'border-amber-500/50 bg-amber-500/5'
+                        : 'border-white/10 bg-zinc-900/60'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setIsDrinksExpanded(!isDrinksExpanded)}
+                      className="w-full p-2.5 sm:p-3 flex items-center justify-between text-left hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <span className="text-base shrink-0">🥤</span>
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold text-white flex items-center gap-1.5 flex-wrap">
+                            <span>Add drink</span>
+                            {hasSelectedDrinks && (
+                              <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-zinc-950 font-black text-[10px]">
+                                {selectedDrinkItems.length} selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-zinc-400 truncate">
+                            {hasSelectedDrinks
+                              ? selectedDrinkItems.map((d) => d.name).join(', ')
+                              : 'Tap to view all available drinks & pricing'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-amber-400">
+                          {hasSelectedDrinks
+                            ? `+R${selectedDrinkItems.reduce((sum, d) => sum + d.price, 0).toFixed(2)}`
+                            : 'From +R15.00'}
+                        </span>
+                        <div
+                          className={`p-1 rounded-md bg-zinc-800 text-zinc-400 transition-transform ${
+                            isDrinksExpanded ? 'rotate-180 text-amber-400' : ''
+                          }`}
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Expanded View of All Available Menu Drinks with Relative Pricing */}
+                    {isDrinksExpanded && (
+                      <div className="p-2.5 pt-1 border-t border-white/10 bg-black/40 space-y-1.5 max-h-60 overflow-y-auto">
+                        <div className="text-[10px] font-black uppercase tracking-wider text-zinc-400 py-1 flex items-center justify-between border-b border-white/5">
+                          <span>Available Drinks</span>
+                          <span>Relative Pricing</span>
+                        </div>
+                        {availableDrinks.map((drink) => {
+                          const isSelected = selectedExtras.some((e) => e.name === drink.name);
+                          return (
+                            <button
+                              key={drink.id}
+                              type="button"
+                              onClick={() => toggleExtra({ name: drink.name, price: drink.price })}
+                              className={`w-full p-2 rounded-lg border text-left transition-all flex items-center justify-between cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-500/15 border-amber-500/60 text-white shadow-sm'
+                                  : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-white/5 text-zinc-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 pr-2">
+                                <span className="text-xs font-medium truncate">{drink.name}</span>
+                                {drink.badge && (
+                                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-zinc-800 text-amber-300 border border-white/10 shrink-0 hidden sm:inline">
+                                    {drink.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs font-bold text-amber-400">+R{drink.price.toFixed(2)}</span>
+                                <div
+                                  className={`w-4 h-4 rounded-md border flex items-center justify-center transition-colors ${
+                                    isSelected
+                                      ? 'border-amber-400 bg-amber-400 text-zinc-950 font-black'
+                                      : 'border-zinc-600 bg-zinc-800/50'
+                                  }`}
+                                >
+                                  {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

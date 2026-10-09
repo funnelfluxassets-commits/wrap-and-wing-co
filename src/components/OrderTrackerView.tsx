@@ -102,10 +102,22 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       const detail = (e as CustomEvent).detail;
       const detailClean = detail?.orderId ? String(detail.orderId).replace('#', '').trim() : '';
       if (detail && (detail.orderId === effectiveOrderId || detailClean === cleanTarget)) {
-        const next = detail.newStatus || detail.status;
-        if (next && next !== lastStatusRef.current) {
-          triggerStatusAlert(next, order);
-          lastStatusRef.current = next;
+        const next = (detail.newStatus || detail.status) as OrderStatus;
+        if (next) {
+          if (next !== lastStatusRef.current) {
+            triggerStatusAlert(next, detail.order || order);
+            lastStatusRef.current = next;
+          }
+          if (detail.order) {
+            setOrder(detail.order);
+          } else {
+            const fresh = getOrderById(effectiveOrderId);
+            if (fresh) {
+              setOrder(fresh);
+            } else {
+              setOrder((prev) => (prev ? { ...prev, status: next } : null));
+            }
+          }
         }
       }
     };

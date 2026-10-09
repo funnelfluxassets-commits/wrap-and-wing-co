@@ -177,6 +177,17 @@ let broadcastChannel: BroadcastChannel | null = null;
 try {
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
     broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
+    broadcastChannel.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'ORDER_STATUS_CHANGED') {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wrap_wing_order_status_updated', {
+              detail: e.data,
+            })
+          );
+        }
+      }
+    });
   }
 } catch {
   broadcastChannel = null;
@@ -603,6 +614,15 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   } catch (err) {
     console.warn('Could not post to /api/orders:', err);
   }
+
+  // Also broadcast to public ntfy SSE topic for instantaneous cross-device push
+  try {
+    fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
+      method: 'POST',
+      body: bodyText,
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(() => {});
+  } catch {}
 }
 
 // Handle an incoming cloud event from another phone/tablet/computer
@@ -1034,6 +1054,36 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
     order: updatedOrder,
     timestamp: Date.now(),
   });
+
+  // Local window and cross-tab instant event broadcast
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('wrap_wing_order_status_updated', {
+        detail: {
+          orderId: updatedOrder.orderId,
+          newStatus,
+          status: newStatus,
+          note,
+          timelineEvent,
+          cookingStartedAt,
+          completedAt,
+          order: updatedOrder,
+        },
+      })
+    );
+  }
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({
+        type: 'ORDER_STATUS_CHANGED',
+        orderId: updatedOrder.orderId,
+        newStatus,
+        status: newStatus,
+        order: updatedOrder,
+        timestamp: Date.now(),
+      });
+    } catch {}
+  }
 
   return updatedOrder;
 }
