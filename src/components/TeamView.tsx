@@ -74,7 +74,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
           <div className="lg:col-span-6 relative pb-10 sm:pb-12 lg:pb-10">
             <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
               <img
-                src="/images/team/front-counter-team.webp"
+                src="/images/team/front-of-house-family.webp"
                 alt="Wrap & Wings Co front of house staff welcoming customers"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
@@ -193,7 +193,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="lg:col-span-6 order-1 lg:order-2 relative pb-10 sm:pb-12 lg:pb-10">
               <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-zinc-900 group">
                 <img
-                  src="/images/team/kitchen-crew.webp"
+                  src="/images/team/kitchen-professionalism.webp"
                   alt="Wrap & Wings Co kitchen team member in professional chef attire"
                   className="w-full h-auto object-cover aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
                 />
@@ -234,7 +234,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
           <div className="rounded-3xl bg-zinc-900 border border-white/10 overflow-hidden shadow-xl flex flex-col group">
             <div className="relative overflow-hidden aspect-[4/3] bg-zinc-950">
               <img
-                src="/images/team/hospitality-service.webp"
+                src="/images/team/attention-to-detail.webp"
                 alt="Hospitality and cashier team member serving guests"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
@@ -261,7 +261,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
           <div className="rounded-3xl bg-zinc-900 border border-white/10 overflow-hidden shadow-xl flex flex-col group">
             <div className="relative overflow-hidden aspect-[4/3] bg-zinc-950">
               <img
-                src="/images/team/team-service.webp"
+                src="/images/team/local-pride-empowerment.webp"
                 alt="Wrap & Wings Co team atmosphere and service stations"
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
