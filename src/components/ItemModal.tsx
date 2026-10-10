@@ -35,11 +35,11 @@ const DRINK_GROUPS = [
   {
     id: 'mocktails' as const,
     title: '🍹 Refreshing Craft Mocktails',
-    priceText: '+R29.90',
+    priceText: '+R39.90',
     drinks: [
-      { id: 'drink-watermelon-mocktail', name: 'Watermelon Mocktail', price: 29.90, badge: 'MOCKTAIL' },
-      { id: 'drink-lime-mocktail', name: 'Lime Mocktail', price: 29.90, badge: 'MOCKTAIL' },
-      { id: 'drink-blueberry-mocktail', name: 'Blueberry Mocktail', price: 29.90, badge: 'MOCKTAIL' },
+      { id: 'drink-watermelon-mocktail', name: 'Watermelon Mocktail', price: 39.90, badge: 'MOCKTAIL' },
+      { id: 'drink-lime-mocktail', name: 'Lime Mocktail', price: 39.90, badge: 'MOCKTAIL' },
+      { id: 'drink-blueberry-mocktail', name: 'Blueberry Mocktail', price: 39.90, badge: 'MOCKTAIL' },
     ],
   },
   {
@@ -56,14 +56,9 @@ const DRINK_GROUPS = [
     priceText: '+R18.00',
     drinks: [
       { id: 'drink-coke-original-440ml', name: 'Coca-Cola Original (440ml)', price: 18.00, badge: '440ML BUDDY' },
-      { id: 'drink-coke-zero-440ml', name: 'Coca-Cola Zero Sugar (440ml)', price: 18.00, badge: 'ZERO SUGAR' },
-      { id: 'drink-coke-light-440ml', name: 'Coca-Cola Light (440ml)', price: 18.00, badge: 'LIGHT' },
-      { id: 'drink-coke-zero-caffeine-440ml', name: 'Coca-Cola No Sugar No Caffeine (440ml)', price: 18.00, badge: 'NO CAFFEINE' },
       { id: 'drink-fanta-orange-440ml', name: 'Fanta Orange (440ml)', price: 18.00, badge: '440ML BUDDY' },
       { id: 'drink-sprite-440ml', name: 'Sprite (440ml)', price: 18.00, badge: '440ML BUDDY' },
-      { id: 'drink-sprite-no-sugar-440ml', name: 'Sprite No Sugar (440ml)', price: 18.00, badge: 'ZERO SUGAR' },
       { id: 'drink-stoney-440ml', name: 'Stoney Ginger Beer (440ml)', price: 18.00, badge: 'KWETZA' },
-      { id: 'drink-creme-soda-440ml', name: 'Spar-letta Creme Soda (440ml)', price: 18.00, badge: 'THE GREEN ONE' },
     ],
   },
 ];
