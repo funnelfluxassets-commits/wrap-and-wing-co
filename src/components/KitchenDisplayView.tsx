@@ -518,16 +518,16 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('Reset kitchen display to fresh orders?')) {
+              if (window.confirm('Clear all active orders from the kitchen display?')) {
                 resetToDefaultOrders();
-                setOrders(getAllOrders());
+                setOrders([]);
               }
             }}
-            className="p-1.5 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-400 hover:text-amber-300 flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
-            title="Reload fresh tickets"
+            className="p-1.5 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-400 hover:text-rose-400 flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+            title="Clear all kitchen orders"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset Tickets</span>
+            <span className="hidden md:inline">Clear Tickets</span>
           </button>
 
           <div className="text-xs text-zinc-400 flex items-center gap-1.5">
@@ -574,18 +574,6 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isSyncing ? 'animate-spin' : ''}`} />
                 <span>Fetch Past Orders From Cloud</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  resetToDefaultOrders();
-                  setOrders(getAllOrders());
-                }}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-zinc-950 font-black text-xs flex items-center gap-2 cursor-pointer shadow-lg transition-transform hover:scale-105"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>🍳 Restore Kitchen Tickets</span>
               </button>
             </div>
           </div>
