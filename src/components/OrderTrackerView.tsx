@@ -123,7 +123,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     };
     window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
 
-    // Active 2-second tracker radar to check for kitchen status progression
+    // Active 1.2-second tracker radar to check for kitchen status progression
     const trackerRadar = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
       const current = freshOrders.find(
@@ -136,7 +136,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         lastStatusRef.current = current.status;
         setOrder(current);
       }
-    }, 2000);
+    }, 1200);
 
     return () => {
       unsubscribe();
@@ -298,11 +298,25 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     }
   };
 
-  const currentStep = getStepProgress(order.status);
+  const targetStep = getStepProgress(order.status);
+  const [displayStep, setDisplayStep] = useState<number>(() => targetStep);
+
+  // Progressive Step Animation: When status advances quickly, animate each step smoothly so both steps don't jump simultaneously
+  useEffect(() => {
+    if (targetStep > displayStep) {
+      const stepTimer = setTimeout(() => {
+        setDisplayStep((prev) => Math.min(prev + 1, targetStep));
+        playCustomerUpdateChime();
+      }, 550);
+      return () => clearTimeout(stepTimer);
+    } else if (targetStep < displayStep) {
+      setDisplayStep(targetStep);
+    }
+  }, [targetStep, displayStep]);
 
   const getProgressWidth = () => {
     if (isDelivery) {
-      switch (currentStep) {
+      switch (displayStep) {
         case 1:
           return '10%';
         case 2:
@@ -317,7 +331,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           return '10%';
       }
     } else {
-      switch (currentStep) {
+      switch (displayStep) {
         case 1:
           return '15%';
         case 2:
@@ -495,8 +509,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               {/* Progress Node Points */}
               <div className="relative z-10 flex justify-between">
                 {steps.map((item) => {
-                  const isDone = currentStep >= item.step;
-                  const isCurrent = currentStep === item.step;
+                  const isDone = displayStep >= item.step;
+                  const isCurrent = displayStep === item.step;
 
                   return (
                     <div key={item.step} className="flex flex-col items-center">

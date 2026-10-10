@@ -880,6 +880,9 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     saveOrderToFirestore(newOrder).catch((e) => console.warn('Firestore order save error:', e));
   }
 
+  // Auto-sync to Google Sheets webhook if configured
+  sendOrderToGoogleSheets(newOrder).catch((e) => console.warn('Google Sheets auto-sync notice:', e));
+
   // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
   await publishCloudEvent({
     type: 'ORDER_CREATED',
@@ -1123,3 +1126,165 @@ export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOr
     }
   };
 }
+
+// -------------------------------------------------------------
+// GOOGLE SHEETS LIVE WEBHOOK & CSV DIRECTORY EXPORT (CRM)
+// -------------------------------------------------------------
+
+const GOOGLE_SHEETS_WEBHOOK_KEY = 'wrap_wing_google_sheets_webhook';
+
+export function getGoogleSheetsWebhookUrl(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return localStorage.getItem(GOOGLE_SHEETS_WEBHOOK_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setGoogleSheetsWebhookUrl(url: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (url.trim()) {
+      localStorage.setItem(GOOGLE_SHEETS_WEBHOOK_KEY, url.trim());
+    } else {
+      localStorage.removeItem(GOOGLE_SHEETS_WEBHOOK_KEY);
+    }
+  } catch {}
+}
+
+export async function sendOrderToGoogleSheets(order: LiveOrder): Promise<boolean> {
+  const webhookUrl = getGoogleSheetsWebhookUrl();
+  if (!webhookUrl || !order) return false;
+
+  try {
+    const cleanPhone = (order.customer?.phone || '').replace(/[^0-9]/g, '');
+    const smsPhone = cleanPhone.startsWith('0') ? `27${cleanPhone.slice(1)}` : cleanPhone;
+    const itemsSummary = (order.items || [])
+      .map((it) => {
+        let txt = `${it.quantity || 1}x ${it.menuItem?.name || 'Meal'}`;
+        if (it.customization?.flavour) txt += ` (${it.customization.flavour})`;
+        if (it.customization?.side) txt += ` + ${it.customization.side}`;
+        return txt;
+      })
+      .join(' ; ');
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId: order.orderId,
+        date: new Date().toLocaleDateString('en-ZA'),
+        time: order.createdAt,
+        customerName: order.customer?.customerName || 'Customer',
+        phone: smsPhone,
+        rawPhone: order.customer?.phone || '',
+        orderMode: order.orderMode === 'delivery' ? 'Home Delivery' : 'Store Collection',
+        address: order.customer?.address || '',
+        suburb: order.customer?.suburb || 'Pinetown',
+        complexOrUnit: order.customer?.complexOrUnit || '',
+        gateCode: order.customer?.gateCode || '',
+        notes: order.customer?.notes || '',
+        itemsSummary,
+        subtotal: order.subtotal || 0,
+        deliveryFee: order.deliveryFee || 0,
+        driverTip: order.tip || 0,
+        grandTotal: order.grandTotal || 0,
+        paymentMethod: (order.paymentMethod || 'cod').toUpperCase(),
+        paymentStatus: (order.paymentStatus || 'pending').toUpperCase(),
+        status: (order.status || 'received').toUpperCase(),
+      }),
+    });
+    return true;
+  } catch (err) {
+    console.warn('Google Sheets webhook post error:', err);
+    return false;
+  }
+}
+
+/**
+ * Generates and downloads a clean, professional CSV file containing all customer order
+ * details, formatted specifically for Google Sheets, Microsoft Excel, and Bulk SMS marketing platforms.
+ */
+export function exportOrdersToCsv(orders: LiveOrder[], filenamePrefix = 'wrap-and-wings-orders'): void {
+  const headers = [
+    'Order ID',
+    'Placed Time',
+    'Customer Name',
+    'Cell / WhatsApp (SMS Marketing Format)',
+    'Order Mode',
+    'Delivery Address',
+    'Suburb',
+    'Complex / Unit',
+    'Gate Code',
+    'Customer Notes',
+    'Items Summary',
+    'Subtotal (ZAR)',
+    'Delivery Fee (ZAR)',
+    'Driver Tip (ZAR)',
+    'Grand Total (ZAR)',
+    'Payment Method',
+    'Payment Status',
+    'Order Status',
+  ];
+
+  const escapeCsv = (str: string | number | undefined | null) => {
+    const val = String(str ?? '').replace(/"/g, '""');
+    return `"${val}"`;
+  };
+
+  const rows = orders.map((o) => {
+    const itemsSummary = (o.items || [])
+      .map((it) => {
+        let details = `${it.quantity || 1}x ${it.menuItem?.name || 'Meal'}`;
+        const parts: string[] = [];
+        if (it.customization?.flavour) parts.push(`Baste: ${it.customization.flavour}`);
+        if (it.customization?.side) parts.push(`Side: ${it.customization.side}`);
+        if (it.customization?.extras?.length) {
+          parts.push(`Extras: ${it.customization.extras.map((e) => e.name).join(', ')}`);
+        }
+        if (it.customization?.notes) parts.push(`Note: ${it.customization.notes}`);
+        if (parts.length > 0) details += ` (${parts.join(' | ')})`;
+        return details;
+      })
+      .join(' ; ');
+
+    const cleanPhone = (o.customer?.phone || '').replace(/[^0-9]/g, '');
+    const smsPhone = cleanPhone.startsWith('0') ? `27${cleanPhone.slice(1)}` : cleanPhone;
+
+    return [
+      escapeCsv(o.orderId),
+      escapeCsv(o.createdAt || 'N/A'),
+      escapeCsv(o.customer?.customerName || 'Customer'),
+      escapeCsv(smsPhone || o.customer?.phone || ''),
+      escapeCsv(o.orderMode === 'delivery' ? 'Home Delivery' : 'Store Collection'),
+      escapeCsv(o.customer?.address || ''),
+      escapeCsv(o.customer?.suburb || 'Pinetown'),
+      escapeCsv(o.customer?.complexOrUnit || ''),
+      escapeCsv(o.customer?.gateCode || ''),
+      escapeCsv(o.customer?.notes || ''),
+      escapeCsv(itemsSummary),
+      escapeCsv((o.subtotal || 0).toFixed(2)),
+      escapeCsv((o.deliveryFee || 0).toFixed(2)),
+      escapeCsv((o.tip || 0).toFixed(2)),
+      escapeCsv((o.grandTotal || 0).toFixed(2)),
+      escapeCsv((o.paymentMethod || 'cod').toUpperCase()),
+      escapeCsv((o.paymentStatus || 'pending').toUpperCase()),
+      escapeCsv((o.status || 'received').toUpperCase()),
+    ];
+  });
+
+  // UTF-8 BOM prefix ensures Google Sheets and Excel open all special characters cleanly
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  link.setAttribute('download', `${filenamePrefix}-${dateStr}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+

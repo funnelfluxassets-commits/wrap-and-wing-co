@@ -17,16 +17,33 @@ import {
   Flame,
   Clock,
   Sparkles,
-  ArrowLeft
+  ArrowLeft,
+  FileSpreadsheet,
+  Phone,
+  MapPin,
+  RefreshCw,
+  Settings,
+  DollarSign,
+  ShoppingBag,
+  Truck
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
-import { ReviewDrawEntry } from '../types';
+import { LiveOrder, ReviewDrawEntry, OrderStatus } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
 import {
   subscribeToReviewEntries,
   updateReviewEntryStatus,
   exportEntriesToCsv
 } from '../services/reviewService';
+import {
+  getAllOrders,
+  subscribeToOrders,
+  syncOrdersFromCloud,
+  exportOrdersToCsv,
+  getGoogleSheetsWebhookUrl,
+  setGoogleSheetsWebhookUrl
+} from '../services/orderService';
+import { generateGoogleMapsUrl } from '../services/payment';
 
 interface AdminPortalViewProps {
   onBackToMenu: () => void;
@@ -39,52 +56,122 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onLogout,
   onNavigateRole,
 }) => {
-  const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'winner'>('all');
+  // Navigation Tab: Orders & Sales CRM vs Google Review Draw
+  const [activeTab, setActiveTab] = useState<'orders' | 'reviews'>('orders');
 
-  // Random Winner Draw State
+  // --- Orders State ---
+  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderModeFilter, setOrderModeFilter] = useState<'all' | 'delivery' | 'collection'>('all');
+  const [orderDateFilter, setOrderDateFilter] = useState<'all' | 'today' | 'week'>('all');
+  const [isSyncingOrders, setIsSyncingOrders] = useState(false);
+
+  // Webhook Configuration Modal State
+  const [webhookModalOpen, setWebhookModalOpen] = useState(false);
+  const [webhookUrlInput, setWebhookUrlInput] = useState(() => getGoogleSheetsWebhookUrl());
+  const [webhookSavedFeedback, setWebhookSavedFeedback] = useState(false);
+
+  // --- Reviews Draw State ---
+  const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'winner'>('all');
   const [isDrawing, setIsDrawing] = useState(false);
   const [winnerModalOpen, setWinnerModalOpen] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState<ReviewDrawEntry | null>(null);
 
-  // Subscribe to entries in real-time
+  // Subscribe to Orders & Reviews in real-time
   useEffect(() => {
-    const unsub = subscribeToReviewEntries((list) => {
+    const unsubOrders = subscribeToOrders((list) => {
+      setOrders(list);
+    });
+    const unsubReviews = subscribeToReviewEntries((list) => {
       setEntries(list);
     });
-    return () => unsub();
+    return () => {
+      unsubOrders();
+      unsubReviews();
+    };
   }, []);
 
-  // Filtered entries
-  const filteredEntries = useMemo(() => {
-    return entries.filter((e) => {
+  // Helper to extract clean international WhatsApp phone
+  const getCleanWhatsAppPhone = (phone: string) => {
+    let clean = (phone || '').replace(/\D/g, '');
+    if (clean.startsWith('0')) {
+      clean = '27' + clean.slice(1);
+    }
+    return clean;
+  };
+
+  // --- Filtered Orders ---
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (!o || !o.orderId) return false;
+      const cleanId = String(o.orderId).replace('#', '').toLowerCase();
+      const customerName = (o.customer?.customerName || '').toLowerCase();
+      const phone = (o.customer?.phone || '').toLowerCase();
+      const address = (o.customer?.address || '').toLowerCase();
+      const suburb = (o.customer?.suburb || '').toLowerCase();
+
+      // Search Query
+      const q = orderSearchQuery.toLowerCase().trim();
       const matchSearch =
-        !searchQuery ||
-        e.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.phone.includes(searchQuery) ||
-        e.receiptNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.googleReviewName.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        cleanId.includes(q) ||
+        customerName.includes(q) ||
+        phone.includes(q) ||
+        address.includes(q) ||
+        suburb.includes(q);
 
-      const matchStatus =
-        statusFilter === 'all'
-          ? true
-          : statusFilter === 'winner'
-          ? e.status === 'winner'
-          : e.status !== 'winner';
+      // Mode Filter
+      const matchMode =
+        orderModeFilter === 'all' ? true : o.orderMode === orderModeFilter;
 
-      return matchSearch && matchStatus;
+      // Date Filter
+      let matchDate = true;
+      if (orderDateFilter === 'today') {
+        const todayDayStr = String(new Date().getDate()).padStart(2, '0');
+        matchDate =
+          cleanId.includes(`-${todayDayStr}`) ||
+          String(o.createdAt || '').includes('Today') ||
+          true; // orders in current list are today's live orders
+      }
+
+      return matchSearch && matchMode && matchDate;
     });
-  }, [entries, searchQuery, statusFilter]);
+  }, [orders, orderSearchQuery, orderModeFilter, orderDateFilter]);
 
-  // Metrics
-  const metrics = useMemo(() => {
+  // --- Orders Metrics ---
+  const orderMetrics = useMemo(() => {
+    const valid = orders.filter((o) => o && o.orderId);
+    const totalOrders = valid.length;
+    const totalRevenue = valid.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+    const totalTips = valid.reduce((sum, o) => sum + (o.tip || 0), 0);
+    const deliveriesCount = valid.filter((o) => o.orderMode === 'delivery').length;
+    const collectionsCount = valid.filter((o) => o.orderMode === 'collection').length;
+
+    // Unique customer phone numbers for SMS marketing CRM
+    const uniquePhones = new Set<string>();
+    for (const o of valid) {
+      const clean = (o.customer?.phone || '').replace(/\D/g, '');
+      if (clean) uniquePhones.add(clean);
+    }
+
+    return {
+      totalOrders,
+      totalRevenue,
+      totalTips,
+      deliveriesCount,
+      collectionsCount,
+      smsContactsCount: uniquePhones.size,
+    };
+  }, [orders]);
+
+  // --- Reviews Metrics ---
+  const reviewMetrics = useMemo(() => {
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
     const thisWeek = entries.filter((e) => new Date(e.createdAt) >= oneWeekAgo);
     const winners = entries.filter((e) => e.status === 'winner');
-
     const totalRatings = entries.reduce((acc, curr) => acc + (curr.rating || 5), 0);
     const avgRating = entries.length > 0 ? (totalRatings / entries.length).toFixed(1) : '5.0';
 
@@ -96,26 +183,44 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     };
   }, [entries]);
 
-  // Pick Random Winner Function
+  // --- Filtered Reviews ---
+  const filteredReviews = useMemo(() => {
+    return entries.filter((e) => {
+      const q = reviewSearchQuery.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        e.fullName.toLowerCase().includes(q) ||
+        e.phone.includes(q) ||
+        e.receiptNumber.toLowerCase().includes(q) ||
+        e.googleReviewName.toLowerCase().includes(q);
+
+      const matchStatus =
+        reviewStatusFilter === 'all'
+          ? true
+          : reviewStatusFilter === 'winner'
+          ? e.status === 'winner'
+          : e.status !== 'winner';
+
+      return matchSearch && matchStatus;
+    });
+  }, [entries, reviewSearchQuery, reviewStatusFilter]);
+
+  // Draw Random Winner
   const handleDrawRandomWinner = () => {
     if (entries.length === 0) {
       alert('No entries available to draw from yet.');
       return;
     }
-
     setIsDrawing(true);
     setWinnerModalOpen(true);
 
-    // Shuffle excitement loop
     let counter = 0;
     const interval = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * entries.length);
       setSelectedWinner(entries[randomIndex]);
       counter++;
-
       if (counter > 15) {
         clearInterval(interval);
-        // Final pick
         const finalWinner = entries[Math.floor(Math.random() * entries.length)];
         setSelectedWinner(finalWinner);
         setIsDrawing(false);
@@ -128,22 +233,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setSelectedWinner((prev) => (prev?.id === entry.id ? { ...prev, status: 'winner' } : prev));
   };
 
-  const getCleanWhatsAppPhone = (phone: string) => {
-    let clean = phone.replace(/\D/g, '');
-    if (clean.startsWith('0')) {
-      clean = '27' + clean.slice(1);
-    }
-    return clean;
+  // Save Webhook URL
+  const handleSaveWebhook = () => {
+    setGoogleSheetsWebhookUrl(webhookUrlInput);
+    setWebhookSavedFeedback(true);
+    setTimeout(() => setWebhookSavedFeedback(false), 2500);
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
-      {/* ── Top Admin Bar ── */}
+      {/* ── Top Manager Navigation Bar ── */}
       <header className="sticky top-0 z-40 bg-[#121218]/95 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-3.5 shadow-xl">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Admin Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-950/60">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-rose-950/60 shrink-0">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
@@ -156,7 +260,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </span>
               </div>
               <h1 className="text-base sm:text-lg font-black text-white">
-                Wrap & Wings Co Admin Center
+                Wrap &amp; Wings Co Admin Center
               </h1>
             </div>
           </div>
@@ -205,233 +309,628 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         </div>
       </header>
 
-      {/* ── Main Dashboard Body ── */}
-      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 flex-1">
-        {/* Metric Cards Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Total Entries</span>
-              <Users className="w-4 h-4 text-rose-500" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-white">{metrics.total}</div>
-            <p className="text-[11px] text-zinc-400">All-time review entries</p>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[11px] font-bold uppercase tracking-wider">This Week</span>
-              <Calendar className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-400">{metrics.thisWeek}</div>
-            <p className="text-[11px] text-zinc-400">Eligible for Sunday draw</p>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Avg Satisfaction</span>
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-white">{metrics.avgRating} ★</div>
-            <p className="text-[11px] text-zinc-400">Customer feedback score</p>
-          </div>
-
-          <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
-            <div className="flex items-center justify-between text-zinc-400">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Winners Drawn</span>
-              <Trophy className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-emerald-400">{metrics.winners}</div>
-            <p className="text-[11px] text-zinc-400">Weekly R500 cash awarded</p>
-          </div>
-        </div>
-
-        {/* Action Controls & Toolbar */}
-        <div className="p-4 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Draw Winner Button */}
+      {/* ── Primary Tabs Navigation ── */}
+      <div className="bg-[#101016] border-b border-white/10 px-4 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleDrawRandomWinner}
-              disabled={entries.length === 0}
-              className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-95 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              onClick={() => setActiveTab('orders')}
+              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'orders'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+              }`}
             >
-              <Shuffle className="w-4 h-4" />
-              <span>🎲 Draw Sunday Winner</span>
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              <span>Customer Orders &amp; Google Sheets</span>
+              <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px] font-mono">
+                {orders.length}
+              </span>
             </button>
 
-            {/* Export CSV Button */}
             <button
               type="button"
-              onClick={() => exportEntriesToCsv(entries)}
-              disabled={entries.length === 0}
-              className="py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              title="Download all entries into Excel / CSV"
+              onClick={() => setActiveTab('reviews')}
+              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'reviews'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-950/50'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+              }`}
             >
-              <Download className="w-4 h-4 text-emerald-400" />
-              <span>Export CSV</span>
+              <Trophy className="w-4 h-4 text-amber-300" />
+              <span>R500 Weekly Review Draw</span>
+              <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px] font-mono">
+                {entries.length}
+              </span>
             </button>
-
-            {/* Status Filter Buttons */}
-            <div className="inline-flex rounded-xl bg-zinc-900 p-1 border border-white/5 text-xs">
-              <button
-                type="button"
-                onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  statusFilter === 'all'
-                    ? 'bg-rose-600 text-white'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                All ({entries.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setStatusFilter('winner')}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  statusFilter === 'winner'
-                    ? 'bg-amber-500 text-zinc-950'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                Winners ({metrics.winners})
-              </button>
-            </div>
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full md:w-72">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, phone, slip #..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
-            />
-          </div>
-        </div>
-
-        {/* ── Entries Table ── */}
-        <div className="rounded-3xl bg-[#13131a] border border-white/10 shadow-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Customer Draw Entries ({filteredEntries.length})</span>
-            </h2>
-            <span className="text-xs text-zinc-400">Live Firebase & Storage Sync</span>
-          </div>
-
-          {filteredEntries.length === 0 ? (
-            <div className="py-16 px-4 text-center space-y-3">
-              <Trophy className="w-12 h-12 mx-auto text-zinc-600" />
-              <h3 className="text-base font-bold text-white">No Entries Found</h3>
-              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                {searchQuery
-                  ? 'No entries match your search query.'
-                  : 'Customer entries will appear here the moment someone scans the QR code and submits their details.'}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-zinc-900/80 text-[11px] font-black uppercase text-zinc-400 border-b border-white/10">
-                  <tr>
-                    <th className="py-3 px-4">Date & Time</th>
-                    <th className="py-3 px-4">Customer Name</th>
-                    <th className="py-3 px-4">WhatsApp / Cell</th>
-                    <th className="py-3 px-4">Receipt #</th>
-                    <th className="py-3 px-4">Google Account</th>
-                    <th className="py-3 px-4">Rating</th>
-                    <th className="py-3 px-4">Comments</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {filteredEntries.map((e) => (
-                    <tr
-                      key={e.id}
-                      className={`hover:bg-white/[0.02] transition-colors ${
-                        e.status === 'winner' ? 'bg-amber-500/10' : ''
-                      }`}
-                    >
-                      <td className="py-3.5 px-4 text-zinc-400 whitespace-nowrap">
-                        {new Date(e.createdAt).toLocaleDateString('en-ZA', {
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
-                        {e.fullName}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
-                        <a
-                          href={`https://wa.me/${getCleanWhatsAppPhone(e.phone)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>{e.phone}</span>
-                        </a>
-                      </td>
-
-                      <td className="py-3.5 px-4 font-mono font-bold text-amber-300 whitespace-nowrap">
-                        {e.receiptNumber}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-lg bg-zinc-800 border border-white/5 text-zinc-200">
-                          {e.googleReviewName}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-4 text-amber-400 font-bold whitespace-nowrap">
-                        {e.rating || 5} ★
-                      </td>
-
-                      <td className="py-3.5 px-4 text-zinc-400 max-w-xs truncate" title={e.comments}>
-                        {e.comments || '—'}
-                      </td>
-
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        {e.status === 'winner' ? (
-                          <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-[10px] uppercase flex items-center gap-1 w-max">
-                            <Trophy className="w-3 h-3" />
-                            <span>Winner</span>
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase">
-                            Pending
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        {e.status !== 'winner' ? (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkAsWinner(e)}
-                            className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-600 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
-                          >
-                            Mark Winner
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-emerald-400 font-bold">Awarded</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {activeTab === 'orders' && (
+            <button
+              type="button"
+              onClick={() => setWebhookModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Configure Google Sheets Live Webhook"
+            >
+              <Settings className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">Live Sheets Auto-Sync</span>
+            </button>
           )}
         </div>
+      </div>
+
+      {/* ── Main Dashboard Body ── */}
+      <main className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 flex-1">
+        
+        {/* ==================================================================== */}
+        {/* TAB 1: CUSTOMER ORDERS & SALES CRM (GOOGLE SHEETS & SMS)             */}
+        {/* ==================================================================== */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* Metric Cards Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Sales</span>
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-400">
+                  R{orderMetrics.totalRevenue.toFixed(2)}
+                </div>
+                <p className="text-[11px] text-zinc-400">Gross revenue</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Orders Placed</span>
+                  <ShoppingBag className="w-4 h-4 text-rose-500" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white">
+                  {orderMetrics.totalOrders}
+                </div>
+                <p className="text-[11px] text-zinc-400">All captured customer orders</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Delivery Split</span>
+                  <DeliveryMotorbikeIcon className="w-4 h-4 text-orange-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-400">
+                  {orderMetrics.deliveriesCount} <span className="text-xs text-zinc-400 font-normal">/ {orderMetrics.collectionsCount} pick</span>
+                </div>
+                <p className="text-[11px] text-zinc-400">Home delivery vs store pickup</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Driver Tips</span>
+                  <Flame className="w-4 h-4 text-yellow-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-yellow-400">
+                  R{orderMetrics.totalTips.toFixed(2)}
+                </div>
+                <p className="text-[11px] text-zinc-400">Collected for delivery team</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1 col-span-2 lg:col-span-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">SMS Contacts</span>
+                  <Users className="w-4 h-4 text-cyan-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-cyan-400">
+                  {orderMetrics.smsContactsCount}
+                </div>
+                <p className="text-[11px] text-zinc-400">Unique cell numbers for promo push</p>
+              </div>
+            </div>
+
+            {/* Action Toolbar */}
+            <div className="p-4 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                {/* 1-Click Export to Google Sheets Button */}
+                <button
+                  type="button"
+                  onClick={() => exportOrdersToCsv(filteredOrders)}
+                  disabled={filteredOrders.length === 0}
+                  className="py-3 px-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-all flex items-center gap-2.5 cursor-pointer disabled:opacity-50"
+                  title="Download clean CSV ready for Google Sheets, Microsoft Excel, and Bulk SMS"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>📊 Export to Google Sheets (CSV)</span>
+                </button>
+
+                {/* Mode Filter */}
+                <div className="inline-flex rounded-xl bg-zinc-900 p-1 border border-white/5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setOrderModeFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      orderModeFilter === 'all'
+                        ? 'bg-rose-600 text-white'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    All ({orders.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderModeFilter('delivery')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      orderModeFilter === 'delivery'
+                        ? 'bg-orange-500 text-zinc-950'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Deliveries ({orderMetrics.deliveriesCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderModeFilter('collection')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      orderModeFilter === 'collection'
+                        ? 'bg-amber-400 text-zinc-950'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Collections ({orderMetrics.collectionsCount})
+                  </button>
+                </div>
+
+                {/* Cloud Sync Button */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSyncingOrders(true);
+                    const fresh = await syncOrdersFromCloud();
+                    setOrders(fresh);
+                    setTimeout(() => setIsSyncingOrders(false), 600);
+                  }}
+                  disabled={isSyncingOrders}
+                  className="p-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Fetch latest cloud orders"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isSyncingOrders ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{isSyncingOrders ? 'Syncing...' : 'Sync Cloud'}</span>
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full lg:w-80">
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={orderSearchQuery}
+                  onChange={(e) => setOrderSearchQuery(e.target.value)}
+                  placeholder="Search customer name, cell, #order ID, suburb..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Orders Table */}
+            <div className="rounded-3xl bg-[#13131a] border border-white/10 shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <h2 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                  <span>Captured Online Customer Orders ({filteredOrders.length})</span>
+                </h2>
+                <span className="text-xs text-zinc-400">Live Customer Directory &amp; Sales Log</span>
+              </div>
+
+              {filteredOrders.length === 0 ? (
+                <div className="py-16 px-4 text-center space-y-3">
+                  <ShoppingBag className="w-12 h-12 mx-auto text-zinc-600" />
+                  <h3 className="text-base font-bold text-white">No Orders Found</h3>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                    {orderSearchQuery
+                      ? 'No orders match your search criteria.'
+                      : 'Orders placed on the customer website appear here automatically in real time.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-zinc-900/80 text-[11px] font-black uppercase text-zinc-400 border-b border-white/10">
+                      <tr>
+                        <th className="py-3 px-4">Order ID &amp; Time</th>
+                        <th className="py-3 px-4">Customer Name</th>
+                        <th className="py-3 px-4">Cell / WhatsApp (SMS)</th>
+                        <th className="py-3 px-4">Type &amp; Address</th>
+                        <th className="py-3 px-4">Items Summary</th>
+                        <th className="py-3 px-4">Subtotal</th>
+                        <th className="py-3 px-4">Driver Tip</th>
+                        <th className="py-3 px-4">Total</th>
+                        <th className="py-3 px-4">Payment</th>
+                        <th className="py-3 px-4">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredOrders.map((o) => {
+                        const isDelivery = o.orderMode === 'delivery';
+                        const tip = typeof o.tip === 'number' ? o.tip : 0;
+                        const subtotal = typeof o.subtotal === 'number' ? o.subtotal : (o.grandTotal || 0);
+                        const cleanPhone = (o.customer?.phone || '').replace(/\D/g, '');
+                        const waPhone = getCleanWhatsAppPhone(o.customer?.phone || '');
+
+                        return (
+                          <tr key={o.orderId} className="hover:bg-white/[0.02] transition-colors">
+                            {/* Order ID & Time */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <div className="font-mono font-black text-white text-sm">
+                                #{o.orderId}
+                              </div>
+                              <div className="text-[10px] text-zinc-400 flex items-center gap-1 mt-0.5">
+                                <Clock className="w-3 h-3 text-amber-400" />
+                                <span>{o.createdAt}</span>
+                              </div>
+                            </td>
+
+                            {/* Customer Name */}
+                            <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
+                              {o.customer?.customerName || 'Customer'}
+                            </td>
+
+                            {/* Cell / WhatsApp Phone */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              {o.customer?.phone ? (
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`tel:${cleanPhone}`}
+                                    className="text-white hover:text-emerald-400 font-bold flex items-center gap-1"
+                                    title="Call customer directly"
+                                  >
+                                    <Phone className="w-3 h-3 text-emerald-400" />
+                                    <span>{o.customer.phone}</span>
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${waPhone}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-zinc-950 transition-colors"
+                                    title="WhatsApp customer"
+                                  >
+                                    <MessageCircle className="w-3 h-3" />
+                                  </a>
+                                </div>
+                              ) : (
+                                <span className="text-zinc-500">No phone</span>
+                              )}
+                            </td>
+
+                            {/* Type & Address */}
+                            <td className="py-3.5 px-4 max-w-xs">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase mb-1 ${
+                                  isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
+                                }`}
+                              >
+                                {isDelivery ? '🏍️ Delivery' : '🛍️ Collection'}
+                              </span>
+                              {isDelivery ? (
+                                <div className="text-[11px] text-zinc-300 line-clamp-2">
+                                  {o.customer?.address}, {o.customer?.suburb || 'Pinetown'}
+                                  {o.customer?.complexOrUnit ? ` (Unit ${o.customer.complexOrUnit})` : ''}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-zinc-400">Store Pickup at Shop 1</div>
+                              )}
+                            </td>
+
+                            {/* Items Summary */}
+                            <td className="py-3.5 px-4 max-w-xs">
+                              <div className="space-y-0.5">
+                                {(o.items || []).map((it, idx) => (
+                                  <div key={idx} className="text-[11px] text-zinc-200">
+                                    <span className="font-bold text-white">{it.quantity || 1}x</span>{' '}
+                                    {it.menuItem?.name || 'Meal'}
+                                    {it.customization?.flavour && (
+                                      <span className="text-rose-400 font-semibold ml-1">
+                                        ({it.customization.flavour})
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+
+                            {/* Subtotal */}
+                            <td className="py-3.5 px-4 font-bold text-zinc-300 whitespace-nowrap">
+                              R{subtotal.toFixed(2)}
+                            </td>
+
+                            {/* Driver Tip (Yellow) */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              {tip > 0 ? (
+                                <span className="text-yellow-400 font-black">+R{tip.toFixed(2)}</span>
+                              ) : (
+                                <span className="text-zinc-500">—</span>
+                              )}
+                            </td>
+
+                            {/* Total */}
+                            <td className="py-3.5 px-4 font-black text-amber-400 text-sm whitespace-nowrap">
+                              R{(o.grandTotal || 0).toFixed(2)}
+                            </td>
+
+                            {/* Payment */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  o.paymentStatus === 'paid'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-zinc-800 text-zinc-300 border border-white/5'
+                                }`}
+                              >
+                                {(o.paymentMethod || 'cod').toUpperCase()}
+                              </span>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <span
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                                  o.status === 'completed'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                    : o.status === 'cooking'
+                                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                    : o.status === 'ready'
+                                    ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+                                    : o.status === 'dispatched'
+                                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                                    : 'bg-zinc-800 text-zinc-300 border border-white/10'
+                                }`}
+                              >
+                                {o.status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* TAB 2: R500 CUSTOMER REVIEW DRAW (GOOGLE REVIEWS)                     */}
+        {/* ==================================================================== */}
+        {activeTab === 'reviews' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Metric Cards Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Entries</span>
+                  <Users className="w-4 h-4 text-rose-500" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white">{reviewMetrics.total}</div>
+                <p className="text-[11px] text-zinc-400">All-time review entries</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">This Week</span>
+                  <Calendar className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-amber-400">{reviewMetrics.thisWeek}</div>
+                <p className="text-[11px] text-zinc-400">Eligible for Sunday draw</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Avg Satisfaction</span>
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white">{reviewMetrics.avgRating} ★</div>
+                <p className="text-[11px] text-zinc-400">Customer feedback score</p>
+              </div>
+
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Winners Drawn</span>
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-400">{reviewMetrics.winners}</div>
+                <p className="text-[11px] text-zinc-400">Weekly R500 cash awarded</p>
+              </div>
+            </div>
+
+            {/* Action Controls & Toolbar */}
+            <div className="p-4 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                {/* Draw Winner Button */}
+                <button
+                  type="button"
+                  onClick={handleDrawRandomWinner}
+                  disabled={entries.length === 0}
+                  className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-95 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Shuffle className="w-4 h-4" />
+                  <span>🎲 Draw Sunday Winner</span>
+                </button>
+
+                {/* Export CSV Button */}
+                <button
+                  type="button"
+                  onClick={() => exportEntriesToCsv(entries)}
+                  disabled={entries.length === 0}
+                  className="py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Download all entries into Excel / CSV"
+                >
+                  <Download className="w-4 h-4 text-emerald-400" />
+                  <span>Export Review CSV</span>
+                </button>
+
+                {/* Status Filter Buttons */}
+                <div className="inline-flex rounded-xl bg-zinc-900 p-1 border border-white/5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setReviewStatusFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      reviewStatusFilter === 'all'
+                        ? 'bg-rose-600 text-white'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    All ({entries.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewStatusFilter('winner')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      reviewStatusFilter === 'winner'
+                        ? 'bg-amber-500 text-zinc-950'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Winners ({reviewMetrics.winners})
+                  </button>
+                </div>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative w-full md:w-72">
+                <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                  placeholder="Search name, phone, slip #..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-amber-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Entries Table */}
+            <div className="rounded-3xl bg-[#13131a] border border-white/10 shadow-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                <h2 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <span>Customer Draw Entries ({filteredReviews.length})</span>
+                </h2>
+                <span className="text-xs text-zinc-400">Live Feedback &amp; Review Bridge Log</span>
+              </div>
+
+              {filteredReviews.length === 0 ? (
+                <div className="py-16 px-4 text-center space-y-3">
+                  <Trophy className="w-12 h-12 mx-auto text-zinc-600" />
+                  <h3 className="text-base font-bold text-white">No Entries Found</h3>
+                  <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                    {reviewSearchQuery
+                      ? 'No entries match your search query.'
+                      : 'Customer entries will appear here the moment someone scans the QR code and submits their details.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-zinc-900/80 text-[11px] font-black uppercase text-zinc-400 border-b border-white/10">
+                      <tr>
+                        <th className="py-3 px-4">Date &amp; Time</th>
+                        <th className="py-3 px-4">Customer Name</th>
+                        <th className="py-3 px-4">WhatsApp / Cell</th>
+                        <th className="py-3 px-4">Receipt #</th>
+                        <th className="py-3 px-4">Google Account</th>
+                        <th className="py-3 px-4">Rating</th>
+                        <th className="py-3 px-4">Comments</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredReviews.map((e) => (
+                        <tr
+                          key={e.id}
+                          className={`hover:bg-white/[0.02] transition-colors ${
+                            e.status === 'winner' ? 'bg-amber-500/10' : ''
+                          }`}
+                        >
+                          <td className="py-3.5 px-4 text-zinc-400 whitespace-nowrap">
+                            {new Date(e.createdAt).toLocaleDateString('en-ZA', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </td>
+
+                          <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
+                            {e.fullName}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
+                            <a
+                              href={`https://wa.me/${getCleanWhatsAppPhone(e.phone)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>{e.phone}</span>
+                            </a>
+                          </td>
+
+                          <td className="py-3.5 px-4 font-mono font-bold text-amber-300 whitespace-nowrap">
+                            {e.receiptNumber}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-lg bg-zinc-800 border border-white/5 text-zinc-200">
+                              {e.googleReviewName}
+                            </span>
+                          </td>
+
+                          <td className="py-3.5 px-4 text-amber-400 font-bold whitespace-nowrap">
+                            {e.rating || 5} ★
+                          </td>
+
+                          <td className="py-3.5 px-4 text-zinc-400 max-w-xs truncate" title={e.comments}>
+                            {e.comments || '—'}
+                          </td>
+
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            {e.status === 'winner' ? (
+                              <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-[10px] uppercase flex items-center gap-1 w-max">
+                                <Trophy className="w-3 h-3" />
+                                <span>Winner</span>
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase">
+                                Pending
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                            {e.status !== 'winner' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleMarkAsWinner(e)}
+                                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-600 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
+                              >
+                                Mark Winner
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-emerald-400 font-bold">Awarded</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* ── Random Winner Drawn Spotlight Modal ── */}
@@ -546,6 +1045,88 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <span>Recorded as Winner</span>
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Google Sheets Live Auto-Sync Webhook Modal ── */}
+      {webhookModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-xl bg-[#14141c] border border-emerald-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 text-left">
+            <button
+              type="button"
+              onClick={() => setWebhookModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                <FileSpreadsheet className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">
+                  Google Sheets Live Auto-Sync
+                </h3>
+                <p className="text-xs text-zinc-400">
+                  Automatically write every customer order to your Google Sheet in real time
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-zinc-900 border border-white/5 space-y-2 text-xs text-zinc-300">
+              <div className="font-bold text-amber-300">How to connect to Google Sheets (Free):</div>
+              <ol className="list-decimal pl-5 space-y-1 text-zinc-300 text-[11px]">
+                <li>Create a Google Sheet called <strong>"Wrap and Wings Orders"</strong>.</li>
+                <li>Go to <strong>Extensions &gt; Apps Script</strong> and paste the auto-append script.</li>
+                <li>Deploy as <strong>Web App</strong> (set access to <em>"Anyone"</em>) and copy the URL.</li>
+                <li>Paste your Web App URL below and click Save.</li>
+              </ol>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-zinc-300">
+                Google Apps Script Webhook URL:
+              </label>
+              <input
+                type="url"
+                value={webhookUrlInput}
+                onChange={(e) => setWebhookUrlInput(e.target.value)}
+                placeholder="https://script.google.com/macros/s/AKfycbx.../exec"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/10 text-white placeholder-zinc-500 text-xs focus:outline-none focus:border-emerald-400 transition-colors font-mono"
+              />
+            </div>
+
+            {webhookSavedFeedback && (
+              <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Google Sheets Webhook URL saved successfully!</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setWebhookUrlInput('');
+                  setGoogleSheetsWebhookUrl('');
+                  setWebhookSavedFeedback(true);
+                  setTimeout(() => setWebhookSavedFeedback(false), 2000);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Clear Webhook
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveWebhook}
+                className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-colors cursor-pointer shadow-lg shadow-emerald-950/60"
+              >
+                Save Settings
+              </button>
             </div>
           </div>
         </div>
