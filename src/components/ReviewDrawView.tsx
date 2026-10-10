@@ -107,11 +107,11 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
         <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black/85 border border-white/10 shadow-2xl text-center space-y-2.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black uppercase tracking-wider mb-1">
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Weekly R500 Cash Draw</span>
+            <span>Weekly Customer Meal Draw</span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
-            WIN R500 CASH
+            WIN A WRAP MEAL
           </h1>
 
           <div className="text-xs sm:text-sm text-zinc-200 max-w-lg mx-auto font-medium space-y-1">
@@ -119,7 +119,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               Thank you for supporting our brand-new local spot!
             </p>
             <p className="text-zinc-300">
-              Complete this quick 30-second form to enter our weekly draw to win R500 in cash. Winners are drawn randomly every Sunday evening!
+              Complete this quick 30-second form to enter our weekly draw to win this week's featured prize: a <strong className="text-white">Full Chicken Shwarma Wrap Meal + Crispy Side</strong>! Winners drawn randomly every Sunday evening!
             </p>
           </div>
         </div>
@@ -130,13 +130,43 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
         {!isSubmitted ? (
           /* ── STEP 1: The Digital Entry Form ── */
           <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-8 animate-fadeIn">
+            
+            {/* Featured Weekly Prize Spotlight Card with Wrap Meal Image */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shrink-0 shadow-lg">
+                <img
+                  src="/images/menu/wrap-and-side-1.webp"
+                  alt="This Week's Featured Prize: Chicken Shwarma Wrap Meal + Side"
+                  className="w-full h-full object-cover"
+                />
+                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-[9px] uppercase tracking-wider shadow">
+                  This Week
+                </span>
+              </div>
+              <div className="text-center sm:text-left space-y-1 flex-1">
+                <div className="inline-flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Featured Weekly Prize</span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-white leading-tight">
+                  Flame-Grilled Chicken Shwarma Wrap + Crispy Side
+                </h3>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Warm toasted tortilla wrapped with succulent flame-grilled chicken strips, fresh crisp salad, signature basting, and your choice of hot golden chips or spicy rice!
+                </p>
+                <div className="text-[11px] text-amber-300/90 font-medium pt-0.5">
+                  🎁 Prizes change weekly — order &amp; enter every week to win!
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2 text-center sm:text-left border-b border-white/10 pb-6">
               <div className="flex items-center justify-center sm:justify-start gap-2.5 text-rose-400 font-black text-xs uppercase tracking-wider">
                 <Gift className="w-4 h-4 text-rose-500" />
                 <span>Step 1 of 2: Entry Details</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black text-white">
-                Enter Your Details & Order Receipt
+                Enter Your Details &amp; Order Receipt
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300">
                 Entries are open to all customers who ordered this week. Please ensure you complete the final step after submitting to officially lock in your entry on Google!
@@ -174,7 +204,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                     <span>WhatsApp / Cellphone Number</span>
                     <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[11px] text-amber-400 font-bold">For eWallet or Cash Prize</span>
+                  <span className="text-[11px] text-amber-400 font-bold">To Receive Digital Meal Voucher</span>
                 </div>
                 <input
                   type="tel"
@@ -311,7 +341,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 font-medium leading-relaxed">
-                To officially publish your review and lock in your entry for the <strong className="text-amber-400">R500 cash draw</strong>, please click the button below to open our official Google Business Page and post your feedback:
+                To officially publish your review and lock in your entry for the <strong className="text-amber-400">Weekly Wrap Meal Draw</strong>, please click the button below to open our official Google Business Page and post your feedback:
               </p>
             </div>
 
@@ -370,7 +400,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <ul className="space-y-1.5 pl-6 list-disc text-zinc-300">
                 <li>Entries close every Sunday at midnight.</li>
                 <li>One lucky winner is drawn at random every Sunday night.</li>
-                <li>The winner is contacted directly via WhatsApp and announced on our social pages Monday morning!</li>
+                <li>The winner is contacted directly via WhatsApp with their digital voucher to redeem their free Wrap Meal combo!</li>
               </ul>
             </div>
 

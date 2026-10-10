@@ -339,7 +339,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               }`}
             >
               <Trophy className="w-4 h-4 text-amber-300" />
-              <span>R500 Weekly Review Draw</span>
+              <span>Weekly Meal Review Draw</span>
               <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px] font-mono">
                 {entries.length}
               </span>
@@ -738,7 +738,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <Trophy className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-emerald-400">{reviewMetrics.winners}</div>
-                <p className="text-[11px] text-zinc-400">Weekly R500 cash awarded</p>
+                <p className="text-[11px] text-zinc-400">Weekly meal combos awarded</p>
               </div>
             </div>
 
@@ -754,7 +754,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       In-Store Till Flyers &amp; Takeaway Bag Inserts
                     </div>
                     <h3 className="text-base sm:text-lg font-black text-white">
-                      R500 Weekly Draw QR Code &amp; Campaign URL
+                      Weekly Wrap Meal Draw QR Code &amp; Campaign URL
                     </h3>
                   </div>
                 </div>
@@ -772,7 +772,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                   <a
                     href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
-                    download="wrap-and-wings-r500-qr-code.png"
+                    download="wrap-and-wings-meal-qr-code.png"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="py-2 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
@@ -788,7 +788,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col items-center justify-center text-center space-y-2">
                   <img
                     src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
-                    alt="Scan for R500 Draw"
+                    alt="Scan for Weekly Meal Draw"
                     className="w-32 h-32 rounded-xl bg-white p-2 shadow-inner"
                   />
                   <div className="text-[11px] font-mono text-amber-300 font-bold break-all">
@@ -806,7 +806,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          "WIN R500 CASH THIS WEEK! 💸\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.funnelfluxassets.com/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win R500 cash in our weekly Sunday draw!"
+                          "WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.funnelfluxassets.com/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!"
                         );
                         alert("Flyer text copied to clipboard!");
                       }}
@@ -816,11 +816,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </button>
                   </div>
                   <div className="p-3 rounded-xl bg-zinc-900 border border-white/5 font-mono text-[11px] text-zinc-300 leading-relaxed">
-                    <p className="font-bold text-white">WIN R500 CASH THIS WEEK! 💸</p>
+                    <p className="font-bold text-white">WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥</p>
                     <p>Loved your meal? Want to help our brand new local spot grow?</p>
                     <p>1. Scan the QR code or visit <strong>wrapandwings.funnelfluxassets.com/#review</strong></p>
                     <p>2. Enter your receipt slip number &amp; leave a quick review on Google</p>
-                    <p>3. Winner drawn randomly every Sunday evening &amp; announced on our page!</p>
+                    <p>3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!</p>
                   </div>
                 </div>
               </div>
@@ -1095,7 +1095,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </a>
                 </li>
                 <li>Match Receipt Number <strong>"{selectedWinner.receiptNumber}"</strong> in your POS.</li>
-                <li>Notify customer via WhatsApp to send R500 eWallet or arrange cash pickup.</li>
+                <li>Notify customer via WhatsApp with digital voucher code for their free Wrap Meal combo!</li>
               </ol>
             </div>
 
@@ -1105,7 +1105,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 href={`https://wa.me/${getCleanWhatsAppPhone(
                   selectedWinner.phone
                 )}?text=${encodeURIComponent(
-                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly R500 Cash Draw with receipt #${selectedWinner.receiptNumber}. Please reply to confirm your details!`
+                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly Customer Meal Draw (Free Chicken Shwarma Wrap Meal + Side) with receipt #${selectedWinner.receiptNumber}. Please reply to claim your meal voucher code!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
