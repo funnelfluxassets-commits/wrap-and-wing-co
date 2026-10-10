@@ -1,68 +1,42 @@
 import React from 'react';
-import { ArrowLeft, Users, ShieldCheck, Heart, Sparkles, ChefHat, Flame, Clock, MapPin, ChevronRight, Phone } from 'lucide-react';
+import { Users, ShieldCheck, Heart, Sparkles, ChefHat, Flame, Clock, MapPin, Phone } from 'lucide-react';
 import { PageView } from '../types';
 import { SOCIAL_LINKS } from '../data/stores';
 
 interface TeamViewProps {
-  onNavigate: (view: PageView) => void;
-  onOpenStoreModal: () => void;
+  onNavigate?: (view: PageView) => void;
+  onOpenStoreModal?: () => void;
 }
 
-export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal }) => {
+export const TeamView: React.FC<TeamViewProps> = () => {
   return (
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col selection:bg-rose-500 selection:text-white">
       
-      {/* ── Breadcrumb & Top Bar ────────────────────────────────────────────── */}
-      <div className="bg-[#121217] border-b border-white/10 sticky top-[104px] sm:top-[108px] z-30 backdrop-blur-md bg-opacity-95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => onNavigate('menu')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>Back to Full Menu</span>
-          </button>
+      {/* ── Header Design sitting directly underneath main navbar with African Art Design & Black Center Block ── */}
+      <section className="relative overflow-hidden border-b border-white/10 bg-black min-h-[250px] sm:min-h-[290px] md:min-h-[330px] flex items-center justify-center py-10 sm:py-14">
+        {/* Full-width single background image using African Art Design */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: "url('/images/brand/African-Art-Design.webp')",
+          }}
+          aria-hidden="true"
+        />
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onNavigate('story')}
-              className="text-xs font-bold text-zinc-400 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>Our Story</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('menu')}
-              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
-            >
-              Order Online
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Hero Banner ────────────────────────────────────────────────────── */}
-      <section className="relative py-16 sm:py-24 bg-gradient-to-b from-amber-950/20 via-[#0d0d11] to-[#0d0d11] border-b border-white/10 overflow-hidden">
-        {/* Glow circles */}
-        <div className="absolute top-10 right-1/4 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-10 left-1/4 w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-extrabold uppercase tracking-widest">
-            <Users className="w-3.5 h-3.5" />
-            <span>The Family Behind The Grill</span>
-          </div>
-          
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight">
-            Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-500 to-red-500">Wrap & Wings Co. Team</span>
+        {/* Black block behind text matching reference layout (85% opacity so banner is slightly visible) */}
+        <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black/85 border border-white/10 shadow-2xl text-center space-y-2.5">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
+            OUR TEAM
           </h1>
-          
-          <p className="text-base sm:text-xl text-zinc-300 max-w-2xl mx-auto font-medium leading-relaxed">
-            From the fiery precision of our grill masters to the genuine smiles at the order counter — our team is the heartbeat of every bold meal we serve.
-          </p>
+
+          <div className="text-xs sm:text-sm text-zinc-200 max-w-lg mx-auto font-medium space-y-1">
+            <p className="text-amber-400 font-bold">
+              The Family Behind The Grill
+            </p>
+            <p className="text-zinc-300">
+              From the fiery precision of our grill masters to the genuine smiles at the order counter — our team is the heartbeat of every bold meal we serve.
+            </p>
+          </div>
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Phone, Clock, Check, Menu, X } from 'lucide-react';
+import { ShoppingBag, Phone, Clock, Check, Menu, X, BookOpen, Users, Mail, Package } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
@@ -7,7 +7,7 @@ import { PageView } from '../types';
 import { subscribeToOrders, getCurrentOrderId } from '../services/orderService';
 
 export interface NavbarProps {
-  onOpenStoreModal: () => void;
+  onOpenStoreModal?: () => void;
   currentView: PageView;
   onNavigate: (view: PageView) => void;
 }
@@ -147,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
         {/* (3 & 4) Sub Header Box: 4 Inline Navigation Buttons directly under the main header */}
         {mobileMenuOpen && (
           <div className="bg-[#18181f]/98 border-t border-b border-white/10 px-2 sm:px-6 py-2 sm:py-2.5 shadow-2xl backdrop-blur-md transition-all">
-            <div className="max-w-7xl mx-auto grid grid-cols-4 gap-1.5 sm:gap-3 text-center">
+            <div className="max-w-7xl mx-auto grid grid-cols-4 gap-1.5 sm:gap-2.5 text-center">
               
               {/* Button 1: Our Story */}
               <button
@@ -156,14 +156,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   onNavigate('story');
                   setMobileMenuOpen(false);
                 }}
-                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                className={`py-1.5 px-1 sm:px-2 md:py-2 md:px-3 rounded-lg md:rounded-xl border font-bold transition-all cursor-pointer flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
                   currentView === 'story'
                     ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
                     : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                 }`}
               >
-                <span className="text-sm sm:text-base mb-0.5">📖</span>
-                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Our Story</span>
+                <BookOpen className="w-3.5 h-3.5 md:w-4 md:h-4 text-white shrink-0" />
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate">Our Story</span>
               </button>
 
               {/* Button 2: Our Team */}
@@ -173,14 +173,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   onNavigate('team');
                   setMobileMenuOpen(false);
                 }}
-                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                className={`py-1.5 px-1 sm:px-2 md:py-2 md:px-3 rounded-lg md:rounded-xl border font-bold transition-all cursor-pointer flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
                   currentView === 'team'
                     ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
                     : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                 }`}
               >
-                <span className="text-sm sm:text-base mb-0.5">👥</span>
-                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Our Team</span>
+                <Users className="w-3.5 h-3.5 md:w-4 md:h-4 text-white shrink-0" />
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate">Our Team</span>
               </button>
 
               {/* Button 3: Get In Touch */}
@@ -190,14 +190,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   onNavigate('contact');
                   setMobileMenuOpen(false);
                 }}
-                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                className={`py-1.5 px-1 sm:px-2 md:py-2 md:px-3 rounded-lg md:rounded-xl border font-bold transition-all cursor-pointer flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 ${
                   currentView === 'contact'
                     ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
                     : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                 }`}
               >
-                <span className="text-sm sm:text-base mb-0.5">✉️</span>
-                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Get In Touch</span>
+                <Mail className="w-3.5 h-3.5 md:w-4 md:h-4 text-white shrink-0" />
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate">Get In Touch</span>
               </button>
 
               {/* Button 4: Track Order */}
@@ -207,25 +207,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   onNavigate('track');
                   setMobileMenuOpen(false);
                 }}
-                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center relative ${
+                className={`py-1.5 px-1 sm:px-2 md:py-2 md:px-3 rounded-lg md:rounded-xl border font-bold transition-all cursor-pointer flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 relative ${
                   currentView === 'track'
                     ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
                     : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
                 }`}
               >
-                <span className="text-sm sm:text-base mb-0.5 flex items-center justify-center gap-1">
-                  <span>📦</span>
+                <div className="relative shrink-0 flex items-center">
+                  <Package className="w-3.5 h-3.5 md:w-4 md:h-4 text-white shrink-0" />
                   {activeOrderId && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
-                </span>
-                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Track Order</span>
+                </div>
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate">Track Order</span>
               </button>
 
             </div>
           </div>
         )}
 
-        {/* (5) Subheader Bar: Collect / Delivery toggle only (location button removed) - Hidden on Contact page */}
-        {currentView !== 'contact' && (
+        {/* (5) Subheader Bar: Collect / Delivery toggle only - Hidden on Contact, Story, Team pages */}
+        {!['contact', 'story', 'team'].includes(currentView) && (
           <div className="px-4 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5">
             <div className="max-w-7xl mx-auto flex items-center justify-start text-xs">
               <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
