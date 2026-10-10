@@ -863,15 +863,19 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     </span>
                   </div>
 
-                  {/* Action Buttons (1-Tap Clear 4-Step Progression) */}
-                  <div className="p-3 bg-zinc-950/80 border-t border-orange-500/20 grid grid-cols-1 gap-2">
+                  {/* Action Buttons (Standardized Color: Yellow for Collection, Orange for Delivery) */}
+                  <div className="p-3 bg-zinc-950/80 border-t border-white/10 grid grid-cols-1 gap-2">
                     {order.status === 'received' && (
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'cooking')}
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-red-600 via-rose-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-red-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
+                          isDelivery
+                            ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
+                            : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
+                        }`}
                       >
-                        <Flame className="w-4 h-4 fill-white" />
+                        <Flame className={`w-4 h-4 ${isDelivery ? 'fill-white text-white' : 'fill-zinc-950 text-zinc-950'}`} />
                         <span>1. ACCEPT & START GRILLING</span>
                       </button>
                     )}
@@ -880,9 +884,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'ready')}
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
+                          isDelivery
+                            ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
+                            : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
+                        }`}
                       >
-                        <ShoppingBag className="w-4 h-4" />
+                        <ShoppingBag className={`w-4 h-4 ${isDelivery ? 'text-white' : 'text-zinc-950'}`} />
                         <span>2. FOOD READY & PACKED</span>
                       </button>
                     )}
@@ -893,16 +901,20 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         onClick={() =>
                           handleStatusChange(order.orderId, isDelivery ? 'dispatched' : 'completed')
                         }
-                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-orange-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
+                          isDelivery
+                            ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
+                            : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
+                        }`}
                       >
                         {isDelivery ? (
                           <>
-                            <Truck className="w-4 h-4" />
+                            <Truck className="w-4 h-4 text-white" />
                             <span>3. HAND TO DRIVER (OUT FOR DELIVERY)</span>
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className="w-4 h-4 text-zinc-950" />
                             <span>3. HAND OVER TO CUSTOMER (COMPLETE)</span>
                           </>
                         )}
@@ -913,9 +925,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleStatusChange(order.orderId, 'completed')}
-                        className="w-full py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-amber-400 font-black text-xs sm:text-sm tracking-wide border border-amber-500/40 shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                        className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
+                          isDelivery
+                            ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
+                            : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
+                        }`}
                       >
-                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <CheckCircle className={`w-4 h-4 ${isDelivery ? 'text-white' : 'text-zinc-950'}`} />
                         <span>4. CONFIRM DELIVERED & COMPLETE</span>
                       </button>
                     )}
