@@ -12,140 +12,22 @@ const STATUS_RANK: Record<string, number> = {
   cancelled: 6,
 };
 
-const DEFAULT_INITIAL_ORDERS = [
-  {
-    orderId: `D-${todayDay}01`,
-    orderMode: 'delivery',
-    status: 'received',
-    items: [
-      {
-        quantity: 1,
-        menuItem: { id: 'pedros-full-chicken', name: 'Flame-Grilled Full Chicken', price: 189.9 },
-        customization: { flavour: 'hot', side: 'Chips (Large)', extras: [{ name: 'Extra Prego Roll', price: 15 }] },
-        itemTotal: 204.9,
-      },
-      {
-        quantity: 2,
-        menuItem: { id: 'pedros-classic-wrap', name: 'Classic Grilled Chicken Wrap', price: 69.9 },
-        customization: { flavour: 'lemony', side: 'Coleslaw' },
-        itemTotal: 139.8,
-      },
-    ],
-    subtotal: 344.7,
-    deliveryFee: 25.0,
-    grandTotal: 369.7,
-    customer: {
-      customerName: 'Sipho Khumalo',
-      phone: '082 555 4921',
-      address: '14 Kings Road',
-      suburb: 'Pinetown',
-      gateCode: '#4820',
-      notes: 'Please ring bell at gate',
-    },
-    store: {
-      id: 'pinetown-uniland',
-      name: 'Pinetown Flagship',
-      mall: 'Shop 1, Uniland Centre',
-      address: 'Shop 1, Uniland Centre, Kings Road',
-      city: 'Pinetown, Durban',
-      phone: '068 886 3892',
-      googleMapsUrl: 'https://maps.google.com/?q=Shop+1+Uniland+Centre+Pinetown',
-    },
-    paymentMethod: 'whatsapp',
-    paymentStatus: 'pending',
-    preferredTime: 'ASAP (35–45 mins)',
-    createdAt: 'Just now',
-    timeline: [
-      { status: 'received', timestamp: 'Just now', label: 'Order Placed & Received', note: 'Ticket sent to Pinetown Flagship' }
-    ],
-  },
-  {
-    orderId: `D-${todayDay}02`,
-    orderMode: 'delivery',
-    status: 'cooking',
-    items: [
-      {
-        quantity: 2,
-        menuItem: { id: 'wings-12pc', name: '12 Flame-Grilled Wings', price: 129.9 },
-        customization: { flavour: 'hot', side: 'Spicy Rice' },
-        itemTotal: 259.8,
-      },
-    ],
-    subtotal: 259.8,
-    deliveryFee: 25.0,
-    grandTotal: 284.8,
-    customer: {
-      customerName: 'Thabo Mbeki',
-      phone: '083 490 8593',
-      address: '42 Crompton Street',
-      suburb: 'Pinetown',
-      complexOrUnit: 'Block B, Unit 4',
-      notes: 'Call on arrival',
-    },
-    store: {
-      id: 'pinetown-uniland',
-      name: 'Pinetown Flagship',
-      mall: 'Shop 1, Uniland Centre',
-      address: 'Shop 1, Uniland Centre, Kings Road',
-      city: 'Pinetown, Durban',
-      phone: '068 886 3892',
-      googleMapsUrl: 'https://maps.google.com/?q=Shop+1+Uniland+Centre+Pinetown',
-    },
-    paymentMethod: 'cod',
-    paymentStatus: 'pending',
-    preferredTime: '12:30 PM',
-    createdAt: '12:05 PM',
-    timeline: [
-      { status: 'received', timestamp: '12:05 PM', label: 'Order Placed & Received', note: 'Ticket sent to Pinetown Flagship' },
-      { status: 'cooking', timestamp: '12:10 PM', label: 'Flame Grill Started', note: 'Chicken on the grill' }
-    ],
-  },
-  {
-    orderId: `C-${todayDay}01`,
-    orderMode: 'collection',
-    status: 'ready',
-    items: [
-      {
-        quantity: 1,
-        menuItem: { id: 'wrap-meal', name: 'Signature Wrap Meal Combo', price: 89.9 },
-        customization: { flavour: 'mild', side: 'Chips (Regular)' },
-        itemTotal: 89.9,
-      },
-    ],
-    subtotal: 89.9,
-    deliveryFee: 0,
-    grandTotal: 89.9,
-    customer: {
-      customerName: 'Sarah Jenkins',
-      phone: '071 234 5678',
-      address: 'Collection Counter',
-      suburb: 'Pinetown',
-    },
-    store: {
-      id: 'pinetown-uniland',
-      name: 'Pinetown Flagship',
-      mall: 'Shop 1, Uniland Centre',
-      address: 'Shop 1, Uniland Centre, Kings Road',
-      city: 'Pinetown, Durban',
-      phone: '068 886 3892',
-      googleMapsUrl: 'https://maps.google.com/?q=Shop+1+Uniland+Centre+Pinetown',
-    },
-    paymentMethod: 'yoco',
-    paymentStatus: 'paid',
-    preferredTime: 'ASAP (15–20 mins)',
-    createdAt: '11:45 AM',
-    timeline: [
-      { status: 'received', timestamp: '11:45 AM', label: 'Order Placed', note: 'Ticket sent to kitchen' },
-      { status: 'cooking', timestamp: '11:48 AM', label: 'Cooking', note: 'On the grill' },
-      { status: 'ready', timestamp: '11:58 AM', label: 'Packed & Ready', note: 'Waiting at collection counter' }
-    ],
-  }
-];
+const DEMO_NAMES = new Set(['Sipho Khumalo', 'Thabo Mbeki', 'Sarah Jenkins']);
+
+const DEFAULT_INITIAL_ORDERS: any[] = [];
 
 function getStore(): any[] {
-  if (!(global as any).__wrap_wing_orders || !Array.isArray((global as any).__wrap_wing_orders) || (global as any).__wrap_wing_orders.length === 0) {
-    (global as any).__wrap_wing_orders = [...DEFAULT_INITIAL_ORDERS];
+  if (!(global as any).__wrap_wing_orders || !Array.isArray((global as any).__wrap_wing_orders)) {
+    (global as any).__wrap_wing_orders = [];
   }
+  // Sanitize out any legacy mock demo orders permanently
+  (global as any).__wrap_wing_orders = (global as any).__wrap_wing_orders.filter((o: any) => {
+    if (!o || typeof o !== 'object') return false;
+    const name = o.customer?.customerName || '';
+    if (DEMO_NAMES.has(name)) return false;
+    if (o.orderId && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(o.orderId).includes(id))) return false;
+    return true;
+  });
   return (global as any).__wrap_wing_orders;
 }
 
@@ -174,7 +56,16 @@ export default async function handler(req: any, res: any) {
       const targetId = orderId || order?.orderId;
       const cleanTarget = targetId ? String(targetId).replace('#', '').trim() : '';
 
+      if (type === 'CLEAR_ALL') {
+        (global as any).__wrap_wing_orders = [];
+        return res.status(200).json({ success: true, count: 0, orders: [] });
+      }
+
       if (type === 'ORDER_CREATED' && order && order.orderId) {
+        const custName = order.customer?.customerName || '';
+        if (DEMO_NAMES.has(custName)) {
+          return res.status(200).json({ success: true, count: store.length, orders: store });
+        }
         const orderCleanId = String(order.orderId).replace('#', '').trim();
         const existingIdx = store.findIndex((o) =>
           o.orderId === order.orderId ||
@@ -248,6 +139,20 @@ export default async function handler(req: any, res: any) {
       if (store.length > 100) {
         store = store.slice(0, 100);
       }
+      return res.status(200).json({ success: true, count: store.length, orders: store });
+    }
+
+    if (req.method === 'DELETE') {
+      const targetId = req.query?.orderId || (req.body ? (typeof req.body === 'string' ? JSON.parse(req.body) : req.body).orderId : null);
+      if (targetId && targetId !== '*') {
+        const cleanTarget = String(targetId).replace('#', '').trim();
+        (global as any).__wrap_wing_orders = getStore().filter(
+          (o: any) => o.orderId !== targetId && String(o.orderId).replace('#', '').trim() !== cleanTarget
+        );
+      } else {
+        (global as any).__wrap_wing_orders = [];
+      }
+      store = getStore();
       return res.status(200).json({ success: true, count: store.length, orders: store });
     }
 

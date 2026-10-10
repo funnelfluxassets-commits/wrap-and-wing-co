@@ -518,8 +518,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <button
             type="button"
             onClick={() => {
-              if (window.confirm('Clear all active orders from the kitchen display?')) {
-                resetToDefaultOrders();
+              if (window.confirm('Clear all orders from the kitchen display and cloud?')) {
+                clearAllOrders();
                 setOrders([]);
               }
             }}
@@ -722,6 +722,20 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         title="Print kitchen docket"
                       >
                         <Printer className="w-4 h-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Delete order #${order.orderId}?`)) {
+                            deleteOrder(order.orderId);
+                            setOrders((prev) => prev.filter((o) => o.orderId !== order.orderId));
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-black/40 hover:bg-red-600/30 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                        title="Delete order"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>

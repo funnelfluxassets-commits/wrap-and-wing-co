@@ -270,12 +270,15 @@ export function getAllOrders(): LiveOrder[] {
     const valid = parsed
       .filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId))
       .filter((o) => {
-        const name = o.customer?.customerName || '';
-        const isDemoName = DEMO_CUSTOMER_NAMES.has(name);
+        const name = (o.customer?.customerName || '').trim();
+        const isDemoName = DEMO_CUSTOMER_NAMES.has(name) || ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.toLowerCase().includes(n));
         const isDemoId =
           o.orderId === `D-${todayDay}01` ||
           o.orderId === `D-${todayDay}02` ||
           o.orderId === `C-${todayDay}01` ||
+          o.orderId === 'D-1001' ||
+          o.orderId === 'D-1002' ||
+          o.orderId === 'C-1001' ||
           (isDemoName && ['D-', 'C-'].some((p) => o.orderId.startsWith(p)));
         return !isDemoName && !isDemoId;
       })
@@ -324,10 +327,7 @@ export function saveOrders(orders: LiveOrder[], notify = true) {
 }
 
 export function resetToDefaultOrders(): LiveOrder[] {
-  saveOrders([], true);
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem(CURRENT_ORDER_KEY);
-  }
+  clearAllOrders();
   return [];
 }
 
@@ -392,6 +392,13 @@ export function deleteOrder(orderId: string): void {
     orderId,
     timestamp: Date.now(),
   });
+
+  // Direct DELETE request to serverless relay
+  try {
+    fetch(`/api/orders?orderId=${encodeURIComponent(orderId)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
+  } catch {}
 }
 
 export function clearAllOrders() {
@@ -401,6 +408,24 @@ export function clearAllOrders() {
     localStorage.removeItem(CURRENT_ORDER_KEY);
     notifySubscribers();
   } catch {}
+
+  // Broadcast CLEAR_ALL to serverless API and cloud channels
+  try {
+    fetch('/api/orders', {
+      method: 'DELETE',
+    }).catch(() => {});
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'CLEAR_ALL', timestamp: Date.now() }),
+    }).catch(() => {});
+  } catch {}
+
+  publishCloudEvent({
+    type: 'ORDER_DELETED',
+    orderId: '*',
+    timestamp: Date.now(),
+  });
 }
 
 // -------------------------------------------------------------
@@ -498,7 +523,14 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
 
   const currentOrders = getAllOrders();
 
-  if (event.type === 'ORDER_DELETED' && event.orderId) {
+  if (event.type === 'ORDER_DELETED') {
+    if (event.orderId === '*' || !event.orderId) {
+      saveOrders([], true);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(CURRENT_ORDER_KEY);
+      }
+      return;
+    }
     const cleanTarget = event.orderId.replace('#', '').trim();
     const updated = currentOrders.filter(
       (o) => o.orderId !== event.orderId && o.orderId?.replace('#', '').trim() !== cleanTarget
@@ -514,6 +546,10 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 
   if (event.type === 'ORDER_CREATED' && event.order) {
+    const custName = event.order.customer?.customerName || '';
+    if (DEMO_CUSTOMER_NAMES.has(custName)) {
+      return;
+    }
     const orderCleanId = String(event.order.orderId).replace('#', '').trim();
     const existingIndex = currentOrders.findIndex(
       (o) => o.orderId === event.order!.orderId || o.orderId?.replace('#', '').trim() === orderCleanId
@@ -636,14 +672,25 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
       clearTimeout(timeoutId);
       if (apiResp.ok) {
         const data = await apiResp.json();
-        if (Array.isArray(data) && data.length > 0) {
-          cloudOrders = data;
+        if (Array.isArray(data)) {
+          cloudOrders = data.filter((raw: any) => {
+            const name = raw?.customer?.customerName || '';
+            if (DEMO_CUSTOMER_NAMES.has(name)) return false;
+            if (raw?.orderId && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(raw.orderId).includes(id))) return false;
+            return true;
+          });
         }
       }
     } catch {}
 
-    if (Array.isArray(cloudOrders) && cloudOrders.length > 0) {
+    if (Array.isArray(cloudOrders)) {
       const currentOrders = getAllOrders();
+
+      if (cloudOrders.length === 0 && currentOrders.length === 0) {
+        saveOrders([], false);
+        return [];
+      }
+
       const mergedMap = new Map<string, LiveOrder>();
 
       // 1. Seed with local orders
@@ -710,6 +757,8 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
 
       // 3. Two-way sync: If local device has an order that cloud does not have, auto-push to cloud
       for (const local of currentOrders) {
+        const localName = local.customer?.customerName || '';
+        if (DEMO_CUSTOMER_NAMES.has(localName)) continue;
         if (
           local &&
           local.orderId &&
