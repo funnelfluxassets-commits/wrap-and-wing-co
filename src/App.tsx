@@ -30,6 +30,8 @@ import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 
 const getInitialView = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
+  
+  // 1. Hash check (e.g. /#review, /#admin, /#kitchen)
   const hash = window.location.hash.toLowerCase().replace('#', '');
   if (
     ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
@@ -38,6 +40,18 @@ const getInitialView = (): PageView => {
   ) {
     return hash as PageView;
   }
+
+  // 2. Pathname check (e.g. /review, /admin, /kitchen)
+  const path = window.location.pathname.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
+  if (
+    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
+      path
+    )
+  ) {
+    return path as PageView;
+  }
+
+  // 3. Query parameter check (e.g. ?view=review)
   const searchParams = new URLSearchParams(window.location.search);
   const queryView = searchParams.get('view')?.toLowerCase();
   if (
@@ -80,15 +94,22 @@ const MainContent: React.FC = () => {
     handleNavigate('menu');
   };
 
-  // Sync hash routing and active orders
+  // Sync hash and pathname routing and active orders
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase().replace('#', '');
-      if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact'].includes(hash)) {
-        setCurrentView(hash as PageView);
+      const path = window.location.pathname.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
+      const target = hash || path;
+      if (
+        ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
+          target
+        )
+      ) {
+        setCurrentView(target as PageView);
       }
     };
     window.addEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
 
     const unsub = subscribeToOrders((orders) => {
       const myOrderId = getCurrentOrderId();

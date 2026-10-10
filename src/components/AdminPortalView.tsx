@@ -742,6 +742,90 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
             </div>
 
+            {/* QR Code & In-Store Print Kit Card */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#151520] via-[#121217] to-[#161622] border border-amber-500/30 shadow-xl space-y-4">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-xl font-black shrink-0">
+                    📱
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                      In-Store Till Flyers &amp; Takeaway Bag Inserts
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-white">
+                      R500 Weekly Draw QR Code &amp; Campaign URL
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="https://wrapandwings.funnelfluxassets.com/#review"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>Test Customer Page</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+
+                  <a
+                    href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
+                    download="wrap-and-wings-r500-qr-code.png"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="py-2 px-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download QR Code (PNG)</span>
+                  </a>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                {/* QR Code Preview */}
+                <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col items-center justify-center text-center space-y-2">
+                  <img
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
+                    alt="Scan for R500 Draw"
+                    className="w-32 h-32 rounded-xl bg-white p-2 shadow-inner"
+                  />
+                  <div className="text-[11px] font-mono text-amber-300 font-bold break-all">
+                    wrapandwings.funnelfluxassets.com/#review
+                  </div>
+                </div>
+
+                {/* Takeaway Bag Insert Copy Draft */}
+                <div className="md:col-span-2 p-4 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-zinc-400">
+                    <span className="font-bold uppercase tracking-wider text-[11px] text-amber-400">
+                      📄 Print Copy Draft (Flyer / Bag Insert):
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          "WIN R500 CASH THIS WEEK! 💸\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.funnelfluxassets.com/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win R500 cash in our weekly Sunday draw!"
+                        );
+                        alert("Flyer text copied to clipboard!");
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[11px] cursor-pointer"
+                    >
+                      Copy Flyer Copy
+                    </button>
+                  </div>
+                  <div className="p-3 rounded-xl bg-zinc-900 border border-white/5 font-mono text-[11px] text-zinc-300 leading-relaxed">
+                    <p className="font-bold text-white">WIN R500 CASH THIS WEEK! 💸</p>
+                    <p>Loved your meal? Want to help our brand new local spot grow?</p>
+                    <p>1. Scan the QR code or visit <strong>wrapandwings.funnelfluxassets.com/#review</strong></p>
+                    <p>2. Enter your receipt slip number &amp; leave a quick review on Google</p>
+                    <p>3. Winner drawn randomly every Sunday evening &amp; announced on our page!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Action Controls & Toolbar */}
             <div className="p-4 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
