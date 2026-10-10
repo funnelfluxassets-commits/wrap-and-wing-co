@@ -244,6 +244,22 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 <button
                   type="button"
                   onClick={() => {
+                    onNavigate('contact');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
+                    currentView === 'contact'
+                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
+                  }`}
+                >
+                  <div className="text-base mb-1">✉️</div>
+                  <div className="text-xs font-extrabold uppercase tracking-wide">Get in Touch</div>
+                  <div className="text-[11px] text-zinc-400 font-normal">Customer form & support</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     onNavigate('track');
                     setMobileMenuOpen(false);
                   }}

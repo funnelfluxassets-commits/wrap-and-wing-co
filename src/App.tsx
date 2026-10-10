@@ -14,6 +14,7 @@ import { LegalModal, LegalTab } from './components/LegalModal';
 import { CookieBanner } from './components/CookieBanner';
 import { StoryView } from './components/StoryView';
 import { TeamView } from './components/TeamView';
+import { ContactView } from './components/ContactView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { DeliveryDriverView } from './components/DeliveryDriverView';
 import { StaffLoginModal } from './components/StaffLoginModal';
@@ -28,7 +29,7 @@ import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 const getInitialView = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
   const hash = window.location.hash.toLowerCase().replace('#', '');
-  if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track'].includes(hash)) {
+  if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact'].includes(hash)) {
     return hash as PageView;
   }
   return 'menu';
@@ -67,7 +68,7 @@ const MainContent: React.FC = () => {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase().replace('#', '');
-      if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track'].includes(hash)) {
+      if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact'].includes(hash)) {
         setCurrentView(hash as PageView);
       }
     };
@@ -199,6 +200,13 @@ const MainContent: React.FC = () => {
 
           {currentView === 'team' && (
             <TeamView
+              onNavigate={handleNavigate}
+              onOpenStoreModal={() => setIsStoreModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'contact' && (
+            <ContactView
               onNavigate={handleNavigate}
               onOpenStoreModal={() => setIsStoreModalOpen(true)}
             />

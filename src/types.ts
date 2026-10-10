@@ -123,7 +123,7 @@ export interface LiveOrder {
   completedAt?: number;
 }
 
-export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'delivery' | 'track';
+export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'delivery' | 'track' | 'contact';
 
 export type StaffRole = 'kitchen' | 'driver';
 
