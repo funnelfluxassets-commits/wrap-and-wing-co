@@ -10,9 +10,8 @@ interface ItemModalProps {
 }
 
 const BASE_EXTRAS_OPTIONS = [
-  { name: 'Extra Sauce', price: 8.0 },
-  { name: 'Extra Melted Cheese Slice', price: 12.0 },
-  { name: 'Add 3 Flame-Grilled Wings', price: 45.0 },
+  { name: 'Extra Melted Cheese', price: 10.0 },
+  { name: 'Add Extra Roll', price: 6.0 },
 ];
 
 const DRINK_GROUPS = [
@@ -86,7 +85,34 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
     availableSides.length > 0 ? availableSides[0] : ''
   );
   const [selectedExtras, setSelectedExtras] = useState<{ name: string; price: number }[]>([]);
+  const [extraSauceFlavour, setExtraSauceFlavour] = useState<string>('Barbeque');
   const [notes, setNotes] = useState('');
+
+  const isExtraSauceSelected = selectedExtras.some((e) => e.name.startsWith('Extra Sauce'));
+
+  const handleToggleExtraSauce = () => {
+    if (isExtraSauceSelected) {
+      setSelectedExtras((prev) => prev.filter((e) => !e.name.startsWith('Extra Sauce')));
+    } else {
+      setSelectedExtras((prev) => [
+        ...prev,
+        { name: `Extra Sauce (${extraSauceFlavour})`, price: 8.0 },
+      ]);
+    }
+  };
+
+  const handleExtraSauceChange = (newFlavour: string) => {
+    setExtraSauceFlavour(newFlavour);
+    if (isExtraSauceSelected) {
+      setSelectedExtras((prev) =>
+        prev.map((e) =>
+          e.name.startsWith('Extra Sauce')
+            ? { ...e, name: `Extra Sauce (${newFlavour})` }
+            : e
+        )
+      );
+    }
+  };
 
   const toggleExtra = (extra: { name: string; price: number }) => {
     if (selectedExtras.some((e) => e.name === extra.name)) {
@@ -243,6 +269,54 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
             </div>
 
             <div className="space-y-2">
+              {/* Extra Sauce with Custom Sauce Flavour Dropdown */}
+              <div
+                className={`p-2.5 rounded-xl border transition-all ${
+                  isExtraSauceSelected
+                    ? 'bg-rose-500/10 border-rose-500/60 text-white'
+                    : 'bg-zinc-900/60 hover:bg-zinc-800/80 border-white/5 text-zinc-200'
+                }`}
+              >
+                <div
+                  onClick={handleToggleExtraSauce}
+                  className="flex items-center justify-between cursor-pointer"
+                >
+                  <span className="text-xs font-semibold">
+                    Extra Sauce {isExtraSauceSelected ? `(${extraSauceFlavour})` : ''}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-amber-400">+R8.00</span>
+                    <div
+                      className={`w-4 h-4 rounded-md border flex items-center justify-center ${
+                        isExtraSauceSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-zinc-600'
+                      }`}
+                    >
+                      {isExtraSauceSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                    </div>
+                  </div>
+                </div>
+
+                {isExtraSauceSelected && (
+                  <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-bold text-amber-300">
+                      Choose Extra Sauce:
+                    </label>
+                    <select
+                      value={extraSauceFlavour}
+                      onChange={(e) => handleExtraSauceChange(e.target.value)}
+                      className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-white/20 text-xs font-bold text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      {FLAVOURS.map((f) => (
+                        <option key={f.id} value={f.name}>
+                          {f.emoji} {f.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Other Extras (Extra Melted Cheese R10, Add Extra Roll R6) */}
               {BASE_EXTRAS_OPTIONS.map((extra) => {
                 const isSelected = selectedExtras.some((e) => e.name === extra.name);
                 return (

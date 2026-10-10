@@ -197,7 +197,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                     <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between py-1.5 border-t border-white/5 my-0.5">
-                    <span className="text-zinc-300 font-semibold text-xs">Add Tip:</span>
+                    <span className="text-zinc-300 font-semibold text-xs">Add Driver Tip:</span>
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"

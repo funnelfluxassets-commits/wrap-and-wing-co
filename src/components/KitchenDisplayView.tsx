@@ -601,6 +601,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
               const googleMapsUrl = generateGoogleMapsUrl(address, suburb);
               const items = Array.isArray(order.items) ? order.items : [];
               const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
+              const subtotal = typeof order.subtotal === 'number' ? order.subtotal : (items.reduce((sum: number, it: any) => sum + (it.itemTotal || 0), 0) || grandTotal);
+              const deliveryFee = typeof order.deliveryFee === 'number' ? order.deliveryFee : (isDelivery ? 25 : 0);
+              const tip = typeof order.tip === 'number' ? order.tip : 0;
               const createdAt = order.createdAt || 'Just now';
               const preferredTime = order.preferredTime || 'ASAP';
               const paymentMethod = (order.paymentMethod || 'cod').toUpperCase();
@@ -764,7 +767,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     {isDelivery && (
                       <div className="pt-1 text-[11px] text-zinc-300 space-y-0.5">
                         <div className="font-semibold text-white">
-                          📍 {address ? `${address}, ${suburb}` : suburb}
+                          📍 {address && address.toLowerCase().trim() !== suburb.toLowerCase().trim() ? `${address}, ${suburb}` : (address || suburb)}
                         </div>
                         {customer.complexOrUnit && (
                           <div className="text-amber-300">Unit: {customer.complexOrUnit}</div>
@@ -861,27 +864,45 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   </div>
 
                   {/* Card Financials & Current Status */}
-                  <div className="p-3.5 bg-zinc-950 border-t border-white/10 flex items-center justify-between text-xs font-bold">
-                    <div>
-                      <span className="text-zinc-400">Total: </span>
-                      <span className="text-amber-400 font-black text-sm">
-                        R{grandTotal.toFixed(2)}
-                      </span>
-                      {order.tip && order.tip > 0 ? (
-                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
-                          +R{order.tip} Tip
-                        </span>
-                      ) : null}
+                  <div className="p-3.5 bg-zinc-950 border-t border-white/10 space-y-2 text-xs">
+                    {/* Cost Breakup */}
+                    <div className="space-y-1 text-[11px] text-zinc-400 pb-2 border-b border-white/5 font-medium">
+                      <div className="flex justify-between">
+                        <span>Items Subtotal</span>
+                        <span className="text-zinc-200 font-bold">R{subtotal.toFixed(2)}</span>
+                      </div>
+                      {isDelivery && (
+                        <div className="flex justify-between">
+                          <span>Delivery Fee</span>
+                          <span className="text-zinc-200 font-bold">R{deliveryFee.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {tip > 0 && (
+                        <div className="flex justify-between text-emerald-400 font-bold">
+                          <span>Driver Tip</span>
+                          <span>+R{tip.toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
-                    <span
-                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                        order.paymentStatus === 'paid'
-                          ? 'bg-emerald-500/20 text-emerald-400'
-                          : 'bg-amber-500/20 text-amber-300'
-                      }`}
-                    >
-                      {order.paymentStatus === 'paid' ? 'PAID' : 'PAY ON HANDOVER'} ({paymentMethod})
-                    </span>
+
+                    {/* Total & Payment Badge */}
+                    <div className="flex items-center justify-between pt-0.5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-zinc-400 text-xs font-bold">Total:</span>
+                        <span className="text-amber-400 font-black text-base sm:text-lg">
+                          R{grandTotal.toFixed(2)}
+                        </span>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                          order.paymentStatus === 'paid'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        {order.paymentStatus === 'paid' ? 'PAID' : 'PAY ON HANDOVER'} ({paymentMethod})
+                      </span>
+                    </div>
                   </div>
 
                   {/* Action Buttons (Standardized Color: Yellow for Collection, Orange for Delivery) */}
