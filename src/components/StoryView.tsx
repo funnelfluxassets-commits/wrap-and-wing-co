@@ -7,7 +7,7 @@ interface StoryViewProps {
   onOpenStoreModal?: () => void;
 }
 
-export const StoryView: React.FC<StoryViewProps> = () => {
+export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreModal }) => {
   return (
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col selection:bg-rose-500 selection:text-white">
       
@@ -21,6 +21,9 @@ export const StoryView: React.FC<StoryViewProps> = () => {
           }}
           aria-hidden="true"
         />
+
+        {/* 50% black overlay to reduce pattern intensity */}
+        <div className="absolute inset-0 bg-black/50 pointer-events-none" aria-hidden="true" />
 
         {/* Black block behind text matching reference layout (85% opacity so banner is slightly visible) */}
         <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black/85 border border-white/10 shadow-2xl text-center space-y-2.5">
@@ -277,21 +280,21 @@ export const StoryView: React.FC<StoryViewProps> = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
               <button
                 type="button"
-                onClick={() => onNavigate('menu')}
+                onClick={() => onNavigate?.('menu')}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-xl shadow-rose-950/60 transition-transform hover:scale-105 cursor-pointer"
               >
                 Explore Food Menu & Order
               </button>
               <button
                 type="button"
-                onClick={() => onNavigate('team')}
+                onClick={() => onNavigate?.('team')}
                 className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-white font-bold text-xs sm:text-sm transition-colors cursor-pointer"
               >
                 Meet Our Team
               </button>
               <button
                 type="button"
-                onClick={onOpenStoreModal}
+                onClick={() => onOpenStoreModal?.()}
                 className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-zinc-300 hover:text-white font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <MapPin className="w-4 h-4 text-rose-500" />

@@ -54,7 +54,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-export const ContactView: React.FC<ContactViewProps> = () => {
+export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStoreModal }) => {
   const [formData, setFormData] = useState<FormState>(INITIAL_FORM);
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -163,6 +163,9 @@ export const ContactView: React.FC<ContactViewProps> = () => {
           }}
           aria-hidden="true"
         />
+
+        {/* 50% black overlay to reduce pattern intensity */}
+        <div className="absolute inset-0 bg-black/50 pointer-events-none" aria-hidden="true" />
 
         {/* Black block behind GET IN TOUCH and FAQ text matching reference layout (85% opacity so banner is slightly visible) */}
         <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black/85 border border-white/10 shadow-2xl text-center space-y-2.5">
