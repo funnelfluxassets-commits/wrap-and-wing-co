@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, MapPin, Phone, Clock, ChevronDown, Check, Menu, X } from 'lucide-react';
+import { ShoppingBag, Phone, Clock, Check, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { STORES, SOCIAL_LINKS } from '../data/stores';
-import { TikTokIcon } from './icons/TikTokIcon';
-import { FacebookIcon } from './icons/FacebookIcon';
+import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
-import { OrderMode, PageView } from '../types';
+import { PageView } from '../types';
 import { subscribeToOrders, getCurrentOrderId } from '../services/orderService';
 
 export interface NavbarProps {
@@ -14,8 +12,8 @@ export interface NavbarProps {
   onNavigate: (view: PageView) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, onNavigate }) => {
-  const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode, selectedStore } = useCart();
+export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
+  const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(getCurrentOrderId());
 
@@ -85,8 +83,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
             </button>
           </div>
 
-          {/* Right Actions: Track Order (if active) + Cart + Menu Toggle */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Actions: Track Order (if active) + Food Menu Button + Cart + Hamburger Toggle */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
             
             {/* Active Order Pill */}
             {activeOrderId && currentView !== 'track' && (
@@ -97,9 +95,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                 title="View your active order"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span>Track Order</span>
+                <span className="hidden xs:inline">Track Order</span>
               </button>
             )}
+
+            {/* (1) Food Menu Button - added directly to the left of the order basket */}
+            <button
+              type="button"
+              onClick={() => onNavigate('menu')}
+              className={`px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                currentView === 'menu'
+                  ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40'
+                  : 'bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/10 text-zinc-200 hover:text-white'
+              }`}
+            >
+              <span className="text-sm">🔥</span>
+              <span>Food Menu</span>
+            </button>
 
             {/* Cart Trigger Button */}
             <button
@@ -120,23 +132,102 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
               </span>
             </button>
 
-            {/* Menu Toggle (visible on all devices) */}
+            {/* (2) Hamburger Menu Toggle - Icon only, "MENU" word removed */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 sm:p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+              className="p-2 sm:p-2.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Menu</span>
             </button>
           </div>
         </div>
 
-        {/* Subheader Bar (Mode & Location) - Hidden on contact page so banner sits directly below main header */}
+        {/* (3 & 4) Sub Header Box: 4 Inline Navigation Buttons directly under the main header */}
+        {mobileMenuOpen && (
+          <div className="bg-[#18181f]/98 border-t border-b border-white/10 px-2 sm:px-6 py-2 sm:py-2.5 shadow-2xl backdrop-blur-md transition-all">
+            <div className="max-w-7xl mx-auto grid grid-cols-4 gap-1.5 sm:gap-3 text-center">
+              
+              {/* Button 1: Our Story */}
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('story');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                  currentView === 'story'
+                    ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                    : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
+                }`}
+              >
+                <span className="text-sm sm:text-base mb-0.5">📖</span>
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Our Story</span>
+              </button>
+
+              {/* Button 2: Our Team */}
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('team');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                  currentView === 'team'
+                    ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                    : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
+                }`}
+              >
+                <span className="text-sm sm:text-base mb-0.5">👥</span>
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Our Team</span>
+              </button>
+
+              {/* Button 3: Get In Touch */}
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('contact');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center ${
+                  currentView === 'contact'
+                    ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                    : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
+                }`}
+              >
+                <span className="text-sm sm:text-base mb-0.5">✉️</span>
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Get In Touch</span>
+              </button>
+
+              {/* Button 4: Track Order */}
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigate('track');
+                  setMobileMenuOpen(false);
+                }}
+                className={`py-2 px-1 sm:px-3 sm:py-2.5 rounded-xl border-2 font-bold transition-all cursor-pointer flex flex-col items-center justify-center relative ${
+                  currentView === 'track'
+                    ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
+                    : 'bg-zinc-800/80 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
+                }`}
+              >
+                <span className="text-sm sm:text-base mb-0.5 flex items-center justify-center gap-1">
+                  <span>📦</span>
+                  {activeOrderId && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
+                </span>
+                <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-tight truncate w-full">Track Order</span>
+              </button>
+
+            </div>
+          </div>
+        )}
+
+        {/* (5) Subheader Bar: Collect / Delivery toggle only (location button removed) - Hidden on Contact page */}
         {currentView !== 'contact' && (
           <div className="px-4 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5">
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
+            <div className="max-w-7xl mx-auto flex items-center justify-start text-xs">
               <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
                 <button
                   type="button"
@@ -159,167 +250,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenStoreModal, currentView, o
                   <span>Delivery</span>
                   {orderMode === 'delivery' && <Check className="w-3 h-3" />}
                 </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={onOpenStoreModal}
-                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 hover:text-white truncate cursor-pointer py-1 px-2 rounded-lg hover:bg-white/5 transition-colors"
-              >
-                <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                <span className="truncate max-w-[180px] sm:max-w-none">{selectedStore.mall}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Slide-down Menu Drawer - Unified across all devices */}
-        {mobileMenuOpen && (
-          <div className="bg-[#18181f] border-b border-white/10 px-4 sm:px-6 py-5 shadow-2xl">
-            <div className="max-w-7xl mx-auto space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-zinc-400 uppercase tracking-wider">Navigation</span>
-                <span className="text-[11px] text-zinc-500 font-medium">Wrap & Wings Co. Pinetown</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 text-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('menu');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
-                    currentView === 'menu'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1">🔥</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Food Menu</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Wraps, Wings, Feast & Sides</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('story');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
-                    currentView === 'story'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1">📖</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Our Story</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Founder, Vision & Heart</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('team');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
-                    currentView === 'team'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1">👥</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Our Team</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Meet our front & kitchen crew</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenStoreModal();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-left hover:text-white hover:bg-zinc-800 hover:border-rose-500 text-zinc-200 cursor-pointer transition-all"
-                >
-                  <div className="text-base mb-1">📍</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Store Locator</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Uniland Centre Pinetown</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('contact');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer ${
-                    currentView === 'contact'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1">✉️</div>
-                  <div className="text-xs font-extrabold uppercase tracking-wide">Get in Touch</div>
-                  <div className="text-[11px] text-zinc-400 font-normal">Customer form & support</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onNavigate('track');
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`p-3 rounded-xl border-2 text-left font-bold transition-all cursor-pointer flex flex-col justify-between ${
-                    currentView === 'track'
-                      ? 'bg-rose-600/50 text-white border-rose-600 shadow-md shadow-rose-950/30'
-                      : 'bg-zinc-800/70 border-rose-600 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-rose-500'
-                  }`}
-                >
-                  <div className="text-base mb-1 flex items-center justify-between">
-                    <span>📦</span>
-                    {activeOrderId && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-extrabold border border-emerald-500/30">
-                        Active
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold uppercase tracking-wide">Track Order</div>
-                    <div className="text-[11px] text-zinc-400 font-normal">Live GPS preparation tracker</div>
-                  </div>
-                </button>
-                <a
-                  href={SOCIAL_LINKS.tiktok}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-rose-500 transition-all flex flex-col justify-between"
-                >
-                  <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
-                    <TikTokIcon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold uppercase tracking-wide">TikTok Profile</div>
-                    <div className="text-[11px] text-zinc-400 font-normal">@wrapwings.co</div>
-                  </div>
-                </a>
-                <a
-                  href={SOCIAL_LINKS.facebook}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3 rounded-xl bg-zinc-800/70 border-2 border-rose-600 font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-rose-500 transition-all flex flex-col justify-between"
-                >
-                  <div className="w-5 h-5 flex items-center justify-center text-zinc-400 mb-1">
-                    <FacebookIcon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold uppercase tracking-wide">Facebook Page</div>
-                    <div className="text-[11px] text-zinc-400 font-normal">wrapandwingsco</div>
-                  </div>
-                </a>
-              </div>
-
-              <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-zinc-400">
-                <span>Collection & Delivery Hotline:</span>
-                <a href={SOCIAL_LINKS.phoneDirect} className="text-rose-400 font-extrabold hover:underline flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>068 886 3892</span>
-                </a>
               </div>
             </div>
           </div>
