@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import {
-  ArrowLeft,
-  ChevronRight,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
@@ -11,7 +9,7 @@ import {
 import { PageView } from '../types';
 
 interface ContactViewProps {
-  onNavigate: (view: PageView) => void;
+  onNavigate?: (view: PageView) => void;
   onOpenStoreModal?: () => void;
 }
 
@@ -56,7 +54,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
+export const ContactView: React.FC<ContactViewProps> = () => {
   const [formData, setFormData] = useState<FormState>(INITIAL_FORM);
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -155,40 +153,8 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
   return (
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col selection:bg-rose-500 selection:text-white">
       
-      {/* ── Breadcrumb & Top Bar ────────────────────────────────────────────── */}
-      <div className="bg-[#121217] border-b border-white/10 sticky top-[104px] sm:top-[108px] z-30 backdrop-blur-md bg-opacity-95">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => onNavigate('menu')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>Back to Full Menu</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => onNavigate('story')}
-              className="text-xs font-bold text-zinc-400 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>Our Story</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate('menu')}
-              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
-            >
-              Order Online
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Header Design with African Art Design as one background image ────── */}
-      <section className="relative overflow-hidden border-b border-white/10 bg-black min-h-[240px] sm:min-h-[290px] md:min-h-[320px] flex items-center justify-center">
+      {/* ── Header Design sitting directly underneath main navbar with African Art Design & Black Center Block ── */}
+      <section className="relative overflow-hidden border-b border-white/10 bg-black min-h-[250px] sm:min-h-[290px] md:min-h-[330px] flex items-center justify-center py-10 sm:py-14">
         {/* Full-width single background image using African Art Design */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -198,16 +164,13 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
           aria-hidden="true"
         />
 
-        {/* Framing dark overlay: transparent at top/bottom to reveal tribal patterns, darkened center band for text clarity */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/85 to-black/25" />
-
-        {/* Header Content matching reference layout */}
-        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center space-y-2.5">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow-lg">
+        {/* Black block behind GET IN TOUCH and FAQ text matching reference layout */}
+        <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black border border-white/10 shadow-2xl text-center space-y-2.5">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
             GET IN TOUCH
           </h1>
 
-          <div className="text-xs sm:text-sm text-zinc-200 max-w-xl mx-auto font-medium space-y-1 drop-shadow">
+          <div className="text-xs sm:text-sm text-zinc-200 max-w-lg mx-auto font-medium space-y-1">
             <p>
               We've got a full list of{' '}
               <button
@@ -232,14 +195,14 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
         {/* ── Customer Form (sitting directly under header) ────────────────── */}
         <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-6">
           
-          {/* Status Notifications */}
+          {/* Status Notifications: Charcoal background with 1px orange border */}
           {status === 'success' && (
-            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 flex items-start gap-3 animate-fadeIn">
-              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-400" />
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#121217] border border-orange-500 text-zinc-100 flex items-start gap-3.5 animate-fadeIn shadow-lg">
+              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-orange-400" />
               <div className="space-y-1">
-                <div className="font-bold text-sm">Thank you for reaching out!</div>
-                <div className="text-xs text-emerald-200/90 leading-relaxed">
-                  Your message has been sent directly to our team at <strong>funnelflux.assets@gmail.com</strong>. We will review your inquiry and get back to you shortly.
+                <div className="font-bold text-sm text-white">Thank you for reaching out!</div>
+                <div className="text-xs text-zinc-300 leading-relaxed">
+                  Your message has been sent directly to the <strong className="text-white font-extrabold">WRAP & WINGS CO Team</strong>. We will review your inquiry and get back to you shortly.
                 </div>
               </div>
             </div>
