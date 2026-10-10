@@ -15,6 +15,8 @@ import { CookieBanner } from './components/CookieBanner';
 import { StoryView } from './components/StoryView';
 import { TeamView } from './components/TeamView';
 import { ContactView } from './components/ContactView';
+import { ReviewDrawView } from './components/ReviewDrawView';
+import { AdminPortalView } from './components/AdminPortalView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { DeliveryDriverView } from './components/DeliveryDriverView';
 import { StaffLoginModal } from './components/StaffLoginModal';
@@ -29,8 +31,22 @@ import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 const getInitialView = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
   const hash = window.location.hash.toLowerCase().replace('#', '');
-  if (['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact'].includes(hash)) {
+  if (
+    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
+      hash
+    )
+  ) {
     return hash as PageView;
+  }
+  const searchParams = new URLSearchParams(window.location.search);
+  const queryView = searchParams.get('view')?.toLowerCase();
+  if (
+    queryView &&
+    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
+      queryView
+    )
+  ) {
+    return queryView as PageView;
   }
   return 'menu';
 };
@@ -125,8 +141,34 @@ const MainContent: React.FC = () => {
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white pb-16 lg:pb-0">
       
       {/* ── View Routing ────────────────────────────────────────────────────── */}
-      {currentView === 'kitchen' ? (
-        staffRole === 'kitchen' ? (
+      {currentView === 'admin' ? (
+        staffRole === 'admin' ? (
+          <ErrorBoundary fallbackTitle="Admin Portal Recovery">
+            <AdminPortalView
+              onBackToMenu={() => handleNavigate('menu')}
+              onLogout={handleStaffLogout}
+              onNavigateRole={(role) => handleNavigate(role)}
+            />
+          </ErrorBoundary>
+        ) : (
+          <StaffLoginModal
+            isOpen={true}
+            initialRole="admin"
+            onClose={() => handleNavigate('menu')}
+            onSuccess={(role) => {
+              setStaffRole(role);
+              if (role === 'admin') {
+                handleNavigate('admin');
+              } else if (role === 'kitchen') {
+                handleNavigate('kitchen');
+              } else {
+                handleNavigate('delivery');
+              }
+            }}
+          />
+        )
+      ) : currentView === 'kitchen' ? (
+        staffRole === 'kitchen' || staffRole === 'admin' ? (
           <ErrorBoundary fallbackTitle="Kitchen Display System Recovery">
             <KitchenDisplayView
               onBackToMenu={() => handleNavigate('menu')}
@@ -144,14 +186,18 @@ const MainContent: React.FC = () => {
             onClose={() => handleNavigate('menu')}
             onSuccess={(role) => {
               setStaffRole(role);
-              if (role === 'driver') {
+              if (role === 'admin') {
+                handleNavigate('admin');
+              } else if (role === 'driver') {
                 handleNavigate('delivery');
+              } else {
+                handleNavigate('kitchen');
               }
             }}
           />
         )
       ) : currentView === 'delivery' ? (
-        staffRole === 'driver' ? (
+        staffRole === 'driver' || staffRole === 'admin' ? (
           <ErrorBoundary fallbackTitle="Delivery Driver System Recovery">
             <DeliveryDriverView
               onBackToMenu={() => handleNavigate('menu')}
@@ -169,8 +215,12 @@ const MainContent: React.FC = () => {
             onClose={() => handleNavigate('menu')}
             onSuccess={(role) => {
               setStaffRole(role);
-              if (role === 'kitchen') {
+              if (role === 'admin') {
+                handleNavigate('admin');
+              } else if (role === 'kitchen') {
                 handleNavigate('kitchen');
+              } else {
+                handleNavigate('delivery');
               }
             }}
           />
@@ -207,6 +257,13 @@ const MainContent: React.FC = () => {
 
           {currentView === 'contact' && (
             <ContactView
+              onNavigate={handleNavigate}
+              onOpenStoreModal={() => setIsStoreModalOpen(true)}
+            />
+          )}
+
+          {currentView === 'review' && (
+            <ReviewDrawView
               onNavigate={handleNavigate}
               onOpenStoreModal={() => setIsStoreModalOpen(true)}
             />
@@ -347,7 +404,13 @@ const MainContent: React.FC = () => {
     onSuccess={(role) => {
       setStaffRole(role);
       setIsStaffLoginOpen(false);
-      handleNavigate(role === 'kitchen' ? 'kitchen' : 'delivery');
+      if (role === 'admin') {
+        handleNavigate('admin');
+      } else if (role === 'kitchen') {
+        handleNavigate('kitchen');
+      } else {
+        handleNavigate('delivery');
+      }
     }}
   />
 

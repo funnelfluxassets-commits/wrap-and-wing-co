@@ -29,7 +29,7 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.projectId
 );
 
-let db: Firestore | null = null;
+export let db: Firestore | null = null;
 
 if (isFirebaseConfigured) {
   try {

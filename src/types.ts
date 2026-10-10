@@ -123,7 +123,28 @@ export interface LiveOrder {
   completedAt?: number;
 }
 
-export type PageView = 'menu' | 'story' | 'team' | 'kitchen' | 'delivery' | 'track' | 'contact';
+export type PageView =
+  | 'menu'
+  | 'story'
+  | 'team'
+  | 'kitchen'
+  | 'delivery'
+  | 'track'
+  | 'contact'
+  | 'review'
+  | 'admin';
 
-export type StaffRole = 'kitchen' | 'driver';
+export type StaffRole = 'kitchen' | 'driver' | 'admin';
+
+export interface ReviewDrawEntry {
+  id: string;
+  fullName: string;
+  phone: string;
+  receiptNumber: string;
+  googleReviewName: string;
+  rating?: number;
+  comments?: string;
+  createdAt: string;
+  status?: 'pending' | 'verified' | 'winner' | 'invalid';
+}
 

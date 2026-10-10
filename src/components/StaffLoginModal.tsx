@@ -13,6 +13,7 @@ interface StaffLoginModalProps {
 const VALID_PINS: Record<StaffRole, string[]> = {
   kitchen: ['4820', '1234', 'wrap123'],
   driver: ['7788', '5678', 'wrap123'],
+  admin: ['9900', 'admin123', 'wrapadmin'],
 };
 
 export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
@@ -57,7 +58,11 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
       setError(null);
       onSuccess(role);
     } else {
-      setError(`Invalid PIN code for ${role === 'kitchen' ? 'Kitchen Display' : 'Delivery Driver'}. Please try again.`);
+      setError(
+        `Invalid PIN code for ${
+          role === 'kitchen' ? 'Kitchen Display' : role === 'driver' ? 'Delivery Driver' : 'Admin Portal'
+        }. Please try again.`
+      );
       setPin('');
     }
   };
@@ -90,7 +95,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
         </div>
 
         {/* Role Selector Tabs */}
-        <div className="grid grid-cols-2 gap-2 bg-zinc-900/90 p-1.5 rounded-2xl border border-white/5">
+        <div className="grid grid-cols-3 gap-1.5 bg-zinc-900/90 p-1.5 rounded-2xl border border-white/5">
           <button
             type="button"
             onClick={() => {
@@ -98,14 +103,14 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
               setPin('');
               setError(null);
             }}
-            className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               role === 'kitchen'
                 ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md'
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <ChefHat className="w-4 h-4" />
-            <span>🍳 Kitchen</span>
+            <ChefHat className="w-3.5 h-3.5" />
+            <span>Kitchen</span>
           </button>
 
           <button
@@ -115,14 +120,31 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
               setPin('');
               setError(null);
             }}
-            className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
+            className={`py-2 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               role === 'driver'
                 ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 shadow-md font-black'
                 : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <DeliveryMotorbikeIcon className="w-4 h-4" />
+            <DeliveryMotorbikeIcon className="w-3.5 h-3.5" />
             <span>Driver</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setRole('admin');
+              setPin('');
+              setError(null);
+            }}
+            className={`py-2 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              role === 'admin'
+                ? 'bg-gradient-to-r from-rose-600 to-purple-600 text-white shadow-md'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Admin</span>
           </button>
         </div>
 
@@ -130,9 +152,15 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[11px] font-extrabold uppercase text-zinc-200 tracking-wider flex items-center justify-between">
-              <span>{role === 'kitchen' ? 'Kitchen Passcode' : 'Driver Passcode'}</span>
+              <span>
+                {role === 'kitchen'
+                  ? 'Kitchen Passcode'
+                  : role === 'driver'
+                  ? 'Driver Passcode'
+                  : 'Admin Passcode'}
+              </span>
               <span className="text-[11px] text-zinc-300 font-mono">
-                {role === 'kitchen' ? 'Default: 4820' : 'Default: 7788'}
+                {role === 'kitchen' ? 'Default: 4820' : role === 'driver' ? 'Default: 7788' : 'Default: 9900'}
               </span>
             </label>
             <div className="relative">
