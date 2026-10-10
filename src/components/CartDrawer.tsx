@@ -17,6 +17,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
     updateQuantity,
     subtotal,
     deliveryFee,
+    tip,
+    setTip,
     grandTotal,
     orderMode,
     setOrderMode,
@@ -189,10 +191,47 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                 <span className="text-white font-bold">R{subtotal.toFixed(2)}</span>
               </div>
               {orderMode === 'delivery' && (
-                <div className="flex justify-between text-zinc-200">
-                  <span>Delivery Fee</span>
-                  <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
-                </div>
+                <>
+                  <div className="flex justify-between text-zinc-200">
+                    <span>Delivery Fee</span>
+                    <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1.5 border-t border-white/5 my-0.5">
+                    <span className="text-zinc-300 font-semibold text-xs">Add Tip:</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setTip(tip === 5 ? 0 : 5)}
+                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                          tip === 5
+                            ? 'bg-amber-400 text-zinc-950 shadow-md ring-1 ring-amber-300'
+                            : 'bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 border border-white/10'
+                        }`}
+                        title={tip === 5 ? 'Click to remove tip' : 'Add R5 tip'}
+                      >
+                        R5
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTip(tip === 10 ? 0 : 10)}
+                        className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                          tip === 10
+                            ? 'bg-amber-400 text-zinc-950 shadow-md ring-1 ring-amber-300'
+                            : 'bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 border border-white/10'
+                        }`}
+                        title={tip === 10 ? 'Click to remove tip' : 'Add R10 tip'}
+                      >
+                        R10
+                      </button>
+                    </div>
+                  </div>
+                  {tip > 0 && (
+                    <div className="flex justify-between text-xs text-amber-300 font-bold">
+                      <span>Driver Tip</span>
+                      <span>+R{tip.toFixed(2)}</span>
+                    </div>
+                  )}
+                </>
               )}
               <div className="flex justify-between text-sm sm:text-base font-black text-white pt-2 border-t border-white/10">
                 <span>Total Due</span>

@@ -7,6 +7,7 @@ export interface CheckoutPayload {
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
+  tip?: number;
   grandTotal: number;
   customer: DeliveryDetails;
   store: StoreLocation;
@@ -90,6 +91,9 @@ export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
   msg += `*Subtotal:* R${subtotal.toFixed(2)}\n`;
   if (isDelivery) {
     msg += `*Delivery Fee:* R${deliveryFee.toFixed(2)}\n`;
+    if (payload.tip && payload.tip > 0) {
+      msg += `*Driver Tip:* R${payload.tip.toFixed(2)}\n`;
+    }
   }
   msg += `*TOTAL DUE:* *R${grandTotal.toFixed(2)}*\n`;
   msg += `*Payment:* ${

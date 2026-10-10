@@ -16,6 +16,8 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   subtotal: number;
   deliveryFee: number;
+  tip: number;
+  setTip: (tip: number) => void;
   grandTotal: number;
   totalItemCount: number;
 }
@@ -99,13 +101,33 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   };
 
+  const [tip, setTip] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('wrap_wing_tip');
+      return saved ? parseFloat(saved) : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('wrap_wing_tip', String(tip));
+    } catch {}
+  }, [tip]);
+
   const clearCart = () => {
     setItems([]);
+    setTip(0);
+    try {
+      localStorage.removeItem('wrap_wing_tip');
+    } catch {}
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0);
   const deliveryFee = orderMode === 'delivery' && items.length > 0 ? 25.0 : 0;
-  const grandTotal = subtotal + deliveryFee;
+  const effectiveTip = orderMode === 'delivery' && items.length > 0 ? tip : 0;
+  const grandTotal = subtotal + deliveryFee + effectiveTip;
   const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
@@ -124,6 +146,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsCartOpen,
         subtotal,
         deliveryFee,
+        tip: effectiveTip,
+        setTip,
         grandTotal,
         totalItemCount,
       }}

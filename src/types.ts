@@ -110,6 +110,7 @@ export interface LiveOrder {
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
+  tip?: number;
   grandTotal: number;
   customer: DeliveryDetails;
   store: StoreLocation;

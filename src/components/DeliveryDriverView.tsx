@@ -589,6 +589,11 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                       <span className="text-amber-400 font-black text-sm">
                         R{grandTotal.toFixed(2)}
                       </span>
+                      {order.tip && order.tip > 0 ? (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black">
+                          +R{order.tip} TIP INCL.
+                        </span>
+                      ) : null}
                     </div>
 
                     <span

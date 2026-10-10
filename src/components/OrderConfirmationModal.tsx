@@ -305,6 +305,12 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({ 
                     <span className="text-white font-bold">R{order.deliveryFee.toFixed(2)}</span>
                   </div>
                 )}
+                {isDelivery && typeof order.tip === 'number' && order.tip > 0 && (
+                  <div className="flex justify-between text-amber-300 font-bold">
+                    <span>Driver Tip</span>
+                    <span>+R{order.tip.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm sm:text-base font-black text-white pt-2 border-t border-white/10">
                   <span>Total Paid / Due</span>
                   <span className="text-amber-400 text-lg">R{order.grandTotal.toFixed(2)}</span>

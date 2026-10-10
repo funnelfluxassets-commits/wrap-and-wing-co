@@ -244,6 +244,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             )
             .join('')}
           <div class="line"></div>
+          ${order.deliveryFee ? `<div>Delivery Fee: R${order.deliveryFee.toFixed(2)}</div>` : ''}
+          ${order.tip ? `<div>Driver Tip: R${order.tip.toFixed(2)}</div>` : ''}
           <div class="bold" style="font-size: 15px;">TOTAL: R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)}</div>
           <div>Payment: ${order.paymentStatus === 'paid' ? 'PAID' : 'COLLECT PAYMENT'} (${(order.paymentMethod || 'cod').toUpperCase()})</div>
           <div class="line"></div>
@@ -865,6 +867,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <span className="text-amber-400 font-black text-sm">
                         R{grandTotal.toFixed(2)}
                       </span>
+                      {order.tip && order.tip > 0 ? (
+                        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-extrabold">
+                          +R{order.tip} Tip
+                        </span>
+                      ) : null}
                     </div>
                     <span
                       className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
