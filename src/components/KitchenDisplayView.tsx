@@ -878,7 +878,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         </div>
                       )}
                       {tip > 0 && (
-                        <div className="flex justify-between text-emerald-400 font-bold">
+                        <div className="flex justify-between text-yellow-400 font-bold">
                           <span>Driver Tip</span>
                           <span>+R{tip.toFixed(2)}</span>
                         </div>
