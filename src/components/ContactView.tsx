@@ -164,8 +164,8 @@ export const ContactView: React.FC<ContactViewProps> = () => {
           aria-hidden="true"
         />
 
-        {/* Black block behind GET IN TOUCH and FAQ text matching reference layout */}
-        <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black border border-white/10 shadow-2xl text-center space-y-2.5">
+        {/* Black block behind GET IN TOUCH and FAQ text matching reference layout (85% opacity so banner is slightly visible) */}
+        <div className="relative z-10 max-w-xl md:max-w-2xl w-[92%] sm:w-auto mx-auto px-6 sm:px-12 py-7 sm:py-9 rounded-2xl bg-black/85 border border-white/10 shadow-2xl text-center space-y-2.5">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
             GET IN TOUCH
           </h1>
