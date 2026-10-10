@@ -2,25 +2,17 @@ import React, { useState } from 'react';
 import {
   ArrowLeft,
   ChevronRight,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  Send,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
   ChevronDown,
-  ChevronUp,
-  Sparkles,
-  MessageSquare
+  ChevronUp
 } from 'lucide-react';
 import { PageView } from '../types';
-import { SOCIAL_LINKS, STORES } from '../data/stores';
 
 interface ContactViewProps {
   onNavigate: (view: PageView) => void;
-  onOpenStoreModal: () => void;
+  onOpenStoreModal?: () => void;
 }
 
 interface FormState {
@@ -64,13 +56,11 @@ const FAQ_ITEMS = [
   },
 ];
 
-export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStoreModal }) => {
+export const ContactView: React.FC<ContactViewProps> = ({ onNavigate }) => {
   const [formData, setFormData] = useState<FormState>(INITIAL_FORM);
   const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
-
-  const primaryStore = STORES[0];
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -197,110 +187,49 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
         </div>
       </div>
 
-      {/* ── Header Design with African Pattern Framing ───────────────────────── */}
-      <section className="relative bg-black overflow-hidden border-b border-white/10">
-        
-        {/* Top Pattern Stripe */}
-        <div 
-          className="w-full h-12 sm:h-16 md:h-20 bg-repeat-x bg-contain opacity-90 shadow-md"
+      {/* ── Header Design with African Art Design as one background image ────── */}
+      <section className="relative overflow-hidden border-b border-white/10 bg-black min-h-[240px] sm:min-h-[290px] md:min-h-[320px] flex items-center justify-center">
+        {/* Full-width single background image using African Art Design */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('/images/patterns/african-tribal-pattern.jpg')",
-            backgroundSize: 'auto 100%',
+            backgroundImage: "url('/images/brand/African-Art-Design.webp')",
           }}
           aria-hidden="true"
         />
 
-        {/* Center Header Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-center relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-extrabold uppercase tracking-widest">
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Wrap & Wings Co. Support & Feedback</span>
-          </div>
+        {/* Framing dark overlay: transparent at top/bottom to reveal tribal patterns, darkened center band for text clarity */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/85 to-black/25" />
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight font-sans">
-            Get in Touch
+        {/* Header Content matching reference layout */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center space-y-2.5">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow-lg">
+            GET IN TOUCH
           </h1>
 
-          <div className="text-sm sm:text-base text-zinc-300 max-w-xl mx-auto font-medium space-y-1">
+          <div className="text-xs sm:text-sm text-zinc-200 max-w-xl mx-auto font-medium space-y-1 drop-shadow">
             <p>
               We've got a full list of{' '}
               <button
                 type="button"
                 onClick={scrollToFaqs}
-                className="text-amber-400 underline font-bold hover:text-amber-300 cursor-pointer transition-colors"
+                className="text-white underline font-bold hover:text-amber-400 cursor-pointer transition-colors"
               >
                 FAQs
               </button>
               .
             </p>
-            <p className="text-zinc-400">
+            <p className="text-zinc-300">
               Can't find what you are looking for? Get in touch with us below.
             </p>
           </div>
         </div>
-
-        {/* Bottom Pattern Stripe */}
-        <div 
-          className="w-full h-12 sm:h-16 md:h-20 bg-repeat-x bg-contain opacity-90 shadow-md"
-          style={{
-            backgroundImage: "url('/images/patterns/african-tribal-pattern.jpg')",
-            backgroundSize: 'auto 100%',
-          }}
-          aria-hidden="true"
-        />
       </section>
 
       {/* ── Main Content Container ─────────────────────────────────────────── */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16 space-y-12 flex-1 w-full">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-12 flex-1 w-full">
 
-        {/* Quick Contact Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <a
-            href={SOCIAL_LINKS.phoneDirect}
-            className="p-4 rounded-2xl bg-[#14141b] border border-white/10 hover:border-rose-500/50 transition-all flex items-center gap-3.5 group cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Phone className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">Direct Hotline</div>
-              <div className="text-sm font-extrabold text-white group-hover:text-rose-400 transition-colors">068 886 3892</div>
-            </div>
-          </a>
-
-          <a
-            href={SOCIAL_LINKS.whatsappDirect}
-            target="_blank"
-            rel="noreferrer"
-            className="p-4 rounded-2xl bg-[#14141b] border border-white/10 hover:border-emerald-500/50 transition-all flex items-center gap-3.5 group cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">WhatsApp Orders</div>
-              <div className="text-sm font-extrabold text-white group-hover:text-emerald-400 transition-colors">Chat With Us</div>
-            </div>
-          </a>
-
-          <button
-            type="button"
-            onClick={onOpenStoreModal}
-            className="p-4 rounded-2xl bg-[#14141b] border border-white/10 hover:border-amber-500/50 transition-all flex items-center gap-3.5 group text-left cursor-pointer"
-          >
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">Flagship Location</div>
-              <div className="text-sm font-extrabold text-white group-hover:text-amber-400 transition-colors truncate">
-                {primaryStore.mall}
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {/* ── Form Section ─────────────────────────────────────────────────── */}
+        {/* ── Customer Form (sitting directly under header) ────────────────── */}
         <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-6">
           
           {/* Status Notifications */}
@@ -342,7 +271,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-rose-500 appearance-none cursor-pointer transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white text-sm focus:outline-none focus:border-rose-500 appearance-none cursor-pointer transition-colors"
                   >
                     <option value="" className="bg-zinc-900 text-zinc-400">
                       Title
@@ -383,7 +312,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                   required
                   value={formData.firstName}
                   onChange={handleInputChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                 />
               </div>
 
@@ -400,7 +329,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                   required
                   value={formData.lastName}
                   onChange={handleInputChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                 />
               </div>
             </div>
@@ -421,7 +350,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                 />
               </div>
 
@@ -438,7 +367,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                   required
                   value={formData.telephone}
                   onChange={handleInputChange}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                 />
               </div>
             </div>
@@ -457,7 +386,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
                 placeholder="What do you want to say?"
                 value={formData.message}
                 onChange={handleInputChange}
-                className="w-full px-3.5 py-3 rounded-2xl bg-black/50 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors resize-y min-h-[120px]"
+                className="w-full px-3.5 py-3 rounded-2xl bg-black/60 border border-white/15 text-white placeholder-zinc-500 text-sm focus:outline-none focus:border-rose-500 transition-colors resize-y min-h-[120px]"
               />
               
               <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1">
@@ -491,7 +420,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
         </div>
 
         {/* ── FAQ Section ─────────────────────────────────────────────────── */}
-        <section id="faqs-section" className="space-y-6 pt-6">
+        <section id="faqs-section" className="space-y-6 pt-4">
           <div className="text-center space-y-2">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold uppercase tracking-wider">
               <HelpCircle className="w-3.5 h-3.5" />
