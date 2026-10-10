@@ -16,13 +16,29 @@ export interface CheckoutPayload {
 }
 
 // ── Google Maps & Waze Deep-link Generators ──────────────────────────────────
+export function formatFullDeliveryAddress(address: string, suburb: string): string {
+  const cleanAddr = (address || '').trim();
+  const cleanSub = (suburb || '').trim();
+  const parts: string[] = [cleanAddr];
+  if (cleanSub && !cleanAddr.toLowerCase().includes(cleanSub.toLowerCase())) {
+    parts.push(cleanSub);
+  }
+  if (!cleanAddr.toLowerCase().includes('durban') && !cleanSub.toLowerCase().includes('durban')) {
+    parts.push('Durban');
+  }
+  if (!cleanAddr.toLowerCase().includes('south africa')) {
+    parts.push('South Africa');
+  }
+  return parts.filter(Boolean).join(', ');
+}
+
 export function generateGoogleMapsUrl(address: string, suburb: string): string {
-  const fullAddress = `${address}, ${suburb}, Durban, South Africa`;
+  const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`;
 }
 
 export function generateWazeUrl(address: string, suburb: string): string {
-  const fullAddress = `${address}, ${suburb}, Durban, South Africa`;
+  const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://waze.com/ul?q=${encodeURIComponent(fullAddress)}&navigate=yes`;
 }
 
