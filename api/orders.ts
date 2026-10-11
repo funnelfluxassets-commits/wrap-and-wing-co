@@ -23,10 +23,9 @@ function getStore(): any[] {
   // Sanitize out any legacy mock demo orders permanently
   (global as any).__wrap_wing_orders = (global as any).__wrap_wing_orders.filter((o: any) => {
     if (!o || typeof o !== 'object') return false;
-    const name = o.customer?.customerName || '';
-    if (DEMO_NAMES.has(name)) return false;
-    if (o.orderId && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(o.orderId).includes(id))) return false;
-    return true;
+    const name = (o.customer?.customerName || '').trim().toLowerCase();
+    const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(o.orderId).includes(id));
+    return !isLegacyDemo;
   });
   return (global as any).__wrap_wing_orders;
 }
@@ -62,8 +61,9 @@ export default async function handler(req: any, res: any) {
       }
 
       if (type === 'ORDER_CREATED' && order && order.orderId) {
-        const custName = order.customer?.customerName || '';
-        if (DEMO_NAMES.has(custName)) {
+        const custName = (order.customer?.customerName || '').trim().toLowerCase();
+        const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => custName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(order.orderId).includes(id));
+        if (isLegacyDemo) {
           return res.status(200).json({ success: true, count: store.length, orders: store });
         }
         const orderCleanId = String(order.orderId).replace('#', '').trim();

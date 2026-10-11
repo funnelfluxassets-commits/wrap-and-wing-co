@@ -266,21 +266,14 @@ export function getAllOrders(): LiveOrder[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [];
     }
-    // Sanitize and filter out invalid orders, plus purge any legacy demo orders
+    // Sanitize and filter out invalid orders, plus purge legacy static demo mock tickets
     const valid = parsed
       .filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId))
       .filter((o) => {
-        const name = (o.customer?.customerName || '').trim();
-        const isDemoName = DEMO_CUSTOMER_NAMES.has(name) || ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.toLowerCase().includes(n));
-        const isDemoId =
-          o.orderId === `D-${todayDay}01` ||
-          o.orderId === `D-${todayDay}02` ||
-          o.orderId === `C-${todayDay}01` ||
-          o.orderId === 'D-1001' ||
-          o.orderId === 'D-1002' ||
-          o.orderId === 'C-1001' ||
-          (isDemoName && ['D-', 'C-'].some((p) => o.orderId.startsWith(p)));
-        return !isDemoName && !isDemoId;
+        const name = (o.customer?.customerName || '').trim().toLowerCase();
+        const isLegacyDemoName = DEMO_CUSTOMER_NAMES.has((o.customer?.customerName || '').trim()) || ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n));
+        const isLegacyStaticDemoId = o.orderId === 'D-1001' || o.orderId === 'D-1002' || o.orderId === 'C-1001';
+        return !(isLegacyDemoName && isLegacyStaticDemoId);
       })
       .map((o) => ({
         ...o,
@@ -305,7 +298,7 @@ export function getAllOrders(): LiveOrder[] {
       }));
 
     if (valid.length !== parsed.length) {
-      // Clean up localStorage to permanently remove any leftover demo tickets
+      // Clean up localStorage to permanently remove any leftover legacy static demo tickets
       saveOrders(valid, false);
     }
 
@@ -341,18 +334,31 @@ export function getOrderById(orderId: string): LiveOrder | null {
 export function getCurrentOrderId(): string | null {
   if (typeof window === 'undefined') return null;
   const direct = localStorage.getItem(CURRENT_ORDER_KEY);
-  if (!direct) return null;
-  const clean = direct.replace('#', '').trim();
   const orders = getAllOrders();
-  const order = orders.find(
-    (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
-  );
-  // If order does not exist or has finished (completed or cancelled), it is removed from customer device
-  if (!order || order.status === 'completed' || order.status === 'cancelled') {
-    localStorage.removeItem(CURRENT_ORDER_KEY);
-    return null;
+
+  if (direct) {
+    const clean = direct.replace('#', '').trim();
+    const order = orders.find(
+      (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
+    );
+    // If order has finished (completed or cancelled), it is removed from customer device
+    if (order && (order.status === 'completed' || order.status === 'cancelled')) {
+      localStorage.removeItem(CURRENT_ORDER_KEY);
+      return null;
+    }
+    return direct;
   }
-  return direct;
+
+  // Resilient fallback: If CURRENT_ORDER_KEY was cleared or missing, recover the most recent active order from device history
+  const activeOrder = orders.find(
+    (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled'
+  );
+  if (activeOrder) {
+    localStorage.setItem(CURRENT_ORDER_KEY, activeOrder.orderId);
+    return activeOrder.orderId;
+  }
+
+  return null;
 }
 
 export function setCurrentOrderId(orderId: string) {
@@ -547,8 +553,9 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 
   if (event.type === 'ORDER_CREATED' && event.order) {
-    const custName = event.order.customer?.customerName || '';
-    if (DEMO_CUSTOMER_NAMES.has(custName)) {
+    const custName = (event.order.customer?.customerName || '').trim().toLowerCase();
+    const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => custName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(event.order?.orderId).includes(id));
+    if (isLegacyDemo) {
       return;
     }
     const orderCleanId = String(event.order.orderId).replace('#', '').trim();
@@ -675,10 +682,9 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         const data = await apiResp.json();
         if (Array.isArray(data)) {
           cloudOrders = data.filter((raw: any) => {
-            const name = raw?.customer?.customerName || '';
-            if (DEMO_CUSTOMER_NAMES.has(name)) return false;
-            if (raw?.orderId && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(raw.orderId).includes(id))) return false;
-            return true;
+            const name = (raw?.customer?.customerName || '').trim().toLowerCase();
+            const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(raw.orderId).includes(id));
+            return !isLegacyDemo;
           });
         }
       }
@@ -759,8 +765,9 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
 
       // 3. Two-way sync: If local device has an order that cloud does not have, auto-push to cloud
       for (const local of currentOrders) {
-        const localName = local.customer?.customerName || '';
-        if (DEMO_CUSTOMER_NAMES.has(localName)) continue;
+        const localName = (local.customer?.customerName || '').trim().toLowerCase();
+        const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => localName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(local.orderId).includes(id));
+        if (isLegacyDemo) continue;
         if (
           local &&
           local.orderId &&

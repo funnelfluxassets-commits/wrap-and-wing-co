@@ -42,11 +42,14 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   onBackToMenu,
   onOpenKitchen,
 }) => {
-  const [order, setOrder] = useState<LiveOrder | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const lastStatusRef = useRef<OrderStatus | null>(null);
-
   const effectiveOrderId = orderId || getCurrentOrderId() || '';
+  const [order, setOrder] = useState<LiveOrder | null>(() => {
+    if (!effectiveOrderId) return null;
+    return getOrderById(effectiveOrderId);
+  });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const lastStatusRef = useRef<OrderStatus | null>(order?.status || null);
+
   const isDelivery = order ? order.orderMode === 'delivery' : true;
 
   // Auto-dismiss/redirect once delivery or collection is completed
@@ -85,8 +88,29 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   };
 
   useEffect(() => {
-    if (!effectiveOrderId) return;
+    if (!effectiveOrderId) {
+      // If no ID passed, try to discover active order from cloud
+      syncOrdersFromCloud().then((fresh) => {
+        const active = fresh.find(
+          (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled'
+        );
+        if (active) {
+          setOrder(active);
+        }
+      });
+      return;
+    }
     const cleanTarget = effectiveOrderId.replace('#', '').trim();
+
+    // Immediate initial sync from cloud in case order was created on another device
+    syncOrdersFromCloud().then((freshOrders) => {
+      const current = freshOrders.find(
+        (o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === cleanTarget
+      );
+      if (current) {
+        setOrder(current);
+      }
+    });
 
     const unsubscribe = subscribeToSingleOrder(effectiveOrderId, (liveOrder) => {
       if (liveOrder) {
@@ -149,13 +173,15 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     return (
       <div className="min-h-screen bg-[#0d0d12] text-white flex flex-col items-center justify-center p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-4">
-          🔍
+          <span className="text-2xl animate-spin inline-block">🍳</span>
         </div>
         <h2 className="text-xl font-black">
-          {effectiveOrderId ? `Looking for Order #${effectiveOrderId}...` : 'No Active Order Found'}
+          {effectiveOrderId ? `Connecting to Kitchen Feed (#${effectiveOrderId})...` : 'Looking for Active Order...'}
         </h2>
         <p className="text-xs text-zinc-400 mt-1 max-w-sm">
-          Connecting to live restaurant kitchen feed to check your order status.
+          {effectiveOrderId
+            ? 'Fetching live status from the restaurant grill system. Please hold on a moment...'
+            : 'Connecting to live restaurant kitchen feed to check your order status.'}
         </p>
         <div className="flex gap-3 mt-6">
           <button
@@ -163,12 +189,15 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             onClick={async () => {
               const orders = await syncOrdersFromCloud();
               if (orders.length > 0) {
-                setOrder(orders[0]);
+                const target = effectiveOrderId
+                  ? orders.find((o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === effectiveOrderId.replace('#', '').trim()) || orders[0]
+                  : orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled') || orders[0];
+                if (target) setOrder(target);
               }
             }}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg"
           >
-            ↻ Check Cloud Feed
+            ↻ Recheck Kitchen Status
           </button>
           <button
             type="button"

@@ -130,13 +130,18 @@ const MainContent: React.FC = () => {
       const myOrder = orders.find(
         (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
       );
-      if (myOrder && myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
-        setActiveOrder(myOrder);
-        setTrackedOrderId(myOrder.orderId);
+      if (myOrder) {
+        if (myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
+          setActiveOrder(myOrder);
+          setTrackedOrderId(myOrder.orderId);
+        } else {
+          // Order finished or delivered -> remove from customer device
+          setActiveOrder(null);
+          setTrackedOrderId(null);
+        }
       } else {
-        // Order finished or delivered -> remove from customer device
-        setActiveOrder(null);
-        setTrackedOrderId(null);
+        // Order not yet in local cache (syncing from cloud) - keep trackedOrderId active
+        setTrackedOrderId(myOrderId);
       }
     });
 
@@ -263,7 +268,7 @@ const MainContent: React.FC = () => {
       ) : currentView === 'track' ? (
         <ErrorBoundary fallbackTitle="Order Tracker Recovery">
           <OrderTrackerView
-            orderId={trackedOrderId || activeOrder?.orderId || ''}
+            orderId={trackedOrderId || activeOrder?.orderId || getCurrentOrderId() || ''}
             onBackToMenu={() => handleNavigate('menu')}
           />
         </ErrorBoundary>
