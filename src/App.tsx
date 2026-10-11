@@ -96,6 +96,14 @@ const MainContent: React.FC = () => {
 
   // Sync hash and pathname routing and active orders
   useEffect(() => {
+    // Strip trailing '#' or '#menu' on initial load
+    if (typeof window !== 'undefined' && window.location.href.includes('#')) {
+      const initHash = window.location.hash.toLowerCase().replace('#', '');
+      if (!initHash || initHash === 'menu') {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+
     const handleHash = () => {
       const hash = window.location.hash.toLowerCase().replace('#', '');
       const path = window.location.pathname.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
@@ -141,7 +149,13 @@ const MainContent: React.FC = () => {
   const handleNavigate = (view: PageView) => {
     setCurrentView(view);
     if (typeof window !== 'undefined') {
-      window.location.hash = view === 'menu' ? '' : view;
+      if (view === 'menu') {
+        if (window.location.hash) {
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+      } else {
+        window.location.hash = view;
+      }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
