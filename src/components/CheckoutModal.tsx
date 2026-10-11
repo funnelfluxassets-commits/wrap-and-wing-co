@@ -70,6 +70,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     setHasAutofilled(false);
   };
 
+  const firstName = (savedProfile.customerName || customerName || '').trim().split(' ')[0];
+
   if (!isOpen) return null;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -183,12 +185,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           
           {/* Saved Profile Autofill Notice */}
           {hasAutofilled && (
-            <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs whitespace-nowrap">
-              <span className="truncate">Welcome back! Your details have been auto-filled.</span>
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/30 text-amber-300 text-xs">
+              <span className="truncate flex items-center gap-1.5 font-medium">
+                <span>👋</span>
+                <span>Welcome back{firstName ? `, ${firstName}` : ''}! Your details have been auto-filled.</span>
+              </span>
               <button
                 type="button"
                 onClick={handleClearSavedDetails}
-                className="text-[11px] font-bold text-zinc-400 hover:text-amber-200 underline cursor-pointer ml-2 shrink-0"
+                className="text-[11px] font-bold text-zinc-400 hover:text-amber-200 underline cursor-pointer ml-3 shrink-0"
               >
                 Clear
               </button>
@@ -359,76 +364,68 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* PayFast */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('payfast')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  paymentMethod === 'payfast'
-                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-300'
-                }`}
-              >
-                <div>
-                  <div className="text-xs font-black flex items-center gap-1.5">
-                    <span>PayFast</span>
-                    <span className="text-[9px] bg-rose-500/20 text-rose-300 px-1.5 py-0.5 rounded">POPULAR</span>
-                  </div>
-                  <div className="text-[11px] text-zinc-200">Instant EFT, Capitec Pay, Cards</div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'payfast' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
-              </button>
-
-              {/* Yoco */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('yoco')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  paymentMethod === 'yoco'
-                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
-                }`}
-              >
-                <div>
-                  <div className="text-xs font-black">Yoco Checkout</div>
-                  <div className="text-[11px] text-zinc-200">Credit / Debit Card & Apple Pay</div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'yoco' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
-              </button>
-
-              {/* WhatsApp Direct */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('whatsapp')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  paymentMethod === 'whatsapp'
-                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
-                }`}
-              >
-                <div>
-                  <div className="text-xs font-black text-emerald-400">WhatsApp Order</div>
-                  <div className="text-[11px] text-zinc-200">Confirm order directly with kitchen</div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'whatsapp' ? 'border-emerald-500 bg-emerald-500' : 'border-zinc-600'}`} />
-              </button>
-
-              {/* Cash / Speedpoint on Delivery */}
+              {/* Pay On Handover (Active) */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod('cod')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                  paymentMethod === 'cod'
-                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'bg-zinc-900/80 hover:bg-zinc-800 border-white/10 text-zinc-200'
-                }`}
+                className="p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white shadow-sm"
               >
                 <div>
-                  <div className="text-xs font-black">Pay On Handover</div>
-                  <div className="text-[11px] text-zinc-200">Cash or Speedpoint card machine</div>
+                  <div className="text-xs font-black flex items-center gap-1.5">
+                    <span>Pay On Handover</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold uppercase">ACTIVE</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-300">Cash or Speedpoint card machine</div>
                 </div>
-                <div className={`w-4 h-4 rounded-full border ${paymentMethod === 'cod' ? 'border-rose-500 bg-rose-500' : 'border-zinc-600'}`} />
+                <div className="w-4 h-4 rounded-full border border-rose-500 bg-rose-500 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                </div>
               </button>
+
+              {/* PayFast (Coming Soon) */}
+              <div
+                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
+                title="Online payments coming soon"
+              >
+                <div>
+                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                    <span>PayFast</span>
+                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">Instant EFT, Capitec Pay, Cards</div>
+                </div>
+                <div className="w-4 h-4 rounded-full border border-zinc-700" />
+              </div>
+
+              {/* Yoco (Coming Soon) */}
+              <div
+                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
+                title="Card gateway coming soon"
+              >
+                <div>
+                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                    <span>Yoco Checkout</span>
+                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">Credit / Debit Card & Apple Pay</div>
+                </div>
+                <div className="w-4 h-4 rounded-full border border-zinc-700" />
+              </div>
+
+              {/* WhatsApp Direct (Coming Soon) */}
+              <div
+                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
+                title="WhatsApp ordering coming soon"
+              >
+                <div>
+                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                    <span>WhatsApp Order</span>
+                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-500">Confirm order directly with kitchen</div>
+                </div>
+                <div className="w-4 h-4 rounded-full border border-zinc-700" />
+              </div>
             </div>
           </div>
 
