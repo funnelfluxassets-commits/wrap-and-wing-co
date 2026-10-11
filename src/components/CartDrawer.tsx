@@ -66,22 +66,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             <button
               type="button"
               onClick={() => setOrderMode('collection')}
-              className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                orderMode === 'collection' ? 'bg-rose-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'
-              }`}
+              className="py-2.5 rounded-lg bg-rose-600 text-white shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <span>🛍️ Store Collection</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setOrderMode('delivery')}
-              className={`py-2 rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                orderMode === 'delivery' ? 'bg-rose-600 text-white shadow-md' : 'text-zinc-400 hover:text-white'
-              }`}
+            <div
+              className="py-2 rounded-lg flex flex-col items-center justify-center gap-0.5 text-zinc-500 bg-zinc-900/40 border border-white/5 cursor-not-allowed select-none opacity-60"
+              title="Delivery service coming soon!"
             >
-              <DeliveryMotorbikeIcon className="w-4 h-4 shrink-0 text-amber-300" />
-              <span>Delivery (+R25)</span>
-            </button>
+              <div className="flex items-center gap-1">
+                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
+                <span className="text-zinc-400">Delivery</span>
+              </div>
+              <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider">
+                Coming Soon
+              </span>
+            </div>
           </div>
         </div>
 

@@ -232,24 +232,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => setOrderMode('collection')}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-                    orderMode === 'collection' ? 'bg-rose-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-                  }`}
+                  className="px-3 py-1 rounded text-xs font-bold bg-rose-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>🛍️ Collect</span>
-                  {orderMode === 'collection' && <Check className="w-3 h-3" />}
+                  <Check className="w-3 h-3" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderMode('delivery')}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-                    orderMode === 'delivery' ? 'bg-rose-600 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
-                  }`}
+                <div
+                  className="px-2.5 py-1 rounded text-xs font-semibold text-zinc-500 bg-zinc-900/40 border border-white/5 flex items-center gap-1.5 cursor-not-allowed select-none opacity-60"
+                  title="Delivery service coming soon!"
                 >
-                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                   <span>Delivery</span>
-                  {orderMode === 'delivery' && <Check className="w-3 h-3" />}
-                </button>
+                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 tracking-wider">
+                    Coming Soon
+                  </span>
+                </div>
               </div>
             </div>
           </div>

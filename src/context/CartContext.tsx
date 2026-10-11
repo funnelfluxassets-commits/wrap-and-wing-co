@@ -34,14 +34,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  const [orderMode, setOrderMode] = useState<OrderMode>(() => {
-    try {
-      const saved = localStorage.getItem('wrap_wing_mode');
-      return (saved as OrderMode) || 'collection';
-    } catch {
-      return 'collection';
-    }
-  });
+  // Temporarily locked to 'collection' until delivery infrastructure is activated
+  const [orderMode, setOrderMode] = useState<OrderMode>('collection');
 
   const [selectedStore, setSelectedStore] = useState<StoreLocation>(STORES[0]);
   const [isCartOpen, setIsCartOpen] = useState(false);
