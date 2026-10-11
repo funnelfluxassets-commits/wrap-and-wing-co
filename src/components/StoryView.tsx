@@ -51,7 +51,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="relative rounded-3xl overflow-hidden border border-orange-500/30 shadow-2xl bg-zinc-900 group">
               <img
                 src="/images/story/nonto-4.webp"
-                alt="Nonto Magcugcwa - Founder of Wrap & Wings Co"
+                alt="Nonto Nzama - Founder of Wrap & Wings Co"
                 className="w-full h-auto object-cover aspect-[4/3] sm:aspect-square md:aspect-[4/3] transition-transform duration-500 group-hover:scale-102"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
@@ -61,7 +61,7 @@ export const StoryView: React.FC<StoryViewProps> = ({ onNavigate, onOpenStoreMod
             <div className="absolute bottom-10 sm:bottom-12 lg:bottom-10 translate-y-1/2 left-3 right-3 sm:left-6 sm:right-6 p-3.5 sm:p-4 rounded-2xl bg-zinc-900/95 border border-white/15 shadow-2xl backdrop-blur-md z-20">
               <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Founder & Visionary</div>
               <div className="text-sm font-bold text-white mt-0.5">
-                Nonto Magcugcwa • Founder of Wrap & Wings Co.
+                Nonto Nzama • Founder of Wrap & Wings Co.
               </div>
             </div>
             

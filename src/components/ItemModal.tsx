@@ -10,7 +10,7 @@ interface ItemModalProps {
 }
 
 const BASE_EXTRAS_OPTIONS = [
-  { name: 'Extra Melted Cheese', price: 10.0 },
+  { name: 'Extra Cheese', price: 10.0 },
   { name: 'Add Extra Roll', price: 6.0 },
 ];
 
@@ -311,7 +311,7 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
                 )}
               </div>
 
-              {/* Other Extras (Extra Melted Cheese R10, Add Extra Roll R6) */}
+              {/* Other Extras (Extra Cheese R10, Add Extra Roll R6) */}
               {BASE_EXTRAS_OPTIONS.map((extra) => {
                 const isSelected = selectedExtras.some((e) => e.name === extra.name);
                 return (
