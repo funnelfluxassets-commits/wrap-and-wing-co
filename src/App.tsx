@@ -187,7 +187,7 @@ const MainContent: React.FC = () => {
             <AdminPortalView
               onBackToMenu={() => handleNavigate('menu')}
               onLogout={handleStaffLogout}
-              onNavigateRole={(role) => handleNavigate(role)}
+              onNavigateRole={(role) => handleNavigate(role === 'driver' ? 'delivery' : role)}
             />
           </ErrorBoundary>
         ) : (

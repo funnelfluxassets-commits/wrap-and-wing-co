@@ -133,7 +133,7 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                     `🗺️ *Google Maps GPS:* ${googleMapsUrl}\n` +
                     `🗺️ *Waze Navigation:* ${wazeUrl}\n\n` +
                     (order.tip ? `🛵 *Driver Tip Included:* R${order.tip.toFixed(2)}\n` : '') +
-                    `💰 *Collection Amount:* R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)} (${order.paymentStatus === 'paid' ? 'PAID ONLINE' : 'COLLECT ON HANDOVER'})`
+                    `💰 *Collection Amount:* R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)} (${'paymentStatus' in order && order.paymentStatus === 'paid' ? 'PAID ONLINE' : 'COLLECT ON HANDOVER'})`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

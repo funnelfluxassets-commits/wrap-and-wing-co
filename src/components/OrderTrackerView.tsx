@@ -5,6 +5,7 @@ import {
   getCurrentOrderId,
   clearCurrentOrder,
   getAllOrders,
+  getOrderById,
   syncOrdersFromCloud,
   playCustomerUpdateChime,
   triggerHapticFeedback

@@ -447,6 +447,8 @@ export interface CloudOrderEvent {
   newStatus?: OrderStatus;
   note?: string;
   timelineEvent?: OrderTimelineEvent;
+  cookingStartedAt?: number;
+  completedAt?: number;
   timestamp: number;
 }
 
