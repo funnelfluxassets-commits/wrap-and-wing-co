@@ -131,11 +131,11 @@ const MainContent: React.FC = () => {
         (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
       );
       if (myOrder) {
-        if (myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
+        if (myOrder.status !== 'cancelled') {
+          // Keep active while cooking, ready, or completed so customer can see the celebratory completion screen
           setActiveOrder(myOrder);
           setTrackedOrderId(myOrder.orderId);
         } else {
-          // Order finished or delivered -> remove from customer device
           setActiveOrder(null);
           setTrackedOrderId(null);
         }

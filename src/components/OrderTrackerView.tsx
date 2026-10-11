@@ -53,13 +53,13 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
   const isDelivery = order ? order.orderMode === 'delivery' : true;
 
-  // Auto-dismiss/redirect once delivery or collection is completed
+  // Auto-dismiss/redirect once delivery or collection is completed (15s grace period so customer sees celebration)
   useEffect(() => {
     if (order?.status === 'completed') {
       const redirectTimer = setTimeout(() => {
         clearCurrentOrder();
         onBackToMenu();
-      }, 7000);
+      }, 15000);
       return () => clearTimeout(redirectTimer);
     }
   }, [order?.status, onBackToMenu]);
@@ -81,7 +81,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       } else if (status === 'dispatched') {
         setToastMessage('🏍️ Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
       } else if (status === 'completed') {
-        setToastMessage('😊 Order Complete: Thank you for ordering with Wrap & Wings Co. Enjoy!');
+        setToastMessage(
+          isDeliv
+            ? '🎉 Order Delivered: Handed over successfully! Thank you for ordering with Wrap & Wings Co.'
+            : '🎉 Order Collected: Handed over at counter! Thank you for ordering with Wrap & Wings Co.'
+        );
       }
     } catch (err) {
       console.warn('Status alert error:', err);
@@ -225,7 +229,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     name: 'Shop 1, Uniland Centre, Pinetown',
     phone: '083 490 8593',
     address: 'Shop 1, Uniland Centre, Pinetown',
-    googleMapsUrl: 'https://maps.google.com/?q=Shop+1+Uniland+Centre+Pinetown',
+    googleMapsUrl: 'https://www.google.com/maps/place/Wrap+and+Wing+Co/@-29.8120098,30.8555607,17z/data=!4m6!3m5!1s0x1ef6ff609bbeefc7:0xb1b982704527f3d7!8m2!3d-29.8120098!4d30.8555607!16s%2Fg%2F11nvh9v3d5',
   };
   const items = Array.isArray(order.items) ? order.items : [];
   const subtotal = typeof order.subtotal === 'number' ? order.subtotal : 0;
@@ -284,13 +288,13 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         },
         {
           step: 3,
-          label: 'Ready at Counter',
+          label: 'Ready for Pickup',
           icon: <Store className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
         {
           step: 4,
-          label: 'Enjoy!',
+          label: 'Collected & Enjoy!',
           icon: <Smile className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
@@ -331,14 +335,19 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const targetStep = getStepProgress(order.status);
   const [displayStep, setDisplayStep] = useState<number>(() => targetStep);
 
-  // Progressive Step Animation: When status advances quickly, animate each step smoothly so both steps don't jump simultaneously
+  // Responsive step animation: instant for single step, smooth progression if multiple steps
   useEffect(() => {
     if (targetStep > displayStep) {
-      const stepTimer = setTimeout(() => {
-        setDisplayStep((prev) => Math.min(prev + 1, targetStep));
+      if (targetStep - displayStep === 1) {
+        setDisplayStep(targetStep);
         playCustomerUpdateChime();
-      }, 550);
-      return () => clearTimeout(stepTimer);
+      } else {
+        const stepTimer = setTimeout(() => {
+          setDisplayStep((prev) => Math.min(prev + 1, targetStep));
+          playCustomerUpdateChime();
+        }, 400);
+        return () => clearTimeout(stepTimer);
+      }
     } else if (targetStep < displayStep) {
       setDisplayStep(targetStep);
     }
@@ -427,6 +436,33 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </div>
         )}
 
+        {/* Order Completed Celebratory Banner */}
+        {order.status === 'completed' && (
+          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white shadow-2xl border border-emerald-300/40 text-center space-y-2.5 animate-slideDown">
+            <div className="text-3xl sm:text-4xl">🎉 🛍️ 😋</div>
+            <h3 className="text-lg sm:text-2xl font-black">
+              {isDelivery ? 'Order Delivered & Completed!' : 'Order Collected & Handed Over!'}
+            </h3>
+            <p className="text-xs sm:text-sm text-emerald-100 max-w-md mx-auto leading-relaxed">
+              {isDelivery
+                ? 'Your meal was delivered by our driver. Thank you for choosing Wrap & Wings Co.! Enjoy your food!'
+                : 'Your flame-grilled meal was handed over at Shop 1, Uniland Centre! Thank you for ordering with Wrap & Wings Co.! Enjoy every bite.'}
+            </p>
+            <div className="pt-2 flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  clearCurrentOrder();
+                  onBackToMenu();
+                }}
+                className="px-6 py-2.5 rounded-xl bg-white text-zinc-950 font-black text-xs hover:bg-zinc-100 transition-colors shadow-lg cursor-pointer"
+              >
+                Return to Food Menu
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Status Highlight Card */}
         <div
           className={`p-6 rounded-3xl border shadow-2xl relative overflow-hidden transition-all ${
@@ -477,8 +513,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 )}
                 {order.status === 'completed' && (
                   <span className="text-emerald-300 font-bold flex items-center gap-1.5 shrink-0">
-                    <Smile className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    <span>Delivered &amp; Complete</span>
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                    <span>{isDelivery ? 'Delivered & Complete' : 'Collected & Handed Over'}</span>
                   </span>
                 )}
               </span>
@@ -495,8 +531,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 )}
                 {order.status === 'completed' && (
                   <span className="inline-flex items-center gap-2">
-                    <span>Order Completed!</span>
-                    <Smile className="w-6 h-6 sm:w-7 sm:h-7 inline text-amber-400 shrink-0" />
+                    <span>{isDelivery ? 'Order Delivered & Complete!' : 'Order Collected & Complete!'}</span>
+                    <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 inline text-amber-400 shrink-0" />
                   </span>
                 )}
               </h2>
@@ -512,7 +548,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {order.status === 'dispatched' &&
                   'Our delivery driver has your hot meal and is heading directly to your address.'}
                 {order.status === 'completed' &&
-                  'Thank you for ordering with Wrap & Wings Co.! We hope you enjoy your meal.'}
+                  (isDelivery
+                    ? 'Your meal has been delivered! Thank you for ordering with Wrap & Wings Co.! We hope you enjoy your meal.'
+                    : 'Your meal has been handed over at the collection counter! Thank you for collecting your order with Wrap & Wings Co.! Enjoy your food!')}
               </p>
             </div>
 
@@ -681,18 +719,20 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                {store.googleMapsUrl && (
-                  <a
-                    href={store.googleMapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/40"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    <span>Get Directions on Google Maps</span>
-                    <ExternalLink className="w-3 h-3 ml-0.5" />
-                  </a>
-                )}
+                <a
+                  href={
+                    !store.googleMapsUrl || store.googleMapsUrl.includes('rvbtFPqmtcQomondA')
+                      ? 'https://www.google.com/maps/place/Wrap+and+Wing+Co/@-29.8120098,30.8555607,17z/data=!4m6!3m5!1s0x1ef6ff609bbeefc7:0xb1b982704527f3d7!8m2!3d-29.8120098!4d30.8555607!16s%2Fg%2F11nvh9v3d5'
+                      : store.googleMapsUrl
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-950/40 cursor-pointer"
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Get Directions on Google Maps</span>
+                  <ExternalLink className="w-3 h-3 ml-0.5" />
+                </a>
                 <a
                   href={`tel:${store.phone}`}
                   className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-white/10"

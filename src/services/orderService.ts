@@ -625,8 +625,8 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
       currentOrders[existingIndex] = updated;
       saveOrders(currentOrders, true);
 
-      // If completed or cancelled, remove from customer device active storage
-      if (typeof window !== 'undefined' && (newStatus === 'completed' || newStatus === 'cancelled')) {
+      // If cancelled, remove from customer device active storage
+      if (typeof window !== 'undefined' && newStatus === 'cancelled') {
         const currentActiveId = localStorage.getItem(CURRENT_ORDER_KEY);
         if (currentActiveId === targetId || currentActiveId?.replace('#', '').trim() === cleanTarget) {
           localStorage.removeItem(CURRENT_ORDER_KEY);
@@ -639,6 +639,8 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
             detail: {
               orderId: targetId,
               newStatus,
+              status: newStatus,
+              order: updated,
               note: event.note,
               isRealtimePush,
               senderDeviceId: event.senderDeviceId,
@@ -675,7 +677,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
-      const apiResp = await fetch('/api/orders', {
+      const apiResp = await fetch(`/api/orders?t=${Date.now()}`, {
         cache: 'no-store',
         signal: controller.signal,
       });
@@ -958,8 +960,8 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
   orders[index] = updatedOrder;
   saveOrders(orders, true);
 
-  // If order is completed or cancelled, remove from customer device active storage so it disappears
-  if (typeof window !== 'undefined' && (newStatus === 'completed' || newStatus === 'cancelled')) {
+  // If order is cancelled, remove from customer device active storage so it disappears
+  if (typeof window !== 'undefined' && newStatus === 'cancelled') {
     const currentActiveId = localStorage.getItem(CURRENT_ORDER_KEY);
     if (currentActiveId === orderId || currentActiveId?.replace('#', '').trim() === cleanId) {
       localStorage.removeItem(CURRENT_ORDER_KEY);
