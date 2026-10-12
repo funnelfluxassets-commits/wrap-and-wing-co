@@ -51,8 +51,9 @@ export const STORES: StoreLocation[] = [
   },
 ];
 
-export const GOOGLE_BUSINESS_URL = 'https://maps.app.goo.gl/rvbtFPqmtcQomondA';
-export const GOOGLE_REVIEW_URL = 'https://maps.app.goo.gl/rvbtFPqmtcQomondA';
+export const GOOGLE_BUSINESS_URL =
+  'https://www.google.com/maps/place/Wrap+and+Wing+Co/@-29.8120098,30.8555607,17z/data=!4m6!3m5!1s0x1ef6ff609bbeefc7:0xb1b982704527f3d7!8m2!3d-29.8120098!4d30.8555607!16s%2Fg%2F11nvh9v3d5';
+export const GOOGLE_REVIEW_URL = GOOGLE_BUSINESS_URL;
 
 export const SOCIAL_LINKS = {
   tiktok: 'https://www.tiktok.com/@wrapwings.co',
