@@ -26,7 +26,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
   const [phone, setPhone] = useState('');
   const [receiptNumber, setReceiptNumber] = useState('');
   const [googleReviewName, setGoogleReviewName] = useState('');
-  const [rating, setRating] = useState<number>(5);
+  const [rating, setRating] = useState<number>(0);
   const [comments, setComments] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +52,10 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
     }
     if (!googleReviewName.trim()) {
       setErrorMessage('Please enter the name that appears on your Google account so we can match your review.');
+      return;
+    }
+    if (rating === 0) {
+      setErrorMessage('Please select a star rating for your experience (1 to 5 stars).');
       return;
     }
 
@@ -264,12 +268,14 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <div className="space-y-2 pt-2">
                 <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center justify-between">
                   <span className="whitespace-nowrap">Rate Experience</span>
-                  <span className="text-amber-400 font-bold whitespace-nowrap">{rating}/5 Stars</span>
+                  <span className="text-amber-400 font-bold whitespace-nowrap">
+                    {rating > 0 ? `${rating}/5 Stars` : 'Tap to Rate'}
+                  </span>
                 </label>
                 <div className="flex items-center gap-1.5 sm:gap-3 py-1">
                   {[1, 2, 3, 4, 5].map((star) => {
                     const isSelected = rating === star;
-                    const isFilled = rating >= star;
+                    const isFilled = rating > 0 && rating >= star;
 
                     return (
                       <button
@@ -374,8 +380,33 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </a>
 
               <p className="text-[11px] text-zinc-400">
-                Opens directly to Wrap &amp; Wings Co on Google Maps
+                Opens directly to Wrap &amp; Wings Co on Google Business
               </p>
+
+              {/* Guidance Info: Where to find the Reviews tab on Google Business */}
+              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 text-left space-y-2.5 shadow-lg">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Where to find the "Reviews" tab on our page:</span>
+                </div>
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Once our Google Business page opens, look for the navigation tabs directly below our name:
+                </p>
+                <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 py-1 text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Overview</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Menu</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/60 text-amber-300 font-black">
+                    👉 Reviews
+                  </span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Photos</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Tap on <strong className="text-white">"Reviews"</strong> (right next to the Menu tab), select your star rating, paste your feedback, and tap <strong>Post</strong> to lock in your entry!
+                </p>
+              </div>
             </div>
 
             {/* Quick-Copy Helper if user typed comments */}
