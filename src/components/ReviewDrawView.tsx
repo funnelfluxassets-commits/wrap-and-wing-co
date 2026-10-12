@@ -129,7 +129,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
       <main className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-10 sm:py-14 flex-1">
         {!isSubmitted ? (
           /* ── STEP 1: The Digital Entry Form ── */
-          <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-8 animate-fadeIn">
+          <div className="p-5 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-8 animate-fadeIn">
             
             {/* Featured Weekly Prize Spotlight Card with Wrap Meal Image */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
@@ -165,7 +165,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                 <Gift className="w-4 h-4 text-rose-500" />
                 <span>Step 1 of 2: Entry Details</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">
+              <h2 className="text-xl sm:text-3xl font-black text-white leading-tight">
                 Enter Your Details &amp; Order Receipt
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300">
@@ -183,7 +183,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Field 1: Full Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
+                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
                   <span>Full Name</span>
                   <span className="text-rose-500">*</span>
                 </label>
@@ -199,12 +199,12 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
 
               {/* Field 2: WhatsApp / Cellphone Number */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                  <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
                     <span>WhatsApp / Cellphone Number</span>
                     <span className="text-rose-500">*</span>
                   </label>
-                  <span className="text-[11px] text-amber-400 font-bold">To Receive Digital Meal Voucher</span>
+                  <span className="text-[11px] text-amber-400 font-bold whitespace-nowrap">To Receive Digital Meal Voucher</span>
                 </div>
                 <input
                   type="tel"
@@ -221,7 +221,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
 
               {/* Field 3: Order / Receipt Number */}
               <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
+                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
                   <span>Order / Receipt Number</span>
                   <span className="text-rose-500">*</span>
                 </label>
@@ -241,8 +241,8 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
 
               {/* Field 4: Google Review Name */}
               <div className="space-y-1.5">
-                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5">
-                  <span>What name displays on your Google account?</span>
+                <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center gap-1.5 whitespace-nowrap">
+                  <span>Google Account Name</span>
                   <span className="text-rose-500">*</span>
                 </label>
                 <input
@@ -261,23 +261,23 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               {/* Field 5: Overall Experience Rating */}
               <div className="space-y-2 pt-2">
                 <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center justify-between">
-                  <span>How would you rate your experience today?</span>
-                  <span className="text-amber-400 font-bold">{rating} / 5 Stars</span>
+                  <span className="whitespace-nowrap">Rate Experience</span>
+                  <span className="text-amber-400 font-bold whitespace-nowrap">{rating}/5 Stars</span>
                 </label>
-                <div className="flex items-center gap-2 sm:gap-3 py-1">
+                <div className="flex items-center gap-1.5 sm:gap-3 py-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
                       type="button"
                       onClick={() => setRating(star)}
-                      className={`flex-1 py-3 px-2 rounded-xl border text-xs sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`flex-1 py-3 px-1.5 sm:px-2 rounded-xl border text-xs sm:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
                         rating >= star
                           ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-sm'
                           : 'bg-zinc-900 border-white/10 text-zinc-500 hover:text-white'
                       }`}
                     >
                       <Star
-                        className={`w-4 h-4 ${
+                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
                           rating >= star ? 'fill-amber-400 text-amber-400' : 'text-zinc-600'
                         }`}
                       />
@@ -290,8 +290,8 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               {/* Field 6: Optional Comments / Feedback */}
               <div className="space-y-1.5">
                 <label className="text-xs font-black uppercase text-zinc-200 tracking-wider flex items-center justify-between">
-                  <span>What did you love or how can we improve? (Optional)</span>
-                  <span className="text-zinc-500 text-[11px]">Optional</span>
+                  <span className="whitespace-nowrap">Your Feedback</span>
+                  <span className="text-zinc-500 text-[11px] font-bold whitespace-nowrap">Optional</span>
                 </label>
                 <textarea
                   rows={3}
@@ -310,14 +310,15 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 active:scale-98 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 active:scale-98 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? (
-                    <span>Submitting Entry...</span>
+                    <span className="whitespace-nowrap">Submitting Entry...</span>
                   ) : (
                     <>
-                      <span>Submit Details & Continue to Final Step</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <span className="hidden sm:inline whitespace-nowrap">Submit Details &amp; Continue to Final Step</span>
+                      <span className="sm:hidden whitespace-nowrap">Submit &amp; Continue</span>
+                      <ArrowRight className="w-4 h-4 shrink-0" />
                     </>
                   )}
                 </button>
@@ -351,14 +352,15 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                 href={GOOGLE_REVIEW_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-base tracking-wide shadow-2xl shadow-amber-950/70 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-sm sm:text-base tracking-wide shadow-2xl shadow-amber-950/70 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>👉 Click Here to Publish Review on Google</span>
-                <ExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline whitespace-nowrap">👉 Click Here to Publish Review on Google</span>
+                <span className="sm:hidden whitespace-nowrap">👉 Publish Review on Google</span>
+                <ExternalLink className="w-4 h-4 shrink-0" />
               </a>
 
               <p className="text-[11px] text-zinc-400">
-                Opens directly to Wrap & Wings Co on Google Maps
+                Opens directly to Wrap &amp; Wings Co on Google Maps
               </p>
             </div>
 
