@@ -699,7 +699,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         )}
 
         {/* ==================================================================== */}
-        {/* TAB 2: R500 CUSTOMER REVIEW DRAW (GOOGLE REVIEWS)                     */}
+        {/* TAB 2: WEEKLY MEAL VOUCHER CUSTOMER REVIEW DRAW (GOOGLE REVIEWS)      */}
         {/* ==================================================================== */}
         {activeTab === 'reviews' && (
           <div className="space-y-6 animate-fadeIn">

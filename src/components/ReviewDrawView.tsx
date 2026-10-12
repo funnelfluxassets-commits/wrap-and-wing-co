@@ -133,13 +133,15 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
             
             {/* Featured Weekly Prize Spotlight Card with Wrap Meal Image */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shrink-0 shadow-lg">
-                <img
-                  src="/images/menu/wrap-and-side-1.webp"
-                  alt="This Week's Featured Prize: Chicken Shwarma Wrap Meal + Side"
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-amber-500 text-zinc-950 font-black text-[9px] uppercase tracking-wider shadow">
+              <div className="relative shrink-0 pt-2.5">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg">
+                  <img
+                    src="/images/menu/wrap-and-side-1.webp"
+                    alt="This Week's Featured Prize: Chicken Shwarma Wrap Meal + Side"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md whitespace-nowrap z-10 border border-amber-600/30">
                   This Week
                 </span>
               </div>
@@ -265,25 +267,36 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                   <span className="text-amber-400 font-bold whitespace-nowrap">{rating}/5 Stars</span>
                 </label>
                 <div className="flex items-center gap-1.5 sm:gap-3 py-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className={`flex-1 py-3 px-1.5 sm:px-2 rounded-xl border text-xs sm:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
-                        rating >= star
-                          ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 shadow-sm'
-                          : 'bg-zinc-900 border-white/10 text-zinc-500 hover:text-white'
-                      }`}
-                    >
-                      <Star
-                        className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                          rating >= star ? 'fill-amber-400 text-amber-400' : 'text-zinc-600'
+                  {[1, 2, 3, 4, 5].map((star) => {
+                    const isSelected = rating === star;
+                    const isFilled = rating >= star;
+
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        className={`flex-1 py-3 px-1.5 sm:px-2 rounded-xl border text-xs sm:text-sm font-black flex items-center justify-center gap-1 sm:gap-1.5 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-500/35 border-amber-400 text-white ring-2 ring-amber-400/70 shadow-lg shadow-amber-500/25 scale-[1.03]'
+                            : isFilled
+                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm'
+                            : 'bg-zinc-900 border-white/10 text-zinc-500 hover:text-white hover:border-white/20'
                         }`}
-                      />
-                      <span>{star}</span>
-                    </button>
-                  ))}
+                      >
+                        <Star
+                          className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 transition-transform ${
+                            isSelected
+                              ? 'fill-amber-400 text-amber-400 scale-110'
+                              : isFilled
+                              ? 'fill-amber-400 text-amber-400'
+                              : 'text-zinc-600'
+                          }`}
+                        />
+                        <span>{star}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -333,8 +346,9 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
             </div>
 
             <div className="space-y-3 max-w-xl mx-auto">
-              <span className="inline-block px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                ✓ Entry Details Received ({submittedEntryId})
+              <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-sm">
+                <span className="hidden sm:inline">✓ Entry Details Received ({submittedEntryId})</span>
+                <span className="sm:hidden">✓ Entry Received ({submittedEntryId})</span>
               </span>
 
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">

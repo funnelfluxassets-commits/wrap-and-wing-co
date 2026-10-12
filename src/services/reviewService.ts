@@ -30,7 +30,7 @@ export async function saveReviewDrawEntry(
 ): Promise<ReviewDrawEntry> {
   const id =
     input.id ||
-    `R500-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    `WMV-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
   const createdAt = input.createdAt || new Date().toISOString();
   const status = input.status || 'pending';
 
@@ -226,7 +226,7 @@ export function exportEntriesToCsv(entries: ReviewDrawEntry[]): void {
   link.setAttribute('href', url);
   link.setAttribute(
     'download',
-    `wrap-and-wings-r500-draw-${new Date().toISOString().slice(0, 10)}.csv`
+    `wrap-and-wings-meal-draw-${new Date().toISOString().slice(0, 10)}.csv`
   );
   document.body.appendChild(link);
   link.click();
