@@ -11,9 +11,9 @@ interface StaffLoginModalProps {
 }
 
 const VALID_PINS: Record<StaffRole, string[]> = {
-  kitchen: ['4820', '1234', 'wrap123'],
-  driver: ['7788', '5678', 'wrap123'],
-  admin: ['9900', 'admin123', 'wrapadmin'],
+  kitchen: ['0099'],
+  driver: ['0011'],
+  admin: ['3858'],
 };
 
 export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
@@ -159,8 +159,8 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
                   ? 'Driver Passcode'
                   : 'Admin Passcode'}
               </span>
-              <span className="text-[11px] text-zinc-300 font-mono">
-                {role === 'kitchen' ? 'Default: 4820' : role === 'driver' ? 'Default: 7788' : 'Default: 9900'}
+              <span className="text-[11px] text-zinc-400 font-medium">
+                Authorized Staff
               </span>
             </label>
             <div className="relative">
@@ -235,7 +235,14 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Unlock {role === 'kitchen' ? 'Kitchen Display' : 'Delivery Display'}</span>
+            <span>
+              Unlock{' '}
+              {role === 'kitchen'
+                ? 'Kitchen Display'
+                : role === 'driver'
+                ? 'Delivery Display'
+                : 'Admin Portal'}
+            </span>
           </button>
         </form>
 
