@@ -842,17 +842,81 @@ if (typeof window !== 'undefined') {
 }
 
 // -------------------------------------------------------------
-// ORDER LIFECYCLE MANAGEMENT
+// -------------------------------------------------------------
+// DATE HELPERS & ORDER LIFECYCLE MANAGEMENT
 // -------------------------------------------------------------
 
+export function getLocalTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function formatToLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getOrderDateString(o: LiveOrder): string {
+  if (!o) return getLocalTodayDateString();
+
+  // 1. If explicit date property is saved
+  if ((o as any).dateStr && typeof (o as any).dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test((o as any).dateStr)) {
+    return (o as any).dateStr;
+  }
+
+  // 2. If createdAt contains YYYY-MM-DD
+  if (o.createdAt && typeof o.createdAt === 'string') {
+    const match = o.createdAt.match(/\d{4}-\d{2}-\d{2}/);
+    if (match) return match[0];
+  }
+
+  // 3. Check timeline events with epochTime
+  if (Array.isArray(o.timeline) && o.timeline.length > 0) {
+    for (const evt of o.timeline) {
+      if (typeof evt?.epochTime === 'number' && evt.epochTime > 1600000000000) {
+        return formatToLocalDateString(new Date(evt.epochTime));
+      }
+    }
+  }
+
+  // 4. Check cookingStartedAt or completedAt timestamps
+  if (typeof o.completedAt === 'number' && o.completedAt > 1600000000000) {
+    return formatToLocalDateString(new Date(o.completedAt));
+  }
+  if (typeof o.cookingStartedAt === 'number' && o.cookingStartedAt > 1600000000000) {
+    return formatToLocalDateString(new Date(o.cookingStartedAt));
+  }
+
+  // 5. Check orderId day prefix (e.g. "D-1401" or "C-1402" -> day 14)
+  if (o.orderId && typeof o.orderId === 'string') {
+    const match = o.orderId.replace('#', '').match(/^[DC]-(\d{2})/i);
+    if (match && match[1]) {
+      const dayNum = match[1];
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+      return `${currentYear}-${currentMonth}-${dayNum}`;
+    }
+  }
+
+  return getLocalTodayDateString();
+}
+
 export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrder> {
-  const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  const dateStr = formatToLocalDateString(now);
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const isDelivery = payload.orderMode === 'delivery';
 
   const initialTimeline: OrderTimelineEvent[] = [
     {
       status: 'received',
-      timestamp: nowStr,
+      timestamp: timeStr,
       label: 'Order Placed & Received',
       note: `Ticket sent to ${payload.store.name}`,
       epochTime: Date.now(),
@@ -873,7 +937,7 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     paymentMethod: payload.paymentMethod,
     paymentStatus: payload.paymentMethod === 'payfast' || payload.paymentMethod === 'yoco' ? 'paid' : 'pending',
     preferredTime: payload.preferredTime || (isDelivery ? 'ASAP (35–45 mins)' : 'ASAP (15–20 mins)'),
-    createdAt: nowStr,
+    createdAt: `${dateStr} ${timeStr}`,
     estimatedMinutes: isDelivery ? 40 : 20,
     timeline: initialTimeline,
   };
@@ -1297,5 +1361,53 @@ export function exportOrdersToCsv(orders: LiveOrder[], filenamePrefix = 'wrap-an
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+export function generateWhatsAppDailyOrdersReportText(
+  dateLabel: string,
+  totals: {
+    totalRevenue: number;
+    subtotal: number;
+    deliveryFees: number;
+    totalOrders: number;
+    avgOrderValue: number;
+    deliveriesCount: number;
+    deliveryRevenue: number;
+    collectionsCount: number;
+    collectionRevenue: number;
+    driverTips: number;
+    totalItemsCount: number;
+    itemsMap: Record<string, { qty: number; revenue: number }>;
+  }
+): string {
+  const topItems = Object.entries(totals.itemsMap)
+    .sort((a, b) => b[1].qty - a[1].qty)
+    .slice(0, 10);
+
+  const itemsListText =
+    topItems.length > 0
+      ? topItems.map(([name, data]) => `• ${data.qty}x ${name} (R${data.revenue.toFixed(2)})`).join('\n')
+      : '• No meals recorded for this shift.';
+
+  return `🍗 *WRAP & WINGS CO. — DAILY ORDERS & SALES REPORT*
+📅 *Shift Date:* ${dateLabel}
+📍 *Store:* Shop 1, Uniland Centre, Pinetown
+───────────────────────
+💰 *FINANCIAL & SALES TOTALS:*
+• *Gross Revenue:* R${totals.totalRevenue.toFixed(2)}
+• *Food Sales (Subtotal):* R${totals.subtotal.toFixed(2)}
+• *Delivery Fees:* R${totals.deliveryFees.toFixed(2)}
+• *Driver Tips:* R${totals.driverTips.toFixed(2)}
+• *Total Orders Placed:* ${totals.totalOrders} orders
+• *Avg Basket Size:* R${totals.avgOrderValue.toFixed(2)}
+
+🛵 *COLLECT vs DELIVERY SPLIT:*
+• *Home Deliveries:* ${totals.deliveriesCount} orders (R${totals.deliveryRevenue.toFixed(2)})
+• *Store Collections:* ${totals.collectionsCount} orders (R${totals.collectionRevenue.toFixed(2)})
+
+🍗 *MEALS & ITEMS PREPARED (${totals.totalItemsCount} total portions):*
+${itemsListText}
+───────────────────────
+✅ *Verified from Store Manager Portal at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}*`;
 }
 
