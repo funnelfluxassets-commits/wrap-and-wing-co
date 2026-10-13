@@ -18,6 +18,8 @@ export interface TrafficDailyDoc {
   };
   hourlyFootfall: Record<number, number>; // 0..23
   popularItems: Record<string, number>; // Item name -> view/click count
+  orderedItems: Record<string, number>; // Item name -> quantity actually ordered
+  totalOrderedQuantity: number; // total units of food items ordered
   flavourPreferences: Record<string, number>; // lemony, mild, bbq, sweet_chilli, hot
   funnel: {
     menuViews: number;
@@ -140,6 +142,8 @@ function getEmptyDailyDoc(date: string): TrafficDailyDoc {
     },
     hourlyFootfall: {},
     popularItems: {},
+    orderedItems: {},
+    totalOrderedQuantity: 0,
     flavourPreferences: {
       lemony: 0,
       mild: 0,
@@ -336,14 +340,27 @@ export function logCheckoutStart(): void {
 }
 
 /**
- * Log when an order is submitted successfully
+ * Log when an order is submitted successfully with exact items and quantities
  */
-export function logOrderCompleted(): void {
+export function logOrderCompleted(items?: { name: string; quantity: number }[]): void {
   if (typeof window === 'undefined') return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
   current.funnel.ordersCompleted += 1;
+  if (!current.orderedItems) current.orderedItems = {};
+  if (typeof current.totalOrderedQuantity !== 'number') current.totalOrderedQuantity = 0;
+
+  if (items && Array.isArray(items)) {
+    for (const item of items) {
+      if (item && item.name) {
+        const qty = Number(item.quantity) || 1;
+        current.orderedItems[item.name] = (current.orderedItems[item.name] || 0) + qty;
+        current.totalOrderedQuantity += qty;
+      }
+    }
+  }
+
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
@@ -421,6 +438,11 @@ export function getTrafficSummary(range: 'today' | 'yesterday' | 'week' | 'all')
     for (const [item, count] of Object.entries(dayDoc.popularItems || {})) {
       result.popularItems[item] = (result.popularItems[item] || 0) + count;
     }
+
+    for (const [item, qty] of Object.entries(dayDoc.orderedItems || {})) {
+      result.orderedItems[item] = (result.orderedItems[item] || 0) + qty;
+    }
+    result.totalOrderedQuantity += dayDoc.totalOrderedQuantity || 0;
 
     for (const [flv, count] of Object.entries(dayDoc.flavourPreferences || {})) {
       result.flavourPreferences[flv] = (result.flavourPreferences[flv] || 0) + count;
@@ -514,12 +536,24 @@ export function exportTrafficToCsv(summary: TrafficDailyDoc, rangeLabel: string)
     ['Flavour Preferences', '🔥 Hot', String(summary.flavourPreferences.hot || 0)],
   ];
 
-  // Append top items
+  // Append items ordered with quantities
   rows.push(['', '', '']);
-  rows.push(['Top Menu Items', 'Item Name', 'Interest Count']);
+  rows.push(['Items Actually Ordered', 'Item Name', 'Quantity Sold']);
+  const sortedOrdered = Object.entries(summary.orderedItems || {}).sort((a, b) => b[1] - a[1]);
+  if (sortedOrdered.length > 0) {
+    for (const [name, qty] of sortedOrdered) {
+      rows.push(['Items Actually Ordered', name, String(qty)]);
+    }
+  } else {
+    rows.push(['Items Actually Ordered', 'Total Units Ordered', String(summary.totalOrderedQuantity || 0)]);
+  }
+
+  // Append top viewed items
+  rows.push(['', '', '']);
+  rows.push(['Top Viewed Menu Items', 'Item Name', 'Interest Count']);
   const sortedItems = Object.entries(summary.popularItems || {}).sort((a, b) => b[1] - a[1]);
   for (const [name, count] of sortedItems) {
-    rows.push(['Top Menu Items', name, String(count)]);
+    rows.push(['Top Viewed Menu Items', name, String(count)]);
   }
 
   const csvContent =
@@ -538,4 +572,69 @@ export function exportTrafficToCsv(summary: TrafficDailyDoc, rangeLabel: string)
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+/**
+ * Format a comprehensive daily summary report suitable for sharing on WhatsApp or copying
+ */
+export function generateWhatsAppDailyReportText(
+  summary: TrafficDailyDoc,
+  rangeLabel: string,
+  ordersCount: number,
+  revenue: number,
+  orderedItemsMap: Record<string, number>
+): string {
+  const sortedOrdered = Object.entries(orderedItemsMap).sort((a, b) => b[1] - a[1]);
+  const totalFoodItems = Object.values(orderedItemsMap).reduce((sum, q) => sum + q, 0);
+
+  let text = `🍗 *WRAP & WINGS CO. — DAILY PERFORMANCE & TRAFFIC REPORT* 🍗\n`;
+  text += `📅 *Period:* ${rangeLabel} (${summary.date})\n\n`;
+
+  text += `📊 *TRAFFIC & STORE VISITS*\n`;
+  text += `• Total Page Views: *${summary.totalPageViews}*\n`;
+  text += `• Unique Diners / Devices: *${summary.uniqueVisitorIds.length}*\n`;
+  text += `• Active Diners (Online Now): *${getLiveVisitorsCount()}*\n\n`;
+
+  text += `💰 *SALES & ORDERS SUMMARY*\n`;
+  text += `• Completed Orders: *${ordersCount}*\n`;
+  text += `• Total Order Revenue: *R${revenue.toFixed(2)}*\n`;
+  text += `• Total Food Units Sold: *${totalFoodItems} items*\n`;
+  text += `• Cart Additions: *${summary.funnel.cartAdds}*\n\n`;
+
+  text += `🔥 *TOP ITEMS ORDERED (QUANTITIES)*\n`;
+  if (sortedOrdered.length > 0) {
+    sortedOrdered.slice(0, 8).forEach(([name, qty], idx) => {
+      text += `${idx + 1}. *${name}* — ${qty} ordered\n`;
+    });
+  } else {
+    text += `(No meal orders recorded yet)\n`;
+  }
+  text += `\n`;
+
+  text += `🌶️ *FLAVOUR BASTING RANKING*\n`;
+  text += `• 🍋 Lemony: ${summary.flavourPreferences.lemony || 0}\n`;
+  text += `• 🌶️ Mild: ${summary.flavourPreferences.mild || 0}\n`;
+  text += `• 🍶 BBQ: ${summary.flavourPreferences.bbq || 0}\n`;
+  text += `• 🍯 Sweet Chilli: ${summary.flavourPreferences.sweet_chilli || 0}\n`;
+  text += `• 🔥 Hot: ${summary.flavourPreferences.hot || 0}\n\n`;
+
+  text += `📍 *TRAFFIC ACQUISITION SOURCES*\n`;
+  text += `• Google Business / Maps: *${summary.sources.google_gmb || 0}*\n`;
+  text += `• WhatsApp Links: *${summary.sources.whatsapp || 0}*\n`;
+  text += `• Social Media (IG/FB/TikTok): *${summary.sources.social || 0}*\n`;
+  text += `• Direct Address: *${summary.sources.direct || 0}*\n\n`;
+
+  text += `📞 *CUSTOMER CONTACT ACTIONS*\n`;
+  text += `• WhatsApp Inquiries: *${summary.directActions.whatsappChat || 0}*\n`;
+  text += `• Phone Calls to Shop: *${summary.directActions.phoneCall || 0}*\n`;
+  text += `• GPS / Directions Taps: *${summary.directActions.directions || 0}*\n`;
+  text += `• Review Draw Entries: *${summary.directActions.reviewDraw || 0}*\n\n`;
+
+  text += `📱 *DEVICE USAGE*\n`;
+  text += `• Apple iPhone / iPad: ${summary.devices.ios || 0}\n`;
+  text += `• Android Phones: ${summary.devices.android || 0}\n`;
+  text += `• Computers: ${summary.devices.desktop || 0}\n\n`;
+  text += `_Generated from Wrap & Wings Co. POS & Traffic System_`;
+
+  return text;
 }

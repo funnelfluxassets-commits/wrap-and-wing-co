@@ -141,7 +141,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     // Save to real-time order service for kitchen display & live tracking (awaited so cloud receives it)
     await createLiveOrder(payload);
     try {
-      logOrderCompleted();
+      logOrderCompleted(
+        items.map((i) => ({ name: i.menuItem.name, quantity: i.quantity }))
+      );
     } catch {}
 
     // If customer chose WhatsApp confirmation, open WhatsApp
