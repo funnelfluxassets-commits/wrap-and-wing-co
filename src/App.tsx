@@ -26,6 +26,7 @@ import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload } from './services/payment';
 import { subscribeToOrders, getCurrentOrderId } from './services/orderService';
+import { logPageView, logItemView } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
 
 const getInitialView = (): PageView => {
@@ -93,6 +94,21 @@ const MainContent: React.FC = () => {
     setStaffRole(null);
     handleNavigate('menu');
   };
+
+  // Customer Traffic & Analytics tracking
+  useEffect(() => {
+    try {
+      logPageView(currentView);
+    } catch {}
+  }, [currentView]);
+
+  useEffect(() => {
+    if (selectedItem) {
+      try {
+        logItemView(selectedItem.name);
+      } catch {}
+    }
+  }, [selectedItem]);
 
   // Sync hash and pathname routing and active orders
   useEffect(() => {

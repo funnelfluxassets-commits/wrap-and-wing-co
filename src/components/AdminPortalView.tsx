@@ -25,11 +25,26 @@ import {
   Settings,
   DollarSign,
   ShoppingBag,
-  Truck
+  Truck,
+  BarChart3,
+  Eye,
+  Activity,
+  Smartphone,
+  Laptop,
+  TrendingUp,
+  Globe,
+  Share2
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { LiveOrder, ReviewDrawEntry, OrderStatus } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
+import {
+  getTrafficSummary,
+  getLiveVisitorsCount,
+  subscribeToTraffic,
+  exportTrafficToCsv,
+  TrafficDailyDoc,
+} from '../services/analyticsService';
 import {
   subscribeToReviewEntries,
   updateReviewEntryStatus,
@@ -56,8 +71,25 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onLogout,
   onNavigateRole,
 }) => {
-  // Navigation Tab: Orders & Sales CRM vs Google Review Draw
-  const [activeTab, setActiveTab] = useState<'orders' | 'reviews'>('orders');
+  // Navigation Tab: Orders & Sales CRM vs Google Review Draw vs Customer Traffic
+  const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'traffic'>('orders');
+
+  // --- Customer Traffic Analytics State ---
+  const [trafficRange, setTrafficRange] = useState<'today' | 'yesterday' | 'week' | 'all'>('today');
+  const [trafficSummary, setTrafficSummary] = useState<TrafficDailyDoc>(() => getTrafficSummary('today'));
+  const [liveVisitors, setLiveVisitors] = useState<number>(() => getLiveVisitorsCount());
+  const [isRefreshingTraffic, setIsRefreshingTraffic] = useState(false);
+
+  const handleRefreshTraffic = () => {
+    setIsRefreshingTraffic(true);
+    setTrafficSummary(getTrafficSummary(trafficRange));
+    setLiveVisitors(getLiveVisitorsCount());
+    setTimeout(() => setIsRefreshingTraffic(false), 500);
+  };
+
+  useEffect(() => {
+    setTrafficSummary(getTrafficSummary(trafficRange));
+  }, [trafficRange]);
 
   // --- Orders State ---
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
@@ -79,7 +111,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [winnerModalOpen, setWinnerModalOpen] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState<ReviewDrawEntry | null>(null);
 
-  // Subscribe to Orders & Reviews in real-time
+  // Subscribe to Orders, Reviews & Traffic in real-time
   useEffect(() => {
     const unsubOrders = subscribeToOrders((list) => {
       setOrders(list);
@@ -87,11 +119,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const unsubReviews = subscribeToReviewEntries((list) => {
       setEntries(list);
     });
+    const unsubTraffic = subscribeToTraffic(() => {
+      setTrafficSummary(getTrafficSummary(trafficRange));
+      setLiveVisitors(getLiveVisitorsCount());
+    });
     return () => {
       unsubOrders();
       unsubReviews();
+      unsubTraffic();
     };
-  }, []);
+  }, [trafficRange]);
 
   // Helper to extract clean international WhatsApp phone
   const getCleanWhatsAppPhone = (phone: string) => {
@@ -344,6 +381,23 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {entries.length}
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('traffic')}
+              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'traffic'
+                  ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-950/50'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 text-rose-300" />
+              <span>Customer Traffic &amp; Insights</span>
+              <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px] font-mono flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{liveVisitors} Live</span>
+              </span>
+            </button>
           </div>
 
           {activeTab === 'orders' && (
@@ -356,6 +410,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <Settings className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden md:inline">Live Sheets Auto-Sync</span>
             </button>
+          )}
+
+          {activeTab === 'traffic' && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRefreshTraffic}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Refresh customer traffic data"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isRefreshingTraffic ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportTrafficToCsv(trafficSummary, trafficRange.toUpperCase())}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
+                title="Export traffic metrics to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Download CSV</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1012,6 +1090,516 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ==================================================================== */}
+        {/* TAB 3: CUSTOMER TRAFFIC & VISITOR REPORT                             */}
+        {/* ==================================================================== */}
+        {activeTab === 'traffic' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* Top Control Bar: Date Range Filter & Live Status */}
+            <div className="bg-[#14141c] border border-white/10 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <span>Customer Traffic &amp; Footfall Intelligence</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    Real-time digital dining room activity across Pinetown &amp; surrounds
+                  </p>
+                </div>
+              </div>
+
+              {/* Time Range Filter Pills */}
+              <div className="flex items-center gap-1.5 bg-zinc-900/90 p-1.5 rounded-2xl border border-white/5 w-full md:w-auto overflow-x-auto">
+                {(
+                  [
+                    { id: 'today', label: "Today's Rush" },
+                    { id: 'yesterday', label: 'Yesterday' },
+                    { id: 'week', label: 'Past 7 Days' },
+                    { id: 'all', label: 'All-Time' },
+                  ] as const
+                ).map((range) => (
+                  <button
+                    key={range.id}
+                    type="button"
+                    onClick={() => setTrafficRange(range.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      trafficRange === range.id
+                        ? 'bg-rose-600 text-white shadow-md'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── 4 Executive KPI Hero Cards ── */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Total Visits */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-white/10 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">Total Page Views</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <Eye className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                  {trafficSummary.totalPageViews}
+                </div>
+                <p className="text-[11px] text-zinc-400">Total digital visits &amp; menu browses</p>
+              </div>
+
+              {/* Card 2: Unique Diners */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-white/10 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">Unique Diners</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                  {trafficSummary.uniqueVisitorIds.length}
+                </div>
+                <p className="text-[11px] text-zinc-400">Individual phones &amp; devices</p>
+              </div>
+
+              {/* Card 3: Live In Shop Right Now */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-emerald-500/30 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-emerald-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">Online Right Now</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center relative">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute" />
+                    <Activity className="w-4 h-4 relative" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
+                  {liveVisitors}
+                </div>
+                <p className="text-[11px] text-emerald-300/80">Active in the last 10 minutes</p>
+              </div>
+
+              {/* Card 4: Cart Conversion Rate */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-white/10 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="text-xs font-bold uppercase tracking-wider">Food Added to Cart</span>
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                  {trafficSummary.funnel.cartAdds}
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  {trafficSummary.funnel.ordersCompleted} orders placed
+                </p>
+              </div>
+            </div>
+
+            {/* ── Main Two-Column Breakdown ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+              {/* LEFT COLUMN: Sources & Devices */}
+              <div className="space-y-6">
+
+                {/* Acquisition Sources Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-5 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Where Diners Found You
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">Traffic Source</span>
+                  </div>
+
+                  {(() => {
+                    const totalSources =
+                      (trafficSummary.sources.google_gmb || 0) +
+                      (trafficSummary.sources.whatsapp || 0) +
+                      (trafficSummary.sources.social || 0) +
+                      (trafficSummary.sources.direct || 0) || 1;
+
+                    const sourcesList = [
+                      {
+                        name: 'Google Business Profile & Maps',
+                        desc: 'Found via Google Search & Google Maps in Pinetown',
+                        count: trafficSummary.sources.google_gmb || 0,
+                        color: 'from-blue-500 to-indigo-600',
+                        textColor: 'text-blue-400',
+                      },
+                      {
+                        name: 'WhatsApp Broadcasts & Chat',
+                        desc: 'Tapped links in WhatsApp status & chats',
+                        count: trafficSummary.sources.whatsapp || 0,
+                        color: 'from-emerald-500 to-teal-600',
+                        textColor: 'text-emerald-400',
+                      },
+                      {
+                        name: 'Social Media (Instagram/TikTok/FB)',
+                        desc: 'Arrived from social promo links',
+                        count: trafficSummary.sources.social || 0,
+                        color: 'from-purple-500 to-pink-600',
+                        textColor: 'text-purple-400',
+                      },
+                      {
+                        name: 'Direct & Brand Bookmark',
+                        desc: 'Typed wrapandwings.co.za directly',
+                        count: trafficSummary.sources.direct || 0,
+                        color: 'from-amber-500 to-orange-600',
+                        textColor: 'text-amber-400',
+                      },
+                    ];
+
+                    return (
+                      <div className="space-y-4">
+                        {sourcesList.map((src, idx) => {
+                          const pct = Math.round((src.count / totalSources) * 100);
+                          return (
+                            <div key={idx} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="font-bold text-white">{src.name}</span>
+                                  <p className="text-[11px] text-zinc-500">{src.desc}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`font-mono font-black ${src.textColor}`}>
+                                    {src.count}
+                                  </span>
+                                  <span className="text-[11px] text-zinc-500 ml-1.5 font-mono">
+                                    ({pct}%)
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full bg-gradient-to-r ${src.color} transition-all duration-500`}
+                                  style={{ width: `${Math.max(4, pct)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Device Breakdown Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                        <Smartphone className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Customer Devices
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">Mobile vs Desktop</span>
+                  </div>
+
+                  {(() => {
+                    const totalDevices =
+                      (trafficSummary.devices.ios || 0) +
+                      (trafficSummary.devices.android || 0) +
+                      (trafficSummary.devices.desktop || 0) || 1;
+                    const iosPct = Math.round(((trafficSummary.devices.ios || 0) / totalDevices) * 100);
+                    const androidPct = Math.round(((trafficSummary.devices.android || 0) / totalDevices) * 100);
+                    const desktopPct = Math.round(((trafficSummary.devices.desktop || 0) / totalDevices) * 100);
+
+                    return (
+                      <div className="grid grid-cols-3 gap-3 pt-1">
+                        <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 text-center space-y-1">
+                          <Smartphone className="w-5 h-5 mx-auto text-rose-400" />
+                          <div className="text-xs font-bold text-zinc-300">Apple iPhone</div>
+                          <div className="text-lg font-black text-white font-mono">
+                            {trafficSummary.devices.ios || 0}
+                          </div>
+                          <div className="text-[10px] text-zinc-500 font-mono">{iosPct}%</div>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 text-center space-y-1">
+                          <Smartphone className="w-5 h-5 mx-auto text-emerald-400" />
+                          <div className="text-xs font-bold text-zinc-300">Android</div>
+                          <div className="text-lg font-black text-white font-mono">
+                            {trafficSummary.devices.android || 0}
+                          </div>
+                          <div className="text-[10px] text-zinc-500 font-mono">{androidPct}%</div>
+                        </div>
+
+                        <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 text-center space-y-1">
+                          <Laptop className="w-5 h-5 mx-auto text-blue-400" />
+                          <div className="text-xs font-bold text-zinc-300">Computer</div>
+                          <div className="text-lg font-black text-white font-mono">
+                            {trafficSummary.devices.desktop || 0}
+                          </div>
+                          <div className="text-[10px] text-zinc-500 font-mono">{desktopPct}%</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Direct High-Value Customer Actions Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Direct Customer Actions
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">1-Tap Buttons</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>WhatsApp Clicks</span>
+                        </span>
+                        <p className="text-[10px] text-zinc-500">Started direct chat</p>
+                      </div>
+                      <span className="text-lg font-mono font-black text-emerald-400">
+                        {trafficSummary.directActions.whatsappChat || 0}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Phone Calls</span>
+                        </span>
+                        <p className="text-[10px] text-zinc-500">Called shop counter</p>
+                      </div>
+                      <span className="text-lg font-mono font-black text-blue-400">
+                        {trafficSummary.directActions.phoneCall || 0}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Maps / Waze Taps</span>
+                        </span>
+                        <p className="text-[10px] text-zinc-500">Navigation to Shop 1</p>
+                      </div>
+                      <span className="text-lg font-mono font-black text-rose-400">
+                        {trafficSummary.directActions.directions || 0}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Review Draw Entries</span>
+                        </span>
+                        <p className="text-[10px] text-zinc-500">Win meal contest</p>
+                      </div>
+                      <span className="text-lg font-mono font-black text-amber-400">
+                        {entries.length}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* RIGHT COLUMN: Craved Items, Flavours & Ordering Funnel */}
+              <div className="space-y-6">
+
+                {/* Top Craved Menu Items Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                        <Flame className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Most Craved Menu Items
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">Diner Interest Ranking</span>
+                  </div>
+
+                  {(() => {
+                    const sortedItems = Object.entries(trafficSummary.popularItems || {})
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 6);
+
+                    if (sortedItems.length === 0) {
+                      return (
+                        <div className="py-8 text-center text-zinc-500 text-xs">
+                          <ShoppingBag className="w-8 h-8 mx-auto text-zinc-700 mb-2" />
+                          <p>Customer meal cravings will rank here as diners browse your menu.</p>
+                        </div>
+                      );
+                    }
+
+                    const maxClicks = sortedItems[0][1] || 1;
+
+                    return (
+                      <div className="space-y-3">
+                        {sortedItems.map(([itemName, count], idx) => {
+                          const pct = Math.round((count / maxClicks) * 100);
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold flex items-center justify-center">
+                                    #{idx + 1}
+                                  </span>
+                                  <span className="font-bold text-white truncate max-w-[200px] sm:max-w-[260px]">
+                                    {itemName}
+                                  </span>
+                                </div>
+                                <span className="font-mono font-black text-amber-400">
+                                  {count} views
+                                </span>
+                              </div>
+                              <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500"
+                                  style={{ width: `${Math.max(6, pct)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Basting Sauce Flavour Ranking Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Signature Sauce Flavour Battle
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">Customer Choice</span>
+                  </div>
+
+                  {(() => {
+                    const flavours = [
+                      { id: 'lemony', name: '🍋 Lemony', count: trafficSummary.flavourPreferences.lemony || 0, color: 'from-amber-400 to-yellow-500' },
+                      { id: 'mild', name: '🌶️ Mild', count: trafficSummary.flavourPreferences.mild || 0, color: 'from-emerald-500 to-teal-600' },
+                      { id: 'bbq', name: '🍶 Barbeque', count: trafficSummary.flavourPreferences.bbq || 0, color: 'from-amber-700 to-orange-700' },
+                      { id: 'sweet_chilli', name: '🍯 Sweet Chilli', count: trafficSummary.flavourPreferences.sweet_chilli || 0, color: 'from-orange-500 to-red-500' },
+                      { id: 'hot', name: '🔥 Hot', count: trafficSummary.flavourPreferences.hot || 0, color: 'from-red-600 to-rose-700' },
+                    ];
+
+                    const totalFlavours = flavours.reduce((sum, f) => sum + f.count, 0) || 1;
+
+                    return (
+                      <div className="space-y-3">
+                        {flavours.map((flv, idx) => {
+                          const pct = Math.round((flv.count / totalFlavours) * 100);
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-zinc-200">{flv.name}</span>
+                                <div className="space-x-1.5 font-mono">
+                                  <span className="font-black text-white">{flv.count}</span>
+                                  <span className="text-[11px] text-zinc-500">({pct}%)</span>
+                                </div>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full bg-gradient-to-r ${flv.color} transition-all`}
+                                  style={{ width: `${Math.max(4, pct)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Conversion Funnel Card */}
+                <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <ShoppingBag className="w-4 h-4" />
+                      </div>
+                      <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                        Ordering Conversion Funnel
+                      </h3>
+                    </div>
+                    <span className="text-xs text-zinc-400">Step by Step</span>
+                  </div>
+
+                  <div className="space-y-3 pt-1">
+                    {[
+                      {
+                        step: '1. Menu Browsed',
+                        desc: 'Viewed restaurant meals',
+                        count: trafficSummary.totalPageViews,
+                        color: 'text-blue-400',
+                      },
+                      {
+                        step: '2. Added Items to Cart',
+                        desc: 'Placed food onto order tray',
+                        count: trafficSummary.funnel.cartAdds,
+                        color: 'text-amber-400',
+                      },
+                      {
+                        step: '3. Started Checkout',
+                        desc: 'Opened delivery or collection form',
+                        count: trafficSummary.funnel.checkoutStarts,
+                        color: 'text-orange-400',
+                      },
+                      {
+                        step: '4. Order Placed & Sent',
+                        desc: 'Dispatched to kitchen display',
+                        count: trafficSummary.funnel.ordersCompleted,
+                        color: 'text-emerald-400',
+                      },
+                    ].map((step, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between"
+                      >
+                        <div>
+                          <div className={`text-xs font-bold ${step.color}`}>{step.step}</div>
+                          <div className="text-[11px] text-zinc-500">{step.desc}</div>
+                        </div>
+                        <div className="text-base font-black text-white font-mono">
+                          {step.count}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
           </div>
         )}
 

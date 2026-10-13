@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { CartCustomization, CartItem, MenuItem, OrderMode, StoreLocation } from '../types';
 import { STORES } from '../data/stores';
+import { logAddToCart, logFlavourSelect } from '../services/analyticsService';
 
 interface CartContextType {
   items: CartItem[];
@@ -69,6 +70,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setItems((prev) => [...prev, newItem]);
     setIsCartOpen(true);
+
+    try {
+      logAddToCart(menuItem.name);
+      if (customization?.flavour) {
+        logFlavourSelect(customization.flavour);
+      }
+    } catch {}
   };
 
   const removeItem = (id: string) => {

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
 import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
+import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
@@ -55,6 +56,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [preferredTime, setPreferredTime] = useState('ASAP');
   const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        logCheckoutStart();
+      } catch {}
+    }
+  }, [isOpen]);
 
   const handleClearSavedDetails = () => {
     try {
@@ -131,6 +140,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
     // Save to real-time order service for kitchen display & live tracking (awaited so cloud receives it)
     await createLiveOrder(payload);
+    try {
+      logOrderCompleted();
+    } catch {}
 
     // If customer chose WhatsApp confirmation, open WhatsApp
     if (paymentMethod === 'whatsapp') {
