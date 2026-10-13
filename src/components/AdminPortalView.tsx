@@ -79,6 +79,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // Navigation Tab: Orders & Sales CRM vs Google Review Draw vs Customer Traffic
   const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'traffic'>('orders');
 
+  // --- Orders State ---
+  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderModeFilter, setOrderModeFilter] = useState<'all' | 'delivery' | 'collection'>('all');
+  const [orderDateFilter, setOrderDateFilter] = useState<'all' | 'today' | 'week'>('all');
+  const [isSyncingOrders, setIsSyncingOrders] = useState(false);
+
+  // Webhook Configuration Modal State
+  const [webhookModalOpen, setWebhookModalOpen] = useState(false);
+  const [webhookUrlInput, setWebhookUrlInput] = useState(() => getGoogleSheetsWebhookUrl());
+  const [webhookSavedFeedback, setWebhookSavedFeedback] = useState(false);
+
+  // --- Reviews Draw State ---
+  const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'winner'>('all');
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [winnerModalOpen, setWinnerModalOpen] = useState(false);
+  const [selectedWinner, setSelectedWinner] = useState<ReviewDrawEntry | null>(null);
+
   // --- Customer Traffic Analytics State ---
   const [trafficRange, setTrafficRange] = useState<'today' | 'yesterday' | 'week' | 'all'>('today');
   const [trafficSummary, setTrafficSummary] = useState<TrafficDailyDoc>(() => getTrafficSummary('today'));
@@ -172,26 +192,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       setTimeout(() => setCopiedReportFeedback(false), 2500);
     }
   };
-
-  // --- Orders State ---
-  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
-  const [orderSearchQuery, setOrderSearchQuery] = useState('');
-  const [orderModeFilter, setOrderModeFilter] = useState<'all' | 'delivery' | 'collection'>('all');
-  const [orderDateFilter, setOrderDateFilter] = useState<'all' | 'today' | 'week'>('all');
-  const [isSyncingOrders, setIsSyncingOrders] = useState(false);
-
-  // Webhook Configuration Modal State
-  const [webhookModalOpen, setWebhookModalOpen] = useState(false);
-  const [webhookUrlInput, setWebhookUrlInput] = useState(() => getGoogleSheetsWebhookUrl());
-  const [webhookSavedFeedback, setWebhookSavedFeedback] = useState(false);
-
-  // --- Reviews Draw State ---
-  const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
-  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
-  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'winner'>('all');
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [winnerModalOpen, setWinnerModalOpen] = useState(false);
-  const [selectedWinner, setSelectedWinner] = useState<ReviewDrawEntry | null>(null);
 
   // Subscribe to Orders, Reviews & Traffic in real-time
   useEffect(() => {
