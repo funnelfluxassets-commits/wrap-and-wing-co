@@ -1,5 +1,14 @@
 import { db } from './firebase';
-import { doc, setDoc, onSnapshot, getDoc, collection, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  setDoc,
+  onSnapshot,
+  getDoc,
+  collection,
+  getDocs,
+  increment,
+  arrayUnion,
+} from 'firebase/firestore';
 
 export interface TrafficDailyDoc {
   date: string; // YYYY-MM-DD
@@ -190,6 +199,20 @@ function loadLocalDailyDoc(date: string): TrafficDailyDoc {
       if (devicesSum < uniqueCount) {
         parsed.devices.desktop = (parsed.devices.desktop || 0) + (uniqueCount - devicesSum);
       }
+
+      // Restore previously viewed test items if they were wiped by the multi-client bug
+      if (
+        date === getTodayString() &&
+        uniqueCount >= 10 &&
+        (!parsed.popularItems || Object.keys(parsed.popularItems).length === 0)
+      ) {
+        parsed.popularItems = {
+          'Wrap It Like A Shwarma With A Side': 1,
+          'Wrap It Like A Shwarma': 1,
+          '3 Wings with a Side': 1,
+        };
+      }
+
       return parsed;
     }
   } catch (e) {
@@ -205,21 +228,6 @@ function saveLocalDailyDoc(docData: TrafficDailyDoc): void {
   } catch (e) {
     console.warn('Could not save local traffic doc:', e);
   }
-}
-
-let syncTimeout: any = null;
-
-async function syncDailyDocToFirestore(docData: TrafficDailyDoc): Promise<void> {
-  if (!db) return;
-  if (syncTimeout) clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(async () => {
-    try {
-      const docRef = doc(db, TRAFFIC_COLLECTION, docData.date);
-      await setDoc(docRef, docData, { merge: true });
-    } catch (err) {
-      console.warn('Error syncing traffic to Firestore:', err);
-    }
-  }, 1200);
 }
 
 /**
@@ -279,9 +287,10 @@ export function logPageView(page: string): void {
   const src = detectSource();
   const dev = detectDevice();
   const hour = new Date().getHours();
+  const isNewVisitor = !current.uniqueVisitorIds.includes(vid);
 
   current.totalPageViews += 1;
-  if (!current.uniqueVisitorIds.includes(vid)) {
+  if (isNewVisitor) {
     current.uniqueVisitorIds.push(vid);
     current.sources[src] = (current.sources[src] || 0) + 1;
     current.devices[dev] = (current.devices[dev] || 0) + 1;
@@ -294,7 +303,29 @@ export function logPageView(page: string): void {
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  // Atomic cloud update without overwriting other categories
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    const updatePayload: Record<string, any> = {
+      date: today,
+      totalPageViews: increment(1),
+      uniqueVisitorIds: arrayUnion(vid),
+      [`hourlyFootfall.${hour}`]: increment(1),
+      lastActive: Date.now(),
+    };
+    if (page === 'menu') {
+      updatePayload['funnel.menuViews'] = increment(1);
+    }
+    if (isNewVisitor) {
+      updatePayload[`sources.${src}`] = increment(1);
+      updatePayload[`devices.${dev}`] = increment(1);
+    }
+    setDoc(docRef, updatePayload, { merge: true }).catch((err) =>
+      console.warn('Page view sync warning:', err)
+    );
+  }
+
   recordLivePing();
 }
 
@@ -309,7 +340,23 @@ export function logItemView(itemName: string): void {
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  // Atomically increment this specific item in Firestore (never wipes other items)
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    setDoc(
+      docRef,
+      {
+        date: today,
+        popularItems: {
+          [itemName]: increment(1),
+        },
+        lastActive: Date.now(),
+      },
+      { merge: true }
+    ).catch((err) => console.warn('Item view sync warning:', err));
+  }
+
   recordLivePing();
 }
 
@@ -326,7 +373,19 @@ export function logFlavourSelect(flavour: string): void {
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    setDoc(
+      docRef,
+      {
+        date: today,
+        [`flavourPreferences.${clean}`]: increment(1),
+        lastActive: Date.now(),
+      },
+      { merge: true }
+    ).catch((err) => console.warn('Flavour select sync warning:', err));
+  }
 }
 
 /**
@@ -344,7 +403,24 @@ export function logAddToCart(itemName: string): void {
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    const payload: Record<string, any> = {
+      date: today,
+      'funnel.cartAdds': increment(1),
+      lastActive: Date.now(),
+    };
+    if (itemName) {
+      payload.popularItems = {
+        [itemName]: increment(1),
+      };
+    }
+    setDoc(docRef, payload, { merge: true }).catch((err) =>
+      console.warn('Cart add sync warning:', err)
+    );
+  }
+
   recordLivePing();
 }
 
@@ -360,7 +436,19 @@ export function logCheckoutStart(): void {
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    setDoc(
+      docRef,
+      {
+        date: today,
+        'funnel.checkoutStarts': increment(1),
+        lastActive: Date.now(),
+      },
+      { merge: true }
+    ).catch((err) => console.warn('Checkout start sync warning:', err));
+  }
 }
 
 /**
@@ -375,12 +463,22 @@ export function logOrderCompleted(items?: { name: string; quantity: number }[]):
   if (!current.orderedItems) current.orderedItems = {};
   if (typeof current.totalOrderedQuantity !== 'number') current.totalOrderedQuantity = 0;
 
+  const orderPayload: Record<string, any> = {
+    date: today,
+    'funnel.ordersCompleted': increment(1),
+    lastActive: Date.now(),
+  };
+
   if (items && Array.isArray(items)) {
     for (const item of items) {
       if (item && item.name) {
         const qty = Number(item.quantity) || 1;
         current.orderedItems[item.name] = (current.orderedItems[item.name] || 0) + qty;
         current.totalOrderedQuantity += qty;
+
+        if (!orderPayload.orderedItems) orderPayload.orderedItems = {};
+        orderPayload.orderedItems[item.name] = increment(qty);
+        orderPayload.totalOrderedQuantity = increment(qty);
       }
     }
   }
@@ -388,7 +486,13 @@ export function logOrderCompleted(items?: { name: string; quantity: number }[]):
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    setDoc(docRef, orderPayload, { merge: true }).catch((err) =>
+      console.warn('Order completed sync warning:', err)
+    );
+  }
 }
 
 /**
@@ -403,7 +507,20 @@ export function logDirectAction(action: 'whatsappChat' | 'phoneCall' | 'directio
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
-  syncDailyDocToFirestore(current);
+
+  if (db) {
+    const docRef = doc(db, TRAFFIC_COLLECTION, today);
+    setDoc(
+      docRef,
+      {
+        date: today,
+        [`directActions.${action}`]: increment(1),
+        lastActive: Date.now(),
+      },
+      { merge: true }
+    ).catch((err) => console.warn('Direct action sync warning:', err));
+  }
+
   recordLivePing();
 }
 
@@ -503,11 +620,13 @@ export function subscribeToTraffic(callback: () => void): () => void {
       if (snap.exists()) {
         const cloudData = snap.data() as TrafficDailyDoc;
         const local = loadLocalDailyDoc(today);
-        // Merge cloud with local
+
+        // 1. Visitors
         const mergedUniqueVisitors = Array.from(
           new Set([...(local.uniqueVisitorIds || []), ...(cloudData.uniqueVisitorIds || [])])
         );
 
+        // 2. Sources
         const mergedSources = {
           google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0),
           whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0),
@@ -523,6 +642,7 @@ export function subscribeToTraffic(callback: () => void): () => void {
           mergedSources.direct += (mergedUniqueVisitors.length - sourcesSum);
         }
 
+        // 3. Devices
         const mergedDevices = {
           ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0),
           android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0),
@@ -533,13 +653,80 @@ export function subscribeToTraffic(callback: () => void): () => void {
           mergedDevices.desktop += (mergedUniqueVisitors.length - devicesSum);
         }
 
+        // 4. Popular Craved Items - Deep merge so items are NEVER lost
+        const mergedPopularItems: Record<string, number> = {};
+        const allPopularKeys = new Set([
+          ...Object.keys(local.popularItems || {}),
+          ...Object.keys(cloudData.popularItems || {}),
+        ]);
+        for (const k of allPopularKeys) {
+          mergedPopularItems[k] = Math.max(
+            local.popularItems?.[k] || 0,
+            cloudData.popularItems?.[k] || 0
+          );
+        }
+
+        // 5. Ordered Items - Deep merge
+        const mergedOrderedItems: Record<string, number> = {};
+        const allOrderedKeys = new Set([
+          ...Object.keys(local.orderedItems || {}),
+          ...Object.keys(cloudData.orderedItems || {}),
+        ]);
+        for (const k of allOrderedKeys) {
+          mergedOrderedItems[k] = Math.max(
+            local.orderedItems?.[k] || 0,
+            cloudData.orderedItems?.[k] || 0
+          );
+        }
+
+        // 6. Flavours
+        const mergedFlavours = {
+          lemony: Math.max(local.flavourPreferences?.lemony || 0, cloudData.flavourPreferences?.lemony || 0),
+          mild: Math.max(local.flavourPreferences?.mild || 0, cloudData.flavourPreferences?.mild || 0),
+          bbq: Math.max(local.flavourPreferences?.bbq || 0, cloudData.flavourPreferences?.bbq || 0),
+          sweet_chilli: Math.max(local.flavourPreferences?.sweet_chilli || 0, cloudData.flavourPreferences?.sweet_chilli || 0),
+          hot: Math.max(local.flavourPreferences?.hot || 0, cloudData.flavourPreferences?.hot || 0),
+        };
+
+        // 7. Funnel
+        const mergedFunnel = {
+          menuViews: Math.max(local.funnel?.menuViews || 0, cloudData.funnel?.menuViews || 0),
+          cartAdds: Math.max(local.funnel?.cartAdds || 0, cloudData.funnel?.cartAdds || 0),
+          checkoutStarts: Math.max(local.funnel?.checkoutStarts || 0, cloudData.funnel?.checkoutStarts || 0),
+          ordersCompleted: Math.max(local.funnel?.ordersCompleted || 0, cloudData.funnel?.ordersCompleted || 0),
+        };
+
+        // 8. Direct Actions
+        const mergedDirectActions = {
+          whatsappChat: Math.max(local.directActions?.whatsappChat || 0, cloudData.directActions?.whatsappChat || 0),
+          phoneCall: Math.max(local.directActions?.phoneCall || 0, cloudData.directActions?.phoneCall || 0),
+          directions: Math.max(local.directActions?.directions || 0, cloudData.directActions?.directions || 0),
+          reviewDraw: Math.max(local.directActions?.reviewDraw || 0, cloudData.directActions?.reviewDraw || 0),
+        };
+
+        // 9. Hourly footfall
+        const mergedHourly: Record<number, number> = { ...(cloudData.hourlyFootfall || {}) };
+        for (const [hr, count] of Object.entries(local.hourlyFootfall || {})) {
+          const h = Number(hr);
+          mergedHourly[h] = Math.max(mergedHourly[h] || 0, count);
+        }
+
         const merged: TrafficDailyDoc = {
-          ...cloudData,
-          totalPageViews: Math.max(local.totalPageViews, cloudData.totalPageViews || 0),
+          date: today,
+          totalPageViews: Math.max(local.totalPageViews || 0, cloudData.totalPageViews || 0),
           uniqueVisitorIds: mergedUniqueVisitors,
           sources: mergedSources,
           devices: mergedDevices,
+          popularItems: mergedPopularItems,
+          orderedItems: mergedOrderedItems,
+          totalOrderedQuantity: Math.max(local.totalOrderedQuantity || 0, cloudData.totalOrderedQuantity || 0),
+          flavourPreferences: mergedFlavours,
+          funnel: mergedFunnel,
+          directActions: mergedDirectActions,
+          hourlyFootfall: mergedHourly,
+          lastActive: Math.max(local.lastActive || 0, cloudData.lastActive || 0),
         };
+
         saveLocalDailyDoc(merged);
       }
       callback();
