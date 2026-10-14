@@ -172,7 +172,25 @@ function loadLocalDailyDoc(date: string): TrafficDailyDoc {
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + date);
     if (raw) {
-      return { ...getEmptyDailyDoc(date), ...JSON.parse(raw) };
+      const parsed: TrafficDailyDoc = { ...getEmptyDailyDoc(date), ...JSON.parse(raw) };
+      const uniqueCount = parsed.uniqueVisitorIds?.length || 0;
+      const sourcesSum =
+        (parsed.sources?.google_gmb || 0) +
+        (parsed.sources?.whatsapp || 0) +
+        (parsed.sources?.social || 0) +
+        (parsed.sources?.direct || 0);
+      if (sourcesSum < uniqueCount) {
+        parsed.sources.direct = (parsed.sources.direct || 0) + (uniqueCount - sourcesSum);
+      }
+
+      const devicesSum =
+        (parsed.devices?.ios || 0) +
+        (parsed.devices?.android || 0) +
+        (parsed.devices?.desktop || 0);
+      if (devicesSum < uniqueCount) {
+        parsed.devices.desktop = (parsed.devices.desktop || 0) + (uniqueCount - devicesSum);
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn('Could not read local traffic doc:', e);
@@ -249,6 +267,12 @@ export function getLiveVisitorsCount(): number {
  */
 export function logPageView(page: string): void {
   if (typeof window === 'undefined') return;
+
+  // Never count internal staff or manager views in customer dining room analytics
+  const cleanPage = (page || '').toLowerCase();
+  if (['admin', 'kitchen', 'delivery', 'dispatch'].includes(cleanPage)) return;
+  if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('wrap_wing_staff_role')) return;
+
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
   const vid = getVisitorId();
@@ -480,12 +504,41 @@ export function subscribeToTraffic(callback: () => void): () => void {
         const cloudData = snap.data() as TrafficDailyDoc;
         const local = loadLocalDailyDoc(today);
         // Merge cloud with local
+        const mergedUniqueVisitors = Array.from(
+          new Set([...(local.uniqueVisitorIds || []), ...(cloudData.uniqueVisitorIds || [])])
+        );
+
+        const mergedSources = {
+          google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0),
+          whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0),
+          social: Math.max(local.sources?.social || 0, cloudData.sources?.social || 0),
+          direct: Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0),
+        };
+        const sourcesSum =
+          mergedSources.google_gmb +
+          mergedSources.whatsapp +
+          mergedSources.social +
+          mergedSources.direct;
+        if (sourcesSum < mergedUniqueVisitors.length) {
+          mergedSources.direct += (mergedUniqueVisitors.length - sourcesSum);
+        }
+
+        const mergedDevices = {
+          ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0),
+          android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0),
+          desktop: Math.max(local.devices?.desktop || 0, cloudData.devices?.desktop || 0),
+        };
+        const devicesSum = mergedDevices.ios + mergedDevices.android + mergedDevices.desktop;
+        if (devicesSum < mergedUniqueVisitors.length) {
+          mergedDevices.desktop += (mergedUniqueVisitors.length - devicesSum);
+        }
+
         const merged: TrafficDailyDoc = {
           ...cloudData,
           totalPageViews: Math.max(local.totalPageViews, cloudData.totalPageViews || 0),
-          uniqueVisitorIds: Array.from(
-            new Set([...local.uniqueVisitorIds, ...(cloudData.uniqueVisitorIds || [])])
-          ),
+          uniqueVisitorIds: mergedUniqueVisitors,
+          sources: mergedSources,
+          devices: mergedDevices,
         };
         saveLocalDailyDoc(merged);
       }
@@ -497,6 +550,23 @@ export function subscribeToTraffic(callback: () => void): () => void {
   );
 
   return unsub;
+}
+
+/**
+ * Reset daily traffic metrics (clears local and cloud records for target date)
+ */
+export async function resetDailyTraffic(dateStr?: string): Promise<void> {
+  const targetDate = dateStr === 'today' || !dateStr ? getTodayString() : dateStr;
+  const emptyDoc = getEmptyDailyDoc(targetDate);
+  saveLocalDailyDoc(emptyDoc);
+  if (db) {
+    try {
+      const docRef = doc(db, TRAFFIC_COLLECTION, targetDate);
+      await setDoc(docRef, emptyDoc);
+    } catch (e) {
+      console.warn('Error resetting cloud traffic doc:', e);
+    }
+  }
 }
 
 /**

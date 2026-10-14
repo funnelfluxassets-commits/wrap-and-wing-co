@@ -95,12 +95,15 @@ const MainContent: React.FC = () => {
     handleNavigate('menu');
   };
 
-  // Customer Traffic & Analytics tracking
+  // Customer Traffic & Analytics tracking (excludes internal staff/manager portals)
   useEffect(() => {
     try {
+      if (staffRole || ['admin', 'kitchen', 'delivery'].includes(currentView)) {
+        return;
+      }
       logPageView(currentView);
     } catch {}
-  }, [currentView]);
+  }, [currentView, staffRole]);
 
   useEffect(() => {
     if (selectedItem) {

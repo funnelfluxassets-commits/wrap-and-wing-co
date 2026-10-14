@@ -50,6 +50,7 @@ import {
   subscribeToTraffic,
   exportTrafficToCsv,
   generateWhatsAppDailyReportText,
+  resetDailyTraffic,
   TrafficDailyDoc,
 } from '../services/analyticsService';
 import {
@@ -125,6 +126,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setTrafficSummary(getTrafficSummary(trafficRange));
     setLiveVisitors(getLiveVisitorsCount());
     setTimeout(() => setIsRefreshingTraffic(false), 500);
+  };
+
+  const handleResetTraffic = async () => {
+    const periodLabel = trafficRange === 'today' ? "Today's test traffic" : `traffic for ${trafficRange}`;
+    if (window.confirm(`Are you sure you want to reset ${periodLabel} back to 0? This will clear test visitor and page view counts.`)) {
+      await resetDailyTraffic(trafficRange === 'today' ? 'today' : trafficSummary.date);
+      setTrafficSummary(getTrafficSummary(trafficRange));
+      setLiveVisitors(getLiveVisitorsCount());
+    }
   };
 
   useEffect(() => {
@@ -688,6 +698,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isRefreshingTraffic ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetTraffic}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-rose-950/40 border border-white/10 hover:border-rose-500/30 text-xs font-bold text-zinc-400 hover:text-rose-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Reset test traffic data back to 0 for a clean slate"
+              >
+                <X className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="hidden xl:inline">Reset Test Data</span>
               </button>
 
               <button
