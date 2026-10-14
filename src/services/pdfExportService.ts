@@ -129,7 +129,7 @@ export function exportOrdersToPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-    doc.text(kpi.val, x + 3, y + 13);
+    doc.text(kpi.val, x + cardWidth / 2, y + 13, { align: 'center' });
   });
 
   y += cardHeight + 8;
@@ -371,9 +371,9 @@ export function exportTrafficToPdf(
     doc.text(kpi.label, cx + 3, cy + 4.5);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(9.5);
     doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-    doc.text(kpi.val, cx + 3, cy + 11);
+    doc.text(kpi.val, cx + cardWidth / 2, cy + 11.5, { align: 'center' });
   });
 
   y += cardHeight * 2 + 2 + 6;
@@ -480,7 +480,7 @@ export function exportTrafficToPdf(
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
     doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-    doc.text(act.val, x + 3, y + 9.5);
+    doc.text(act.val, x + actionCardWidth / 2, y + 9.5, { align: 'center' });
   });
 
   y += 18;
@@ -494,21 +494,21 @@ export function exportTrafficToPdf(
   y += 4.5;
 
   // Table Headers
-  doc.setFillColor(228, 228, 231);
+  doc.setFillColor(244, 244, 245);
   doc.rect(margin, y, colWidth, 5.5, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.setTextColor(39, 39, 42);
+  doc.setFontSize(6.5);
+  doc.setTextColor(113, 113, 122);
   doc.text('#', margin + 2.5, y + 3.8);
   doc.text('MEAL ITEM', margin + 8, y + 3.8);
-  doc.text('QTY', margin + colWidth - 2.5, y + 3.8, { align: 'right' });
+  doc.text('QTY', margin + colWidth - 4, y + 3.8, { align: 'right' });
 
   const rx = margin + colWidth + 6;
-  doc.setFillColor(228, 228, 231);
+  doc.setFillColor(244, 244, 245);
   doc.rect(rx, y, colWidth, 5.5, 'F');
   doc.text('#', rx + 2.5, y + 3.8);
   doc.text('CRAVED MENU ITEM', rx + 8, y + 3.8);
-  doc.text('VIEWS', rx + colWidth - 2.5, y + 3.8, { align: 'right' });
+  doc.text('VIEWS', rx + colWidth - 4, y + 3.8, { align: 'right' });
 
   y += 6;
 
@@ -537,7 +537,7 @@ export function exportTrafficToPdf(
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-      doc.text(String(ord[1]), margin + colWidth - 2.5, y + 3.2, { align: 'right' });
+      doc.text(String(ord[1]), margin + colWidth - 4, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
@@ -563,7 +563,7 @@ export function exportTrafficToPdf(
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-      doc.text(String(crv[1]), rx + colWidth - 2.5, y + 3.2, { align: 'right' });
+      doc.text(String(crv[1]), rx + colWidth - 4, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
@@ -678,9 +678,19 @@ export function exportTrafficToPdf(
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
   }
 
-  // Download File
-  const cleanRange = rangeLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-  doc.save(`wrap-and-wings-traffic-${cleanRange}.pdf`);
+  // Download File: "Traffic Insights - date"
+  const now = new Date();
+  const d = new Date(now);
+  if (rangeLabel.toLowerCase().includes('yesterday')) {
+    d.setDate(d.getDate() - 1);
+  }
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  const dateFormatted = `${day}-${month}-${year}`;
+
+  doc.setProperties({ title: `Traffic Insights - ${dateFormatted}` });
+  doc.save(`Traffic Insights - ${dateFormatted}.pdf`);
 }
 
 /**
