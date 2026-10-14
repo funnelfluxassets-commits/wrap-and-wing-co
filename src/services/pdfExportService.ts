@@ -97,6 +97,9 @@ export function exportOrdersToPdf(
     avgVal = count > 0 ? rev / count : 0;
   }
 
+  // Single brand result color: vibrant blue matching Total Page Views
+  const RESULT_BLUE: [number, number, number] = [59, 130, 246];
+
   // KPI Summary Boxes
   doc.setTextColor(24, 24, 27);
   doc.setFont('helvetica', 'bold');
@@ -108,10 +111,10 @@ export function exportOrdersToPdf(
   const cardHeight = 18;
 
   const kpis = [
-    { label: 'TOTAL ORDERS', val: `${count} Orders`, color: [16, 185, 129] },
-    { label: 'GROSS SALES', val: formatZAR(rev), color: [245, 158, 11] },
-    { label: 'DELIVERY / PICKUP', val: `${delCount} Del / ${colCount} Pick`, color: [59, 130, 246] },
-    { label: 'AVG TICKET', val: formatZAR(avgVal), color: [168, 85, 247] },
+    { label: 'TOTAL ORDERS', val: String(count), color: RESULT_BLUE },
+    { label: 'GROSS SALES', val: formatZAR(rev), color: RESULT_BLUE },
+    { label: 'DELIVERIES / COLLECTIONS', val: `${delCount} / ${colCount}`, color: RESULT_BLUE },
+    { label: 'AVG TICKET', val: formatZAR(avgVal), color: RESULT_BLUE },
   ];
 
   kpis.forEach((kpi, idx) => {
@@ -161,18 +164,18 @@ export function exportOrdersToPdf(
     ];
 
     // Table Header Row
-    doc.setFillColor(228, 228, 231);
+    doc.setFillColor(244, 244, 245);
     doc.rect(margin, y, pageWidth - margin * 2, 6.5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(39, 39, 42);
+    doc.setFontSize(6.5);
+    doc.setTextColor(113, 113, 122);
 
     doc.text('TICKET', colX[0] + 2, y + 4.5);
     doc.text('CUSTOMER', colX[1], y + 4.5);
     doc.text('PHONE', colX[2], y + 4.5);
     doc.text('MODE / AREA', colX[3], y + 4.5);
     doc.text('MEAL ITEMS', colX[4], y + 4.5);
-    doc.text('TOTAL', pageWidth - margin - 2, y + 4.5, { align: 'right' });
+    doc.text('TOTAL', pageWidth - margin - 4, y + 4.5, { align: 'right' });
 
     y += 7.5;
 
@@ -183,17 +186,17 @@ export function exportOrdersToPdf(
         doc.addPage();
         y = 16;
         // Repeat table header on new page
-        doc.setFillColor(228, 228, 231);
+        doc.setFillColor(244, 244, 245);
         doc.rect(margin, y, pageWidth - margin * 2, 6.5, 'F');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7.5);
-        doc.setTextColor(39, 39, 42);
+        doc.setFontSize(6.5);
+        doc.setTextColor(113, 113, 122);
         doc.text('TICKET', colX[0] + 2, y + 4.5);
         doc.text('CUSTOMER', colX[1], y + 4.5);
         doc.text('PHONE', colX[2], y + 4.5);
         doc.text('MODE / AREA', colX[3], y + 4.5);
         doc.text('MEAL ITEMS', colX[4], y + 4.5);
-        doc.text('TOTAL', pageWidth - margin - 2, y + 4.5, { align: 'right' });
+        doc.text('TOTAL', pageWidth - margin - 4, y + 4.5, { align: 'right' });
         y += 7.5;
       }
 
@@ -228,8 +231,8 @@ export function exportOrdersToPdf(
       doc.text(itemsText || '1x Order Item', colX[4], y + 4);
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(16, 185, 129);
-      doc.text(formatZAR(o.grandTotal || 0), pageWidth - margin - 2, y + 4, { align: 'right' });
+      doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
+      doc.text(formatZAR(o.grandTotal || 0), pageWidth - margin - 4, y + 4, { align: 'right' });
 
       y += 7.5;
     });
@@ -249,9 +252,15 @@ export function exportOrdersToPdf(
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
   }
 
-  // Download File
-  const cleanDate = dateLabel.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-  doc.save(`wrap-and-wings-orders-${cleanDate}.pdf`);
+  // Download File: "Daily Orders Report - date"
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const dateFormatted = `${day}-${month}-${year}`;
+
+  doc.setProperties({ title: `Daily Orders Report - ${dateFormatted}` });
+  doc.save(`Daily Orders Report - ${dateFormatted}.pdf`);
 }
 
 /**

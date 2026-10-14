@@ -2583,7 +2583,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold">Total Sales</div>
-                <div className="text-xl font-mono font-black text-emerald-400">
+                <div className="text-xl font-mono font-black text-blue-400">
                   R{trafficOrdersData.revenue.toFixed(2)}
                 </div>
                 <div className="text-[10px] text-zinc-500">{trafficOrdersData.ordersCount} orders</div>
@@ -2591,7 +2591,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold">Food Units Sold</div>
-                <div className="text-xl font-mono font-black text-amber-400">
+                <div className="text-xl font-mono font-black text-blue-400">
                   {trafficOrdersData.totalItemsCount}
                 </div>
                 <div className="text-[10px] text-zinc-500">items dispatched</div>
@@ -2599,7 +2599,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold">Total Diners</div>
-                <div className="text-xl font-mono font-black text-white">
+                <div className="text-xl font-mono font-black text-blue-400">
                   {trafficSummary.uniqueVisitorIds.length}
                 </div>
                 <div className="text-[10px] text-zinc-500">{trafficSummary.totalPageViews} page views</div>
@@ -2607,7 +2607,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold">Cart Taps</div>
-                <div className="text-xl font-mono font-black text-rose-400">
+                <div className="text-xl font-mono font-black text-blue-400">
                   {trafficSummary.funnel.cartAdds}
                 </div>
                 <div className="text-[10px] text-zinc-500">items added to tray</div>
@@ -2616,7 +2616,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             {/* Section: Items Ordered Table */}
             <div className="space-y-2.5">
-              <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <h4 className="text-xs font-black text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Food Items Ordered Breakdown (Quantities Sold)</span>
               </h4>
@@ -2650,8 +2650,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <span className="text-[10px] text-zinc-500">#{idx + 1}</span>
                             <span>{name}</span>
                           </td>
-                          <td className="py-2 px-3 text-center text-amber-400 font-black">
-                            {qty}x
+                          <td className="py-2 px-3 text-center text-blue-400 font-black">
+                            {qty}
                           </td>
                           <td className="py-2 px-3 text-right text-zinc-400 text-[11px]">
                             {Math.round((qty / totalQty) * 100)}%
@@ -2678,28 +2678,28 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span>WhatsApp Broadcasts:</span>
-                    <span className="font-mono font-bold text-emerald-400">{trafficSummary.sources.whatsapp || 0}</span>
+                    <span className="font-mono font-bold text-blue-400">{trafficSummary.sources.whatsapp || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Social Media (IG/FB/TikTok):</span>
-                    <span className="font-mono font-bold text-purple-400">{trafficSummary.sources.social || 0}</span>
+                    <span className="font-mono font-bold text-blue-400">{trafficSummary.sources.social || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Direct Web Address:</span>
-                    <span className="font-mono font-bold text-amber-400">{trafficSummary.sources.direct || 0}</span>
+                    <span className="font-mono font-bold text-blue-400">{trafficSummary.sources.direct || 0}</span>
                   </div>
                 </div>
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-2">
                 <h4 className="font-black text-white uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                  <Phone className="w-3.5 h-3.5 text-blue-400" />
                   <span>Customer Contact Actions</span>
                 </h4>
                 <div className="space-y-1.5 text-zinc-300">
                   <div className="flex justify-between">
                     <span>WhatsApp Inquiries:</span>
-                    <span className="font-mono font-bold text-emerald-400">{trafficSummary.directActions.whatsappChat || 0}</span>
+                    <span className="font-mono font-bold text-blue-400">{trafficSummary.directActions.whatsappChat || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Phone Calls to Store:</span>
@@ -2707,11 +2707,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span>Maps Navigation Taps:</span>
-                    <span className="font-mono font-bold text-rose-400">{trafficSummary.directActions.directions || 0}</span>
+                    <span className="font-mono font-bold text-blue-400">{trafficSummary.directActions.directions || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Review Contest Entries:</span>
-                    <span className="font-mono font-bold text-amber-400">{entries.length}</span>
+                    <span className="font-mono font-bold text-blue-400">{entries.length}</span>
                   </div>
                 </div>
               </div>
@@ -2894,10 +2894,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                  <DollarSign className="w-3.5 h-3.5 text-blue-400" />
                   <span>Total Sales</span>
                 </div>
-                <div className="text-2xl font-mono font-black text-emerald-400">
+                <div className="text-2xl font-mono font-black text-blue-400">
                   R{dayOrdersData.totalRevenue.toFixed(2)}
                 </div>
                 <div className="text-[10px] text-zinc-500">
@@ -2907,10 +2907,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <ShoppingBag className="w-3.5 h-3.5 text-white" />
+                  <ShoppingBag className="w-3.5 h-3.5 text-blue-400" />
                   <span>Orders Placed</span>
                 </div>
-                <div className="text-2xl font-mono font-black text-white">
+                <div className="text-2xl font-mono font-black text-blue-400">
                   {dayOrdersData.totalOrders}
                 </div>
                 <div className="text-[10px] text-zinc-500">
@@ -2920,10 +2920,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-orange-400" />
+                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-blue-400" />
                   <span>Deliveries</span>
                 </div>
-                <div className="text-2xl font-mono font-black text-orange-400">
+                <div className="text-2xl font-mono font-black text-blue-400">
                   {dayOrdersData.deliveriesCount}
                 </div>
                 <div className="text-[10px] text-zinc-500">
@@ -2933,10 +2933,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold flex items-center justify-center gap-1">
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
+                  <ShoppingBag className="w-3.5 h-3.5 text-blue-400" />
                   <span>Collections</span>
                 </div>
-                <div className="text-2xl font-mono font-black text-amber-400">
+                <div className="text-2xl font-mono font-black text-blue-400">
                   {dayOrdersData.collectionsCount}
                 </div>
                 <div className="text-[10px] text-zinc-500">
@@ -2950,38 +2950,38 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-zinc-400 uppercase font-bold">Driver Tips</div>
-                  <div className="text-lg font-mono font-black text-yellow-400">
+                  <div className="text-lg font-mono font-black text-blue-400">
                     R{dayOrdersData.driverTips.toFixed(2)}
                   </div>
                 </div>
-                <Flame className="w-5 h-5 text-yellow-400/80" />
+                <Flame className="w-5 h-5 text-blue-400/80" />
               </div>
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 flex items-center justify-between">
                 <div>
                   <div className="text-[10px] text-zinc-400 uppercase font-bold">Food Portions Cooked</div>
-                  <div className="text-lg font-mono font-black text-cyan-400">
+                  <div className="text-lg font-mono font-black text-blue-400">
                     {dayOrdersData.totalItemsCount} meals
                   </div>
                 </div>
-                <ChefHat className="w-5 h-5 text-cyan-400/80" />
+                <ChefHat className="w-5 h-5 text-blue-400/80" />
               </div>
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 flex items-center justify-between col-span-2 sm:col-span-1">
                 <div>
                   <div className="text-[10px] text-zinc-400 uppercase font-bold">Unique Customers</div>
-                  <div className="text-lg font-mono font-black text-purple-400">
+                  <div className="text-lg font-mono font-black text-blue-400">
                     {new Set(dayOrdersData.targetList.map((o) => (o.customer?.phone || '').replace(/\D/g, '')).filter(Boolean)).size} contacts
                   </div>
                 </div>
-                <Users className="w-5 h-5 text-purple-400/80" />
+                <Users className="w-5 h-5 text-blue-400/80" />
               </div>
             </div>
 
             {/* Section: Items Ordered Table */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-black text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
                   <ChefHat className="w-3.5 h-3.5" />
                   <span>Meals &amp; Items Ordered ({dayOrdersData.totalItemsCount} total portions)</span>
                 </h4>
@@ -3019,10 +3019,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <span className="text-[10px] text-zinc-500">#{idx + 1}</span>
                             <span>{name}</span>
                           </td>
-                          <td className="py-2 px-3 text-center text-amber-400 font-black">
-                            {data.qty}x
+                          <td className="py-2 px-3 text-center text-blue-400 font-black">
+                            {data.qty}
                           </td>
-                          <td className="py-2 px-3 text-right text-emerald-400">
+                          <td className="py-2 px-3 text-right text-blue-400">
                             R{data.revenue.toFixed(2)}
                           </td>
                           <td className="py-2 px-3 text-right text-zinc-400 text-[11px]">
@@ -3040,7 +3040,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-2">
                 <h4 className="font-black text-white uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-orange-400" />
+                  <MapPin className="w-3.5 h-3.5 text-blue-400" />
                   <span>Delivery Suburbs Served</span>
                 </h4>
                 <div className="space-y-1.5 text-zinc-300">
@@ -3050,7 +3050,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     Object.entries(dayOrdersData.suburbsMap).map(([sub, count]) => (
                       <div key={sub} className="flex justify-between">
                         <span>{sub}:</span>
-                        <span className="font-mono font-bold text-orange-400">{count} {count === 1 ? 'drop' : 'drops'}</span>
+                        <span className="font-mono font-bold text-blue-400">{count} {count === 1 ? 'drop' : 'drops'}</span>
                       </div>
                     ))
                   )}
@@ -3059,7 +3059,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-2">
                 <h4 className="font-black text-white uppercase text-[11px] tracking-wider flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                  <DollarSign className="w-3.5 h-3.5 text-blue-400" />
                   <span>Payment Methods Breakdown</span>
                 </h4>
                 <div className="space-y-1.5 text-zinc-300">
@@ -3078,7 +3078,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       return (
                         <div key={method} className="flex justify-between">
                           <span>{label} ({data.count}):</span>
-                          <span className="font-mono font-bold text-emerald-400">R{data.total.toFixed(2)}</span>
+                          <span className="font-mono font-bold text-blue-400">R{data.total.toFixed(2)}</span>
                         </div>
                       );
                     })
