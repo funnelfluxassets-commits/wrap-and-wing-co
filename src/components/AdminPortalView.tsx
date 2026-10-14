@@ -70,6 +70,11 @@ import {
   generateWhatsAppDailyOrdersReportText
 } from '../services/orderService';
 import { generateGoogleMapsUrl } from '../services/payment';
+import {
+  exportOrdersToPdf,
+  exportTrafficToPdf,
+  exportReviewEntriesToPdf
+} from '../services/pdfExportService';
 
 interface AdminPortalViewProps {
   onBackToMenu: () => void;
@@ -128,51 +133,62 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Aggregate ordered food items & revenue for current range
   const trafficOrdersData = useMemo(() => {
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
-      now.getDate()
-    ).padStart(2, '0')}`;
+    const todayStr = getLocalTodayDateString();
 
     const yDate = new Date();
     yDate.setDate(yDate.getDate() - 1);
-    const yStr = `${yDate.getFullYear()}-${String(yDate.getMonth() + 1).padStart(2, '0')}-${String(
-      yDate.getDate()
-    ).padStart(2, '0')}`;
+    const yStr = formatToLocalDateString(yDate);
+
+    const weekDate = new Date();
+    weekDate.setDate(weekDate.getDate() - 7);
+    const weekStr = formatToLocalDateString(weekDate);
 
     const filtered = orders.filter((o) => {
-      if (!o) return false;
-      const orderDate = o.createdAt || '';
+      if (!o || !o.orderId) return false;
+      const d = getOrderDateString(o);
       if (trafficRange === 'all') return true;
-      if (trafficRange === 'today') {
-        return !orderDate.includes('2026-') || orderDate.includes(todayStr);
-      }
-      if (trafficRange === 'yesterday') {
-        return orderDate.includes(yStr);
-      }
+      if (trafficRange === 'today') return d === todayStr;
+      if (trafficRange === 'yesterday') return d === yStr;
+      if (trafficRange === 'week') return d >= weekStr && d <= todayStr;
       return true;
     });
 
-    const itemsMap: Record<string, number> = { ...(trafficSummary.orderedItems || {}) };
-    let totalItemsCount = trafficSummary.totalOrderedQuantity || 0;
+    const itemsMap: Record<string, number> = {};
+    let totalItemsCount = 0;
     let revenue = 0;
 
-    for (const ord of filtered) {
-      revenue += ord.grandTotal || 0;
-      if (ord.items && Array.isArray(ord.items)) {
-        for (const it of ord.items) {
-          const name = it.menuItem?.name || 'Meal Item';
-          const qty = it.quantity || 1;
-          itemsMap[name] = (itemsMap[name] || 0) + qty;
-          totalItemsCount += qty;
+    if (filtered.length > 0) {
+      for (const ord of filtered) {
+        revenue += ord.grandTotal || 0;
+        if (ord.items && Array.isArray(ord.items)) {
+          for (const it of ord.items) {
+            const name = it.menuItem?.name || 'Meal Item';
+            const qty = it.quantity || 1;
+            itemsMap[name] = (itemsMap[name] || 0) + qty;
+            totalItemsCount += qty;
+          }
         }
+      }
+    } else if (orders.length === 0 && trafficSummary) {
+      // Fallback only if orders have not loaded yet from backend
+      for (const [name, qty] of Object.entries(trafficSummary.orderedItems || {})) {
+        itemsMap[name] = qty;
+        totalItemsCount += qty;
       }
     }
 
+    const ordersCount =
+      filtered.length > 0
+        ? filtered.length
+        : orders.length === 0
+        ? trafficSummary.funnel?.ordersCompleted || 0
+        : 0;
+
     return {
-      ordersCount: filtered.length || trafficSummary.funnel.ordersCompleted || 0,
+      ordersCount,
       revenue,
       itemsMap,
-      totalItemsCount: Math.max(totalItemsCount, trafficSummary.totalOrderedQuantity || 0),
+      totalItemsCount,
     };
   }, [orders, trafficRange, trafficSummary]);
 
@@ -560,13 +576,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       </header>
 
       {/* ── Primary Tabs Navigation ── */}
-      <div className="bg-[#101016] border-b border-white/10 px-4 sm:px-6 py-2.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+      <div className="bg-[#101016] border-b border-white/10 px-3 sm:px-6 py-2.5">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Responsive Tabs Row */}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth pb-1 md:pb-0 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab('orders')}
-              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'orders'
                   ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-950/50'
                   : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
@@ -582,7 +599,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('reviews')}
-              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'reviews'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-950/50'
                   : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
@@ -598,7 +615,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('traffic')}
-              className={`px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'traffic'
                   ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-950/50'
                   : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
@@ -613,36 +630,60 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </button>
           </div>
 
+          {/* Action Buttons for Orders Tab */}
           {activeTab === 'orders' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={() => setDailyOrdersReportModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-950/40 transition-colors cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-950/40 transition-colors cursor-pointer"
                 title="Generate Daily Orders & Sales Shift Report"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Daily Orders Report</span>
+                <span>Daily Report</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportOrdersToCsv(filteredOrders, `orders-${selectedOrderDate}`)}
+                disabled={filteredOrders.length === 0}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                title="Download orders in CSV format"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportOrdersToPdf(filteredOrders, formatReportDateLabel(selectedOrderDate), orderMetrics)}
+                disabled={filteredOrders.length === 0}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                title="Download orders in PDF format"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setWebhookModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Configure Google Sheets Live Webhook"
               >
                 <Settings className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="hidden md:inline">Live Sheets Auto-Sync</span>
+                <span className="hidden xl:inline">Live Sheets Auto-Sync</span>
               </button>
             </div>
           )}
 
+          {/* Action Buttons for Traffic Tab */}
           {activeTab === 'traffic' && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 type="button"
                 onClick={handleRefreshTraffic}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Refresh customer traffic data"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-rose-400 ${isRefreshingTraffic ? 'animate-spin' : ''}`} />
@@ -652,7 +693,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setDailyReportModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-950/40 transition-colors cursor-pointer"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 text-xs font-black flex items-center gap-1.5 shadow-md shadow-amber-950/40 transition-colors cursor-pointer"
                 title="Generate Daily Executive Shift Report"
               >
                 <FileText className="w-3.5 h-3.5" />
@@ -662,11 +703,48 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => exportTrafficToCsv(trafficSummary, trafficRange.toUpperCase())}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
-                title="Export traffic metrics to CSV"
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer"
+                title="Download traffic metrics in CSV format"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Download CSV</span>
+                <span>Download CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData)}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
+                title="Download traffic intelligence in PDF format"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </button>
+            </div>
+          )}
+
+          {/* Action Buttons for Reviews Tab */}
+          {activeTab === 'reviews' && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+              <button
+                type="button"
+                onClick={() => exportEntriesToCsv(entries)}
+                disabled={entries.length === 0}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                title="Download review entries in CSV format"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => exportReviewEntriesToPdf(entries)}
+                disabled={entries.length === 0}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                title="Download review entries in PDF format"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
               </button>
             </div>
           )}
@@ -770,6 +848,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 >
                   <Download className="w-4 h-4" />
                   <span>📊 Export CSV</span>
+                </button>
+
+                {/* 1-Click Export to Official PDF Button */}
+                <button
+                  type="button"
+                  onClick={() => exportOrdersToPdf(filteredOrders, formatReportDateLabel(selectedOrderDate), orderMetrics)}
+                  disabled={filteredOrders.length === 0}
+                  className="py-3 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 hover:from-rose-500 hover:to-pink-500 active:scale-95 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-rose-950/60 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  title="Download official branded PDF orders and sales report"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>📄 Export PDF</span>
                 </button>
 
                 {/* Date Selector */}
@@ -931,7 +1021,136 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  {/* Mobile-Friendly Orders Card View (Visible on screens < lg) */}
+                  <div className="block lg:hidden divide-y divide-white/5 p-3 space-y-3">
+                    {filteredOrders.map((o) => {
+                      const isDelivery = o.orderMode === 'delivery';
+                      const tip = typeof o.tip === 'number' ? o.tip : 0;
+                      const cleanPhone = (o.customer?.phone || '').replace(/\D/g, '');
+                      const waPhone = getCleanWhatsAppPhone(o.customer?.phone || '');
+
+                      return (
+                        <div
+                          key={o.orderId}
+                          className="p-4 rounded-2xl bg-zinc-900/90 border border-white/5 space-y-3 shadow-md"
+                        >
+                          {/* Card Header: ID, Date/Time, Status Badge */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-black text-white text-base">
+                                #{o.orderId}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
+                                }`}
+                              >
+                                {isDelivery ? '🏍️ Delivery' : '🛍️ Pick'}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                o.status === 'completed'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : o.status === 'cooking'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                  : o.status === 'ready'
+                                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
+                                  : o.status === 'dispatched'
+                                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                                  : 'bg-zinc-800 text-zinc-300 border border-white/10'
+                              }`}
+                            >
+                              {o.status}
+                            </span>
+                          </div>
+
+                          {/* Placed Timestamp */}
+                          <div className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Placed: {o.createdAt || 'Recent'}</span>
+                          </div>
+
+                          {/* Customer Details & 1-Tap Contact */}
+                          <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-white text-xs truncate">
+                                {o.customer?.customerName || 'Customer'}
+                              </div>
+                              <div className="text-[11px] text-zinc-400 truncate">
+                                {isDelivery
+                                  ? `${o.customer?.address || ''}, ${o.customer?.suburb || 'Pinetown'}`
+                                  : 'Store Pickup at Shop 1'}
+                              </div>
+                            </div>
+
+                            {o.customer?.phone && (
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <a
+                                  href={`tel:${cleanPhone}`}
+                                  className="p-2 rounded-xl bg-zinc-800 text-emerald-400 hover:bg-emerald-500 hover:text-zinc-950 transition-colors"
+                                  title="Call Customer"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                </a>
+                                <a
+                                  href={`https://wa.me/${waPhone}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 rounded-xl bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-zinc-950 transition-colors"
+                                  title="WhatsApp Customer"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Items Ordered List */}
+                          <div className="space-y-1 text-xs">
+                            <span className="text-[10px] uppercase font-bold text-zinc-500">Ordered Meals:</span>
+                            {(o.items || []).map((it, idx) => (
+                              <div key={idx} className="flex justify-between text-zinc-300">
+                                <span className="truncate pr-2">
+                                  <strong className="text-white">{it.quantity || 1}x</strong> {it.menuItem?.name || 'Meal Item'}
+                                  {it.customization?.flavour && (
+                                    <span className="text-rose-400 ml-1">({it.customization.flavour})</span>
+                                  )}
+                                </span>
+                                <span className="font-mono text-zinc-400 shrink-0">
+                                  R{((it.itemTotal || (it.menuItem?.price ? it.menuItem.price * (it.quantity || 1) : 0))).toFixed(2)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Footer: Grand Total & Payment Method */}
+                          <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                  o.paymentStatus === 'paid'
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-zinc-800 text-zinc-300 border border-white/5'
+                                }`}
+                              >
+                                {(o.paymentMethod || 'cod').toUpperCase()}
+                              </span>
+                              {tip > 0 && <span className="text-yellow-400 text-[11px] font-bold">+R{tip} Tip</span>}
+                            </div>
+                            <div className="font-mono font-black text-amber-400 text-base">
+                              R{(o.grandTotal || 0).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop Spreadsheet Table View (Visible on screens >= lg) */}
+                  <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-zinc-900/80 text-[11px] font-black uppercase text-zinc-400 border-b border-white/10">
                       <tr>
@@ -1090,8 +1309,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         );
                       })}
                     </tbody>
-                  </table>
-                </div>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1250,6 +1470,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 >
                   <Download className="w-4 h-4 text-emerald-400" />
                   <span>Export Review CSV</span>
+                </button>
+
+                {/* Export PDF Button */}
+                <button
+                  type="button"
+                  onClick={() => exportReviewEntriesToPdf(entries)}
+                  disabled={entries.length === 0}
+                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-md shadow-rose-950/40"
+                  title="Download review entries in official PDF format"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Export Review PDF</span>
                 </button>
 
                 {/* Status Filter Buttons */}
@@ -2405,6 +2637,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                 <button
                   type="button"
+                  onClick={() => exportTrafficToCsv(trafficSummary, trafficRange.toUpperCase())}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-emerald-400" />
+                  <span>Download CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData)}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-rose-400" />
+                  <span>Download PDF</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => window.print()}
                   className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
@@ -2763,6 +3013,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 >
                   <Download className="w-4 h-4 text-emerald-400" />
                   <span>Export Shift CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => exportOrdersToPdf(dayOrdersData.targetList, formatReportDateLabel(selectedOrderDate), orderMetrics)}
+                  disabled={dayOrdersData.totalOrders === 0}
+                  className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                >
+                  <FileText className="w-4 h-4 text-rose-400" />
+                  <span>Download Shift PDF</span>
                 </button>
 
                 <button

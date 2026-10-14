@@ -904,7 +904,11 @@ export function getOrderDateString(o: LiveOrder): string {
     }
   }
 
-  return getLocalTodayDateString();
+  if (o.createdAt && o.createdAt.toLowerCase().includes('just now')) {
+    return getLocalTodayDateString();
+  }
+
+  return 'undated';
 }
 
 export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrder> {
