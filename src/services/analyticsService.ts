@@ -25,6 +25,8 @@ export interface TrafficDailyDoc {
     android: number;
     desktop: number;
   };
+  visitorDevices?: Record<string, 'ios' | 'android' | 'desktop'>;
+  visitorSources?: Record<string, string>;
   hourlyFootfall: Record<number, number>; // 0..23
   popularItems: Record<string, number>; // Item name -> view/click count
   orderedItems: Record<string, number>; // Item name -> quantity actually ordered
@@ -127,9 +129,35 @@ function detectSource(): 'google_gmb' | 'whatsapp' | 'social' | 'direct' {
 
 function detectDevice(): 'ios' | 'android' | 'desktop' {
   if (typeof window === 'undefined') return 'desktop';
-  const ua = navigator.userAgent.toLowerCase();
-  if (/iphone|ipad|ipod/.test(ua)) return 'ios';
-  if (/android/.test(ua)) return 'android';
+  const ua = (navigator.userAgent || '').toLowerCase();
+
+  // 1. Apple iOS (iPhone, iPod, iPad - including modern iPads that request desktop site by default)
+  const isIPadOS =
+    ua.includes('macintosh') &&
+    typeof navigator.maxTouchPoints === 'number' &&
+    navigator.maxTouchPoints > 1;
+  if (/iphone|ipad|ipod/.test(ua) || isIPadOS) {
+    return 'ios';
+  }
+
+  // 2. Android (standard user-agent or client hints)
+  const isAndroidUA = /android/.test(ua);
+  const uaData = (navigator as any)?.userAgentData;
+  const isAndroidClientHint =
+    typeof uaData?.platform === 'string' && /android/i.test(uaData.platform);
+  if (isAndroidUA || isAndroidClientHint) {
+    return 'android';
+  }
+
+  // 3. Mobile / Tablet detection fallback (in-app QR scanners, custom webviews, mobile browsers)
+  const isMobileHint =
+    uaData?.mobile === true ||
+    /mobile|touch|tablet|phone|silk|kindle|bb10|rim/.test(ua) ||
+    (window.innerWidth <= 768 && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+  if (isMobileHint) {
+    return /webkit/.test(ua) && !/chrome|chromium/.test(ua) ? 'ios' : 'android';
+  }
+
   return 'desktop';
 }
 
@@ -149,6 +177,8 @@ function getEmptyDailyDoc(date: string): TrafficDailyDoc {
       android: 0,
       desktop: 0,
     },
+    visitorDevices: {},
+    visitorSources: {},
     hourlyFootfall: {},
     popularItems: {},
     orderedItems: {},
@@ -183,21 +213,19 @@ function loadLocalDailyDoc(date: string): TrafficDailyDoc {
     if (raw) {
       const parsed: TrafficDailyDoc = { ...getEmptyDailyDoc(date), ...JSON.parse(raw) };
       const uniqueCount = parsed.uniqueVisitorIds?.length || 0;
-      const sourcesSum =
-        (parsed.sources?.google_gmb || 0) +
-        (parsed.sources?.whatsapp || 0) +
-        (parsed.sources?.social || 0) +
-        (parsed.sources?.direct || 0);
-      if (sourcesSum < uniqueCount) {
-        parsed.sources.direct = (parsed.sources.direct || 0) + (uniqueCount - sourcesSum);
-      }
 
+      // Sanitize inflated desktop number if it was artificially set by the previous discrepancy bug
       const devicesSum =
         (parsed.devices?.ios || 0) +
         (parsed.devices?.android || 0) +
         (parsed.devices?.desktop || 0);
-      if (devicesSum < uniqueCount) {
-        parsed.devices.desktop = (parsed.devices.desktop || 0) + (uniqueCount - devicesSum);
+      if (
+        parsed.devices &&
+        parsed.devices.desktop >= 10 &&
+        devicesSum === uniqueCount &&
+        (!parsed.visitorDevices || Object.keys(parsed.visitorDevices).length === 0)
+      ) {
+        parsed.devices.desktop = 0;
       }
 
       // Restore previously viewed test items if they were wiped by the multi-client bug
@@ -296,6 +324,11 @@ export function logPageView(page: string): void {
     current.devices[dev] = (current.devices[dev] || 0) + 1;
   }
 
+  if (!current.visitorDevices) current.visitorDevices = {};
+  current.visitorDevices[vid] = dev;
+  if (!current.visitorSources) current.visitorSources = {};
+  current.visitorSources[vid] = src;
+
   current.hourlyFootfall[hour] = (current.hourlyFootfall[hour] || 0) + 1;
   if (page === 'menu') {
     current.funnel.menuViews += 1;
@@ -311,6 +344,8 @@ export function logPageView(page: string): void {
       date: today,
       totalPageViews: increment(1),
       uniqueVisitorIds: arrayUnion(vid),
+      [`visitorDevices.${vid}`]: dev,
+      [`visitorSources.${vid}`]: src,
       [`hourlyFootfall.${hour}`]: increment(1),
       lastActive: Date.now(),
     };
@@ -680,32 +715,69 @@ export function subscribeToTraffic(callback: () => void): () => void {
           new Set([...(local.uniqueVisitorIds || []), ...(cloudData.uniqueVisitorIds || [])])
         );
 
-        // 2. Sources
-        const mergedSources = {
-          google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0),
-          whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0),
-          social: Math.max(local.sources?.social || 0, cloudData.sources?.social || 0),
-          direct: Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0),
+        // 2. Per-visitor devices & sources mapping
+        const rawCloud = cloudData as Record<string, any>;
+        const mergedVisitorDevices: Record<string, 'ios' | 'android' | 'desktop'> = {
+          ...(local.visitorDevices || {}),
+          ...(cloudData.visitorDevices || {}),
         };
-        const sourcesSum =
-          mergedSources.google_gmb +
-          mergedSources.whatsapp +
-          mergedSources.social +
-          mergedSources.direct;
-        if (sourcesSum < mergedUniqueVisitors.length) {
-          mergedSources.direct += (mergedUniqueVisitors.length - sourcesSum);
+        for (const [k, v] of Object.entries(rawCloud)) {
+          if (k.startsWith('visitorDevices.') && typeof v === 'string') {
+            mergedVisitorDevices[k.replace('visitorDevices.', '')] = v as any;
+          }
         }
 
-        // 3. Devices
-        const mergedDevices = {
-          ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0),
-          android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0),
-          desktop: Math.max(local.devices?.desktop || 0, cloudData.devices?.desktop || 0),
+        const mergedVisitorSources: Record<string, string> = {
+          ...(local.visitorSources || {}),
+          ...(cloudData.visitorSources || {}),
         };
-        const devicesSum = mergedDevices.ios + mergedDevices.android + mergedDevices.desktop;
-        if (devicesSum < mergedUniqueVisitors.length) {
-          mergedDevices.desktop += (mergedUniqueVisitors.length - devicesSum);
+        for (const [k, v] of Object.entries(rawCloud)) {
+          if (k.startsWith('visitorSources.') && typeof v === 'string') {
+            mergedVisitorSources[k.replace('visitorSources.', '')] = v as any;
+          }
         }
+
+        // Count device types directly from visitor map
+        let iosFromMap = 0;
+        let androidFromMap = 0;
+        let desktopFromMap = 0;
+        for (const d of Object.values(mergedVisitorDevices)) {
+          if (d === 'ios') iosFromMap++;
+          else if (d === 'android') androidFromMap++;
+          else if (d === 'desktop') desktopFromMap++;
+        }
+
+        // 3. Devices (clear out false desktop inflation, use true cloud & visitor device numbers)
+        const cloudDesktop = cloudData.devices?.desktop ?? 0;
+        const localDesktopClean =
+          local.devices?.desktop && local.devices.desktop >= 10 && cloudDesktop === 0
+            ? 0
+            : local.devices?.desktop || 0;
+
+        const mergedDevices = {
+          ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0, iosFromMap),
+          android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0, androidFromMap),
+          desktop: Math.max(cloudDesktop, localDesktopClean, desktopFromMap),
+        };
+
+        // 4. Sources
+        let googleFromMap = 0;
+        let whatsappFromMap = 0;
+        let socialFromMap = 0;
+        let directFromMap = 0;
+        for (const s of Object.values(mergedVisitorSources)) {
+          if (s === 'google_gmb') googleFromMap++;
+          else if (s === 'whatsapp') whatsappFromMap++;
+          else if (s === 'social') socialFromMap++;
+          else if (s === 'direct') directFromMap++;
+        }
+
+        const mergedSources = {
+          google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0, googleFromMap),
+          whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0, whatsappFromMap),
+          social: Math.max(local.sources?.social || 0, cloudData.sources?.social || 0, socialFromMap),
+          direct: Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0, directFromMap),
+        };
 
         // 4. Popular Craved Items - Deep merge so items are NEVER lost
         const mergedPopularItems: Record<string, number> = {};
@@ -734,7 +806,6 @@ export function subscribeToTraffic(callback: () => void): () => void {
         }
 
         // 6. Flavours
-        const rawCloud = cloudData as Record<string, any>;
         const mergedFlavours = {
           lemony: Math.max(
             local.flavourPreferences?.lemony || 0,
@@ -810,6 +881,8 @@ export function subscribeToTraffic(callback: () => void): () => void {
           uniqueVisitorIds: mergedUniqueVisitors,
           sources: mergedSources,
           devices: mergedDevices,
+          visitorDevices: mergedVisitorDevices,
+          visitorSources: mergedVisitorSources,
           popularItems: mergedPopularItems,
           orderedItems: mergedOrderedItems,
           totalOrderedQuantity: Math.max(local.totalOrderedQuantity || 0, cloudData.totalOrderedQuantity || 0),
