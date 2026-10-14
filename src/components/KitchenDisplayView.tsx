@@ -10,7 +10,10 @@ import {
   unlockAudio,
   syncOrdersFromCloud,
   resetToDefaultOrders,
-  clearAllOrders
+  clearAllOrders,
+  getLocalTodayDateString,
+  formatToLocalDateString,
+  getOrderDateString,
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
@@ -68,13 +71,32 @@ function getOrderCookingStartTime(order: LiveOrder): number {
   return Date.now();
 }
 
+// Determine if an order was completed today
+function isOrderCompletedToday(order: LiveOrder, todayStr: string): boolean {
+  if (order.status !== 'completed') return false;
+
+  // 1. If completedAt timestamp is available
+  if (typeof order.completedAt === 'number' && order.completedAt > 1600000000000) {
+    return formatToLocalDateString(new Date(order.completedAt)) === todayStr;
+  }
+
+  // 2. Check completed timeline event
+  const completedEvent = order.timeline?.slice().reverse().find((t) => t.status === 'completed');
+  if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 1600000000000) {
+    return formatToLocalDateString(new Date(completedEvent.epochTime)) === todayStr;
+  }
+
+  // 3. Fallback to order date string
+  return getOrderDateString(order) === todayStr;
+}
+
 export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
   onLogout,
 }) => {
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
-  const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed'>('active');
+  const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed_today' | 'history'>('active');
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -339,6 +361,17 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     return validOrders.indexOf(a) - validOrders.indexOf(b);
   });
 
+  const todayStr = getLocalTodayDateString();
+
+  // Completed Orders FOR TODAY ONLY
+  const completedTodayOrders = completedOrders.filter((o) => isOrderCompletedToday(o, todayStr));
+
+  // History: Completed on prior days or cancelled
+  const historyOrders = [
+    ...completedOrders.filter((o) => !isOrderCompletedToday(o, todayStr)),
+    ...validOrders.filter((o) => o.status === 'cancelled')
+  ];
+
   const displayedOrders =
     filter === 'active'
       ? activeOrders
@@ -346,7 +379,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       ? cookingOrders
       : filter === 'ready'
       ? readyOrders
-      : completedOrders;
+      : filter === 'completed_today'
+      ? completedTodayOrders
+      : historyOrders;
 
   return (
     <div className="min-h-screen bg-[#0d0d12] text-zinc-100 flex flex-col font-sans">
@@ -467,31 +502,47 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
           <button
             type="button"
-            onClick={() => setFilter('completed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              filter === 'completed'
+            onClick={() => setFilter('completed_today')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+              filter === 'completed_today'
+                ? 'bg-teal-600 text-white shadow-md'
+                : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+            }`}
+          >
+            <CheckCircle className="w-3.5 h-3.5 text-teal-300" />
+            <span>Completed Orders</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
+              {completedTodayOrders.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setFilter('history')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+              filter === 'history'
                 ? 'bg-zinc-700 text-white shadow-md'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
             }`}
           >
             <span>History</span>
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
-              {completedOrders.length}
+              {historyOrders.length}
             </span>
           </button>
 
-          {filter === 'completed' && completedOrders.length > 0 && (
+          {filter === 'history' && historyOrders.length > 0 && (
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('Delete all completed orders from history?')) {
-                  for (const o of completedOrders) {
+                if (window.confirm('Delete all past history orders? Today\'s completed orders will remain safe.')) {
+                  for (const o of historyOrders) {
                     deleteOrder(o.orderId);
                   }
                   setOrders(getAllOrders());
                 }
               }}
-              className="p-1 px-2.5 rounded-xl bg-zinc-900 hover:bg-red-600/20 text-[11px] font-bold text-zinc-400 hover:text-red-400 border border-white/10 flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm ml-1"
+              className="p-1 px-2.5 rounded-xl bg-zinc-900 hover:bg-red-600/20 text-[11px] font-bold text-zinc-400 hover:text-red-400 border border-white/10 flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm ml-1 shrink-0 whitespace-nowrap"
               title="Delete all past completed tickets"
             >
               <Trash2 className="w-3 h-3 text-red-400" />
@@ -547,7 +598,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
               🍽️
             </div>
             <h3 className="text-lg font-black text-zinc-300">
-              {filter !== 'active' ? `No orders in "${filter}" column` : 'No orders on screen'}
+              {filter === 'completed_today'
+                ? "No completed orders for today yet"
+                : filter === 'history'
+                ? 'No past history orders'
+                : filter !== 'active'
+                ? `No orders in "${filter}" column`
+                : 'No orders on screen'}
             </h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">
               Live orders from customer phones and counter checkouts appear here automatically with audio chimes.
