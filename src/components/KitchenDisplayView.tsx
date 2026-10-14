@@ -90,6 +90,14 @@ function isOrderCompletedToday(order: LiveOrder, todayStr: string): boolean {
   return getOrderDateString(order) === todayStr;
 }
 
+// Helper to format date as DD/MM/YY (e.g. 14/10/26)
+function formatDisplayDate(date: Date = new Date()): string {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  return `${day}/${month}/${year}`;
+}
+
 export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
@@ -97,6 +105,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 }) => {
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
   const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed_today' | 'history'>('active');
+  const [currentDate, setCurrentDate] = useState(() => formatDisplayDate(new Date()));
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -136,6 +145,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     const clockTimer = setInterval(() => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString());
+      setCurrentDate(formatDisplayDate(now));
 
       // Overdue Cooking Alarm: pulse alert chime every 4 seconds when cooking order exceeds 10 minutes
       if (now.getSeconds() % 4 === 0 && soundEnabled) {
@@ -416,7 +426,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         </div>
 
         {/* Clock & Sound Control */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => {
@@ -434,7 +444,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             <span className="hidden md:inline">{soundEnabled ? 'Chime ON (Tap to test)' : 'Chime Muted'}</span>
           </button>
 
-          <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-sm sm:text-base font-black text-amber-400">
+          <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-sm sm:text-base font-black text-amber-400 shrink-0">
+            {currentDate}
+          </div>
+
+          <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 font-mono text-sm sm:text-base font-black text-amber-400 shrink-0">
             {currentTime}
           </div>
 
