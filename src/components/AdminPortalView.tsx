@@ -1758,10 +1758,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Eye className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
                   {trafficSummary.totalPageViews}
                 </div>
-                <p className="text-[11px] text-zinc-400">Total digital visits &amp; menu browses</p>
+                <p className="text-[11px] text-zinc-400 text-center">Total digital visits &amp; menu browses</p>
               </div>
 
               {/* Card 2: Unique Diners */}
@@ -1772,10 +1772,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Users className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
                   {trafficSummary.uniqueVisitorIds.length}
                 </div>
-                <p className="text-[11px] text-zinc-400">Individual phones &amp; devices</p>
+                <p className="text-[11px] text-zinc-400 text-center">Individual phones &amp; devices</p>
               </div>
 
               {/* Card 3: Live In Shop Right Now */}
@@ -1787,10 +1787,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Activity className="w-4 h-4 relative" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
                   {liveVisitors}
                 </div>
-                <p className="text-[11px] text-zinc-400">Active in the last 10 minutes</p>
+                <p className="text-[11px] text-zinc-400 text-center">Active in the last 10 minutes</p>
               </div>
 
               {/* Card 4: Items Ordered & Food Sold */}
@@ -1801,10 +1801,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
                   {trafficOrdersData.totalItemsCount}
                 </div>
-                <p className="text-[11px] text-zinc-400">
+                <p className="text-[11px] text-zinc-400 text-center">
                   {trafficOrdersData.ordersCount} orders • R{trafficOrdersData.revenue.toFixed(2)} sales
                 </p>
               </div>
