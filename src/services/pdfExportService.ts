@@ -306,57 +306,85 @@ export function exportTrafficToPdf(
   doc.setTextColor(161, 161, 170);
   doc.text(`Generated: ${getNowFormatted()}`, pageWidth - margin, 18, { align: 'right' });
 
-  y = 38;
+  y = 35;
 
-  // KPI Summary Boxes
+  // Calculate Totals & Rankings
+  const itemsMap: Record<string, number> = { ...(ordersData.itemsMap || {}) };
+  if (Object.keys(itemsMap).length === 0 && trafficSummary.orderedItems) {
+    Object.assign(itemsMap, trafficSummary.orderedItems);
+  }
+
+  const sortedOrdered = Object.entries(itemsMap)
+    .filter(([_, qty]) => qty > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const totalOrderedUnits =
+    ordersData.totalItemsCount ||
+    sortedOrdered.reduce((s, [_, q]) => s + q, 0) ||
+    trafficSummary.totalOrderedQuantity ||
+    0;
+
+  const sortedCraved = Object.entries(trafficSummary.popularItems || {})
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const totalCravedViews = sortedCraved.reduce((sum, [_, c]) => sum + c, 0);
+
+  // ── AUDIENCE & DEMAND OVERVIEW KPI HERO CARDS ──
   doc.setTextColor(24, 24, 27);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text('Audience & Demand Overview', margin, y);
   y += 5;
 
-  const cardWidth = (pageWidth - margin * 2 - 9) / 4;
-  const cardHeight = 18;
+  const cardWidth = (pageWidth - margin * 2 - 6) / 3;
+  const cardHeight = 15;
 
   const kpis = [
     { label: 'TOTAL PAGE VIEWS', val: `${trafficSummary.totalPageViews || 0} Views`, color: [59, 130, 246] },
     { label: 'UNIQUE DINERS', val: `${trafficSummary.uniqueVisitorIds?.length || 0} Devices`, color: [168, 85, 247] },
-    { label: 'FOOD UNITS ORDERED', val: `${ordersData.totalItemsCount || 0} Sold`, color: [245, 158, 11] },
+    { label: 'ONLINE RIGHT NOW', val: `1 Active Diner`, color: [14, 165, 233] },
+    { label: 'ITEMS ORDERED', val: `${totalOrderedUnits} Units Sold`, color: [245, 158, 11] },
+    { label: 'MOST CRAVED ITEMS VIEWED', val: `${totalCravedViews} Craved Views`, color: [225, 29, 72] },
     { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: [16, 185, 129] },
   ];
 
   kpis.forEach((kpi, idx) => {
-    const x = margin + idx * (cardWidth + 3);
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+    const cx = margin + col * (cardWidth + 3);
+    const cy = y + row * (cardHeight + 2);
+
     doc.setFillColor(244, 244, 245);
-    doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
+    doc.roundedRect(cx, cy, cardWidth, cardHeight, 2, 2, 'F');
     doc.setDrawColor(228, 228, 231);
-    doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'S');
+    doc.roundedRect(cx, cy, cardWidth, cardHeight, 2, 2, 'S');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(113, 113, 122);
-    doc.text(kpi.label, x + 3, y + 5);
+    doc.text(kpi.label, cx + 3, cy + 4.5);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
-    doc.text(kpi.val, x + 3, y + 13);
+    doc.text(kpi.val, cx + 3, cy + 11);
   });
 
-  y += cardHeight + 8;
+  y += cardHeight * 2 + 2 + 6;
 
-  // Two columns: Traffic Sources & Customer Devices
+  // ── Two columns: Traffic Channels & Customer Devices ──
   const colWidth = (pageWidth - margin * 2 - 6) / 2;
 
   // Left Column: Where Diners Found You
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(24, 24, 27);
   doc.text('Where Diners Found You (Traffic Channels)', margin, y);
 
   // Right Column: Customer Devices
   doc.text('Customer Devices & Platform', margin + colWidth + 6, y);
-  y += 5;
+  y += 4.5;
 
   const sourcesTotal =
     (trafficSummary.sources?.google_gmb || 0) +
@@ -373,19 +401,19 @@ export function exportTrafficToPdf(
 
   // Draw Sources Table
   doc.setFillColor(244, 244, 245);
-  doc.roundedRect(margin, y, colWidth, 34, 2, 2, 'F');
-  let sy = y + 5;
+  doc.roundedRect(margin, y, colWidth, 31, 2, 2, 'F');
+  let sy = y + 4.5;
   sources.forEach((src) => {
     const pct = Math.round((src.count / sourcesTotal) * 100);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(55, 65, 81);
     doc.text(src.name, margin + 4, sy);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(24, 24, 27);
     doc.text(`${src.count} (${pct}%)`, margin + colWidth - 4, sy, { align: 'right' });
-    sy += 7;
+    sy += 6.5;
   });
 
   // Draw Devices Table
@@ -402,29 +430,29 @@ export function exportTrafficToPdf(
   ];
 
   doc.setFillColor(244, 244, 245);
-  doc.roundedRect(margin + colWidth + 6, y, colWidth, 34, 2, 2, 'F');
-  let dy = y + 5;
+  doc.roundedRect(margin + colWidth + 6, y, colWidth, 31, 2, 2, 'F');
+  let dy = y + 4.5;
   devices.forEach((dev) => {
     const pct = Math.round((dev.count / devicesTotal) * 100);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(55, 65, 81);
     doc.text(dev.name, margin + colWidth + 10, dy);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(24, 24, 27);
     doc.text(`${dev.count} ${dev.name.includes('Online') ? 'Active' : `(${pct}%)`}`, margin + colWidth * 2 + 2, dy, { align: 'right' });
-    dy += 7;
+    dy += 6.5;
   });
 
-  y += 40;
+  y += 36;
 
-  // Direct Customer Actions
+  // ── Direct High-Intent Customer Actions ──
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(24, 24, 27);
   doc.text('High-Intent Customer Actions (1-Tap Engagements)', margin, y);
-  y += 5;
+  y += 4.5;
 
   const actionCardWidth = (pageWidth - margin * 2 - 9) / 4;
   const actions = [
@@ -437,74 +465,164 @@ export function exportTrafficToPdf(
   actions.forEach((act, idx) => {
     const x = margin + idx * (actionCardWidth + 3);
     doc.setFillColor(244, 244, 245);
-    doc.roundedRect(x, y, actionCardWidth, 14, 2, 2, 'F');
+    doc.roundedRect(x, y, actionCardWidth, 13, 2, 2, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(113, 113, 122);
-    doc.text(act.label, x + 3, y + 4.5);
+    doc.text(act.label, x + 3, y + 4);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(24, 24, 27);
-    doc.text(act.val, x + 3, y + 10.5);
+    doc.text(act.val, x + 3, y + 9.5);
   });
 
-  y += 20;
+  y += 18;
 
-  // Items Actually Sold & Units Cooked Table
+  // ── Two Tables: Items Ordered vs Most Craved Menu Items ──
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9.5);
   doc.setTextColor(24, 24, 27);
-  doc.text(`Food Items Actually Ordered (${ordersData.totalItemsCount || 0} Units)`, margin, y);
-  y += 5;
+  doc.text(`Items Actually Ordered (${totalOrderedUnits} Units)`, margin, y);
+  doc.text(`Most Craved Menu Items (${totalCravedViews} Views)`, margin + colWidth + 6, y);
+  y += 4.5;
 
-  const sortedOrdered = Object.entries(ordersData.itemsMap || {})
-    .filter(([_, qty]) => qty > 0)
-    .sort((a, b) => b[1] - a[1]);
+  // Table Headers
+  doc.setFillColor(228, 228, 231);
+  doc.rect(margin, y, colWidth, 5.5, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(39, 39, 42);
+  doc.text('#', margin + 2.5, y + 3.8);
+  doc.text('MEAL ITEM', margin + 8, y + 3.8);
+  doc.text('QTY', margin + colWidth - 2.5, y + 3.8, { align: 'right' });
 
-  if (sortedOrdered.length === 0) {
-    doc.setFillColor(250, 250, 250);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, 16, 2, 2, 'F');
-    doc.setFont('helvetica', 'italic');
-    doc.setFontSize(8.5);
-    doc.setTextColor(113, 113, 122);
-    doc.text(`No food items recorded for this timeframe (${rangeLabel}).`, pageWidth / 2, y + 9.5, { align: 'center' });
-    y += 22;
-  } else {
-    // Header
-    doc.setFillColor(228, 228, 231);
-    doc.rect(margin, y, pageWidth - margin * 2, 6, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(39, 39, 42);
-    doc.text('#', margin + 3, y + 4);
-    doc.text('MENU ITEM', margin + 12, y + 4);
-    doc.text('QUANTITY DISPATCHED', pageWidth - margin - 3, y + 4, { align: 'right' });
-    y += 6.5;
+  const rx = margin + colWidth + 6;
+  doc.setFillColor(228, 228, 231);
+  doc.rect(rx, y, colWidth, 5.5, 'F');
+  doc.text('#', rx + 2.5, y + 3.8);
+  doc.text('CRAVED MENU ITEM', rx + 8, y + 3.8);
+  doc.text('VIEWS', rx + colWidth - 2.5, y + 3.8, { align: 'right' });
 
-    sortedOrdered.slice(0, 12).forEach(([itemName, qty], idx) => {
+  y += 6;
+
+  const maxRows = Math.max(sortedOrdered.length, sortedCraved.length, 1);
+  const rowsToDisplay = Math.min(maxRows, 7);
+
+  for (let idx = 0; idx < rowsToDisplay; idx++) {
+    const ord = sortedOrdered[idx];
+    const crv = sortedCraved[idx];
+
+    // Left Cell: Ordered Item
+    if (ord) {
       if (idx % 2 === 0) {
         doc.setFillColor(249, 250, 251);
-        doc.rect(margin, y - 1, pageWidth - margin * 2, 6, 'F');
+        doc.rect(margin, y - 0.5, colWidth, 5, 'F');
       }
-
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
+      doc.setFontSize(7);
       doc.setTextColor(113, 113, 122);
-      doc.text(String(idx + 1), margin + 3, y + 3.5);
+      doc.text(String(idx + 1), margin + 2.5, y + 3.2);
 
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(24, 24, 27);
-      doc.text(itemName, margin + 12, y + 3.5);
+      const name = ord[0].length > 25 ? ord[0].slice(0, 24) + '…' : ord[0];
+      doc.text(name, margin + 8, y + 3.2);
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(245, 158, 11);
-      doc.text(`${qty}x Ordered`, pageWidth - margin - 3, y + 3.5, { align: 'right' });
+      doc.text(`${ord[1]}x`, margin + colWidth - 2.5, y + 3.2, { align: 'right' });
+    } else if (idx === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(161, 161, 170);
+      doc.text('No food items ordered yet.', margin + 8, y + 3.2);
+    }
 
-      y += 6;
-    });
+    // Right Cell: Craved Item
+    if (crv) {
+      if (idx % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(rx, y - 0.5, colWidth, 5, 'F');
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(113, 113, 122);
+      doc.text(String(idx + 1), rx + 2.5, y + 3.2);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(24, 24, 27);
+      const name = crv[0].length > 25 ? crv[0].slice(0, 24) + '…' : crv[0];
+      doc.text(name, rx + 8, y + 3.2);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(225, 29, 72);
+      doc.text(`${crv[1]} views`, rx + colWidth - 2.5, y + 3.2, { align: 'right' });
+    } else if (idx === 0) {
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(7);
+      doc.setTextColor(161, 161, 170);
+      doc.text('No menu items craved yet.', rx + 8, y + 3.2);
+    }
+
+    y += 5.2;
   }
+
+  y += 5;
+
+  // ── Flavours Battle & Ordering Funnel Overview ──
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(24, 24, 27);
+  doc.text('Signature Sauce Flavour Battle', margin, y);
+  doc.text('Customer Ordering Funnel', margin + colWidth + 6, y);
+  y += 4.5;
+
+  // Left: Flavours Box
+  doc.setFillColor(244, 244, 245);
+  doc.roundedRect(margin, y, colWidth, 27, 2, 2, 'F');
+  let fy = y + 4.5;
+  const flavoursList = [
+    { name: 'Lemony Basting', count: trafficSummary.flavourPreferences?.lemony || 0 },
+    { name: 'Mild Basting', count: trafficSummary.flavourPreferences?.mild || 0 },
+    { name: 'Barbeque Basting', count: trafficSummary.flavourPreferences?.bbq || 0 },
+    { name: 'Sweet Chilli Basting', count: trafficSummary.flavourPreferences?.sweet_chilli || 0 },
+    { name: 'Hot Basting', count: trafficSummary.flavourPreferences?.hot || 0 },
+  ];
+  flavoursList.forEach((flv) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(55, 65, 81);
+    doc.text(flv.name, margin + 4, fy);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(245, 158, 11);
+    doc.text(`${flv.count} choices`, margin + colWidth - 4, fy, { align: 'right' });
+    fy += 5;
+  });
+
+  // Right: Funnel Box
+  doc.setFillColor(244, 244, 245);
+  doc.roundedRect(rx, y, colWidth, 27, 2, 2, 'F');
+  let fuy = y + 5;
+  const funnelSteps = [
+    { name: '1. Menu Browsed', count: trafficSummary.funnel?.menuViews || trafficSummary.totalPageViews || 0 },
+    { name: '2. Items Added to Cart', count: trafficSummary.funnel?.cartAdds || 0 },
+    { name: '3. Checkout Initiated', count: trafficSummary.funnel?.checkoutStarts || 0 },
+    { name: '4. Orders Completed', count: trafficSummary.funnel?.ordersCompleted || 0 },
+  ];
+  funnelSteps.forEach((st) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(55, 65, 81);
+    doc.text(st.name, rx + 4, fuy);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(16, 185, 129);
+    doc.text(`${st.count} sessions`, rx + colWidth - 4, fuy, { align: 'right' });
+    fuy += 6;
+  });
 
   // Footer on all pages
   const totalPages = doc.getNumberOfPages();
