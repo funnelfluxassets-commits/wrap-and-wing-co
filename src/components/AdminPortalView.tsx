@@ -1820,7 +1820,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-5 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <Globe className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -1849,22 +1849,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         name: 'WhatsApp Broadcasts & Chat',
                         desc: 'Tapped links in WhatsApp status & chats',
                         count: trafficSummary.sources.whatsapp || 0,
-                        color: 'from-emerald-500 to-teal-600',
-                        textColor: 'text-emerald-400',
+                        color: 'from-blue-500 to-indigo-600',
+                        textColor: 'text-blue-400',
                       },
                       {
                         name: 'Social Media (Instagram/TikTok/FB)',
                         desc: 'Arrived from social promo links',
                         count: trafficSummary.sources.social || 0,
-                        color: 'from-purple-500 to-pink-600',
-                        textColor: 'text-purple-400',
+                        color: 'from-blue-500 to-indigo-600',
+                        textColor: 'text-blue-400',
                       },
                       {
                         name: 'Direct & Brand Bookmark',
                         desc: 'Typed wrapandwings.co.za directly',
                         count: trafficSummary.sources.direct || 0,
-                        color: 'from-amber-500 to-orange-600',
-                        textColor: 'text-amber-400',
+                        color: 'from-blue-500 to-indigo-600',
+                        textColor: 'text-blue-400',
                       },
                     ];
 
@@ -1906,7 +1906,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <Smartphone className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -1928,7 +1928,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     return (
                       <div className="grid grid-cols-3 gap-3 pt-1">
                         <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 text-center space-y-1">
-                          <Smartphone className="w-5 h-5 mx-auto text-rose-400" />
+                          <Smartphone className="w-5 h-5 mx-auto text-blue-400" />
                           <div className="text-xs font-bold text-zinc-300">Apple iPhone</div>
                           <div className="text-lg font-black text-white font-mono">
                             {trafficSummary.devices.ios || 0}
@@ -1937,7 +1937,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         </div>
 
                         <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 text-center space-y-1">
-                          <Smartphone className="w-5 h-5 mx-auto text-emerald-400" />
+                          <Smartphone className="w-5 h-5 mx-auto text-blue-400" />
                           <div className="text-xs font-bold text-zinc-300">Android</div>
                           <div className="text-lg font-black text-white font-mono">
                             {trafficSummary.devices.android || 0}
@@ -1962,7 +1962,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <Phone className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -1976,12 +1976,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
                       <div className="space-y-0.5">
                         <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+                          <MessageCircle className="w-3.5 h-3.5 text-blue-400" />
                           <span>WhatsApp Clicks</span>
                         </span>
                         <p className="text-[10px] text-zinc-500">Started direct chat</p>
                       </div>
-                      <span className="text-lg font-mono font-black text-emerald-400">
+                      <span className="text-lg font-mono font-black text-blue-400">
                         {trafficSummary.directActions.whatsappChat || 0}
                       </span>
                     </div>
@@ -2002,7 +2002,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
                       <div className="space-y-0.5">
                         <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-rose-400" />
+                          <MapPin className="w-3.5 h-3.5 text-blue-400" />
                           <span>Maps / Waze Taps</span>
                         </span>
                         <p className="text-[10px] text-zinc-500">Navigation to Shop 1</p>
@@ -2086,9 +2086,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   {qty}x Ordered
                                 </span>
                               </div>
-                              <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
+                              <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all"
                                   style={{ width: `${Math.max(8, pct)}%` }}
                                 />
                               </div>
@@ -2104,7 +2104,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <Flame className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -2138,7 +2138,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <div key={idx} className="space-y-1">
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold flex items-center justify-center">
+                                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black flex items-center justify-center">
                                     #{idx + 1}
                                   </span>
                                   <span className="font-bold text-white truncate max-w-[200px] sm:max-w-[260px]">
@@ -2149,9 +2149,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   {count} views
                                 </span>
                               </div>
-                              <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
+                              <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all"
                                   style={{ width: `${Math.max(6, pct)}%` }}
                                 />
                               </div>

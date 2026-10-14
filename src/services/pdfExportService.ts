@@ -346,11 +346,11 @@ export function exportTrafficToPdf(
 
   // All results recorded use the single blue color from Total Page Views
   const kpis = [
-    { label: 'TOTAL PAGE VIEWS', val: `${trafficSummary.totalPageViews || 0} Views`, color: RESULT_BLUE },
-    { label: 'UNIQUE DINERS', val: `${trafficSummary.uniqueVisitorIds?.length || 0} Devices`, color: RESULT_BLUE },
-    { label: 'ONLINE RIGHT NOW', val: `1 Active Diner`, color: RESULT_BLUE },
-    { label: 'ITEMS ORDERED', val: `${totalOrderedUnits} Units Sold`, color: RESULT_BLUE },
-    { label: 'MOST CRAVED ITEMS VIEWED', val: `${totalCravedViews} Craved Views`, color: RESULT_BLUE },
+    { label: 'TOTAL PAGE VIEWS', val: String(trafficSummary.totalPageViews || 0), color: RESULT_BLUE },
+    { label: 'UNIQUE DINERS', val: String(trafficSummary.uniqueVisitorIds?.length || 0), color: RESULT_BLUE },
+    { label: 'ONLINE RIGHT NOW', val: '1', color: RESULT_BLUE },
+    { label: 'ITEMS ORDERED', val: String(totalOrderedUnits), color: RESULT_BLUE },
+    { label: 'MOST CRAVED ITEMS VIEWED', val: String(totalCravedViews), color: RESULT_BLUE },
     { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: RESULT_BLUE },
   ];
 
@@ -461,10 +461,10 @@ export function exportTrafficToPdf(
 
   const actionCardWidth = (pageWidth - margin * 2 - 9) / 4;
   const actions = [
-    { label: 'WHATSAPP CLICKS', val: `${trafficSummary.directActions?.whatsappChat || 0} chats` },
-    { label: 'PHONE CALLS', val: `${trafficSummary.directActions?.phoneCall || 0} calls` },
-    { label: 'MAPS / WAZE TAPS', val: `${trafficSummary.directActions?.directions || 0} visits` },
-    { label: 'COMPETITION ENTRIES', val: `${trafficSummary.directActions?.reviewDraw || 0} entered` },
+    { label: 'WHATSAPP CLICKS', val: String(trafficSummary.directActions?.whatsappChat || 0) },
+    { label: 'PHONE CALLS', val: String(trafficSummary.directActions?.phoneCall || 0) },
+    { label: 'MAPS / WAZE TAPS', val: String(trafficSummary.directActions?.directions || 0) },
+    { label: 'COMPETITION ENTRIES', val: String(trafficSummary.directActions?.reviewDraw || 0) },
   ];
 
   actions.forEach((act, idx) => {
@@ -537,7 +537,7 @@ export function exportTrafficToPdf(
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-      doc.text(`${ord[1]}x`, margin + colWidth - 2.5, y + 3.2, { align: 'right' });
+      doc.text(String(ord[1]), margin + colWidth - 2.5, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
@@ -563,7 +563,7 @@ export function exportTrafficToPdf(
 
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-      doc.text(`${crv[1]} views`, rx + colWidth - 2.5, y + 3.2, { align: 'right' });
+      doc.text(String(crv[1]), rx + colWidth - 2.5, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(7);
@@ -586,8 +586,16 @@ export function exportTrafficToPdf(
 
   // Left: Flavours Box (combines live traffic choices and actual order choices)
   doc.setFillColor(244, 244, 245);
-  doc.roundedRect(margin, y, colWidth, 27, 2, 2, 'F');
+  doc.roundedRect(margin, y, colWidth, 32, 2, 2, 'F');
   let fy = y + 4.5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('SAUCE FLAVOUR', margin + 4, fy);
+  doc.text('CHOICES', margin + colWidth - 4, fy, { align: 'right' });
+  fy += 4.5;
+
   const flavoursList = [
     { name: 'Lemony Basting', count: Math.max(trafficSummary.flavourPreferences?.lemony || 0, ordersData?.flavourCounts?.lemony || 0) },
     { name: 'Mild Basting', count: Math.max(trafficSummary.flavourPreferences?.mild || 0, ordersData?.flavourCounts?.mild || 0) },
@@ -603,14 +611,21 @@ export function exportTrafficToPdf(
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-    doc.text(`${flv.count} choices`, margin + colWidth - 4, fy, { align: 'right' });
-    fy += 5;
+    doc.text(String(flv.count), margin + colWidth - 4, fy, { align: 'right' });
+    fy += 4.8;
   });
 
   // Right: Funnel Box (accurately captures completed orders, checkout starts, cart adds, and page views)
   doc.setFillColor(244, 244, 245);
-  doc.roundedRect(rx, y, colWidth, 27, 2, 2, 'F');
-  let fuy = y + 5;
+  doc.roundedRect(rx, y, colWidth, 32, 2, 2, 'F');
+  let fuy = y + 4.5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('ORDERING STAGE', rx + 4, fuy);
+  doc.text('SESSIONS', rx + colWidth - 4, fuy, { align: 'right' });
+  fuy += 5.5;
 
   const completedOrdersCount = Math.max(
     trafficSummary.funnel?.ordersCompleted || 0,
@@ -645,8 +660,8 @@ export function exportTrafficToPdf(
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
-    doc.text(`${st.count} sessions`, rx + colWidth - 4, fuy, { align: 'right' });
-    fuy += 6;
+    doc.text(String(st.count), rx + colWidth - 4, fuy, { align: 'right' });
+    fuy += 5.5;
   });
 
   // Footer on all pages
