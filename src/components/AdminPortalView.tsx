@@ -51,6 +51,7 @@ import {
   exportTrafficToCsv,
   generateWhatsAppDailyReportText,
   resetDailyTraffic,
+  normalizeFlavourKey,
   TrafficDailyDoc,
 } from '../services/analyticsService';
 import {
@@ -164,6 +165,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     });
 
     const itemsMap: Record<string, number> = {};
+    const flavourCounts: Record<string, number> = {
+      lemony: 0,
+      mild: 0,
+      bbq: 0,
+      sweet_chilli: 0,
+      hot: 0,
+    };
     let totalItemsCount = 0;
     let revenue = 0;
 
@@ -176,6 +184,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             const qty = it.quantity || 1;
             itemsMap[name] = (itemsMap[name] || 0) + qty;
             totalItemsCount += qty;
+
+            // Detect flavours from item customization
+            if (it.customization?.flavour) {
+              const flvKey = normalizeFlavourKey(it.customization.flavour);
+              if (flvKey) {
+                flavourCounts[flvKey] = (flavourCounts[flvKey] || 0) + qty;
+              }
+            }
+            if (it.customization?.extras && Array.isArray(it.customization.extras)) {
+              for (const ext of it.customization.extras) {
+                if (ext.name && (ext.name.toLowerCase().includes('sauce') || ext.name.toLowerCase().includes('basting'))) {
+                  const flvKey = normalizeFlavourKey(ext.name);
+                  if (flvKey) {
+                    flavourCounts[flvKey] = (flavourCounts[flvKey] || 0) + qty;
+                  }
+                }
+              }
+            }
+            if (it.customization?.notes) {
+              const flvKey = normalizeFlavourKey(it.customization.notes);
+              if (flvKey) {
+                flavourCounts[flvKey] = (flavourCounts[flvKey] || 0) + qty;
+              }
+            }
           }
         }
       }
@@ -199,6 +231,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       revenue,
       itemsMap,
       totalItemsCount,
+      flavourCounts,
     };
   }, [orders, trafficRange, trafficSummary]);
 
@@ -1725,7 +1758,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <Eye className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
                   {trafficSummary.totalPageViews}
                 </div>
                 <p className="text-[11px] text-zinc-400">Total digital visits &amp; menu browses</p>
@@ -1735,40 +1768,40 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-white/10 space-y-2 relative overflow-hidden shadow-lg">
                 <div className="flex items-center justify-between text-zinc-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Unique Diners</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                     <Users className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
                   {trafficSummary.uniqueVisitorIds.length}
                 </div>
                 <p className="text-[11px] text-zinc-400">Individual phones &amp; devices</p>
               </div>
 
               {/* Card 3: Live In Shop Right Now */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-emerald-500/30 space-y-2 relative overflow-hidden shadow-lg">
-                <div className="flex items-center justify-between text-emerald-400">
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-blue-500/30 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-blue-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Online Right Now</span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center relative">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute" />
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center relative">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-ping absolute" />
                     <Activity className="w-4 h-4 relative" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
                   {liveVisitors}
                 </div>
-                <p className="text-[11px] text-emerald-300/80">Active in the last 10 minutes</p>
+                <p className="text-[11px] text-zinc-400">Active in the last 10 minutes</p>
               </div>
 
               {/* Card 4: Items Ordered & Food Sold */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-amber-500/30 space-y-2 relative overflow-hidden shadow-lg">
-                <div className="flex items-center justify-between text-amber-400">
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-blue-500/30 space-y-2 relative overflow-hidden shadow-lg">
+                <div className="flex items-center justify-between text-blue-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Food Items Ordered</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
                   {trafficOrdersData.totalItemsCount}
                 </div>
                 <p className="text-[11px] text-zinc-400">
@@ -1974,7 +2007,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         </span>
                         <p className="text-[10px] text-zinc-500">Navigation to Shop 1</p>
                       </div>
-                      <span className="text-lg font-mono font-black text-rose-400">
+                      <span className="text-lg font-mono font-black text-blue-400">
                         {trafficSummary.directActions.directions || 0}
                       </span>
                     </div>
@@ -1982,12 +2015,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <div className="p-3.5 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between">
                       <div className="space-y-0.5">
                         <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                          <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                          <Trophy className="w-3.5 h-3.5 text-blue-400" />
                           <span>Review Draw Entries</span>
                         </span>
                         <p className="text-[10px] text-zinc-500">Win meal contest</p>
                       </div>
-                      <span className="text-lg font-mono font-black text-amber-400">
+                      <span className="text-lg font-mono font-black text-blue-400">
                         {entries.length}
                       </span>
                     </div>
@@ -2000,10 +2033,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="space-y-6">
 
                 {/* Items Actually Ordered (Quantities Sold) Card */}
-                <div className="bg-[#14141c] border border-amber-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                <div className="bg-[#14141c] border border-blue-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <ShoppingBag className="w-4 h-4" />
                       </div>
                       <div>
@@ -2013,7 +2046,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <p className="text-[11px] text-zinc-400">Total units cooked &amp; dispatched</p>
                       </div>
                     </div>
-                    <span className="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 font-mono font-black text-xs">
+                    <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-mono font-black text-xs">
                       {trafficOrdersData.totalItemsCount} Total Units
                     </span>
                   </div>
@@ -2042,20 +2075,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <div key={idx} className="p-2.5 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-1.5">
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black flex items-center justify-center">
+                                  <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black flex items-center justify-center">
                                     #{idx + 1}
                                   </span>
                                   <span className="font-bold text-white truncate max-w-[170px] sm:max-w-[220px]">
                                     {name}
                                   </span>
                                 </div>
-                                <span className="font-mono font-black text-amber-400 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-xs">
+                                <span className="font-mono font-black text-blue-400 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs">
                                   {qty}x Ordered
                                 </span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-zinc-950 overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all"
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
                                   style={{ width: `${Math.max(8, pct)}%` }}
                                 />
                               </div>
@@ -2112,13 +2145,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                     {itemName}
                                   </span>
                                 </div>
-                                <span className="font-mono font-black text-amber-400">
+                                <span className="font-mono font-black text-blue-400">
                                   {count} views
                                 </span>
                               </div>
                               <div className="w-full h-1.5 rounded-full bg-zinc-900 overflow-hidden">
                                 <div
-                                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-rose-500"
+                                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500"
                                   style={{ width: `${Math.max(6, pct)}%` }}
                                 />
                               </div>
@@ -2134,7 +2167,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <TrendingUp className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -2146,11 +2179,36 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                   {(() => {
                     const flavours = [
-                      { id: 'lemony', name: '🍋 Lemony', count: trafficSummary.flavourPreferences.lemony || 0, color: 'from-amber-400 to-yellow-500' },
-                      { id: 'mild', name: '🌶️ Mild', count: trafficSummary.flavourPreferences.mild || 0, color: 'from-emerald-500 to-teal-600' },
-                      { id: 'bbq', name: '🍶 Barbeque', count: trafficSummary.flavourPreferences.bbq || 0, color: 'from-amber-700 to-orange-700' },
-                      { id: 'sweet_chilli', name: '🍯 Sweet Chilli', count: trafficSummary.flavourPreferences.sweet_chilli || 0, color: 'from-orange-500 to-red-500' },
-                      { id: 'hot', name: '🔥 Hot', count: trafficSummary.flavourPreferences.hot || 0, color: 'from-red-600 to-rose-700' },
+                      {
+                        id: 'lemony',
+                        name: '🍋 Lemony',
+                        count: Math.max(trafficSummary.flavourPreferences?.lemony || 0, trafficOrdersData.flavourCounts?.lemony || 0),
+                        color: 'from-blue-400 to-indigo-500'
+                      },
+                      {
+                        id: 'mild',
+                        name: '🌶️ Mild',
+                        count: Math.max(trafficSummary.flavourPreferences?.mild || 0, trafficOrdersData.flavourCounts?.mild || 0),
+                        color: 'from-blue-500 to-indigo-600'
+                      },
+                      {
+                        id: 'bbq',
+                        name: '🍶 Barbeque',
+                        count: Math.max(trafficSummary.flavourPreferences?.bbq || 0, trafficOrdersData.flavourCounts?.bbq || 0),
+                        color: 'from-blue-600 to-indigo-700'
+                      },
+                      {
+                        id: 'sweet_chilli',
+                        name: '🍯 Sweet Chilli',
+                        count: Math.max(trafficSummary.flavourPreferences?.sweet_chilli || 0, trafficOrdersData.flavourCounts?.sweet_chilli || 0),
+                        color: 'from-indigo-500 to-blue-500'
+                      },
+                      {
+                        id: 'hot',
+                        name: '🔥 Hot',
+                        count: Math.max(trafficSummary.flavourPreferences?.hot || 0, trafficOrdersData.flavourCounts?.hot || 0),
+                        color: 'from-blue-400 to-indigo-600'
+                      },
                     ];
 
                     const totalFlavours = flavours.reduce((sum, f) => sum + f.count, 0) || 1;
@@ -2164,7 +2222,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               <div className="flex items-center justify-between text-xs">
                                 <span className="font-bold text-zinc-200">{flv.name}</span>
                                 <div className="space-x-1.5 font-mono">
-                                  <span className="font-black text-white">{flv.count}</span>
+                                  <span className="font-black text-blue-400">{flv.count}</span>
                                   <span className="text-[11px] text-zinc-500">({pct}%)</span>
                                 </div>
                               </div>
@@ -2186,7 +2244,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="bg-[#14141c] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                         <ShoppingBag className="w-4 h-4" />
                       </div>
                       <h3 className="text-sm font-black text-white uppercase tracking-wider">
@@ -2196,47 +2254,72 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <span className="text-xs text-zinc-400">Step by Step</span>
                   </div>
 
-                  <div className="space-y-3 pt-1">
-                    {[
+                  {(() => {
+                    const completedOrdersCount = Math.max(
+                      trafficSummary.funnel?.ordersCompleted || 0,
+                      trafficOrdersData.ordersCount
+                    );
+                    const checkoutCount = Math.max(
+                      trafficSummary.funnel?.checkoutStarts || 0,
+                      completedOrdersCount
+                    );
+                    const cartAddsCount = Math.max(
+                      trafficSummary.funnel?.cartAdds || 0,
+                      trafficOrdersData.totalItemsCount,
+                      completedOrdersCount
+                    );
+                    const menuViewsCount = Math.max(
+                      trafficSummary.funnel?.menuViews || 0,
+                      trafficSummary.totalPageViews || 0,
+                      cartAddsCount
+                    );
+
+                    const funnelSteps = [
                       {
                         step: '1. Menu Browsed',
                         desc: 'Viewed restaurant meals',
-                        count: trafficSummary.totalPageViews,
+                        count: menuViewsCount,
                         color: 'text-blue-400',
                       },
                       {
                         step: '2. Added Items to Cart',
                         desc: 'Placed food onto order tray',
-                        count: trafficSummary.funnel.cartAdds,
-                        color: 'text-amber-400',
+                        count: cartAddsCount,
+                        color: 'text-blue-400',
                       },
                       {
                         step: '3. Started Checkout',
                         desc: 'Opened delivery or collection form',
-                        count: trafficSummary.funnel.checkoutStarts,
-                        color: 'text-orange-400',
+                        count: checkoutCount,
+                        color: 'text-blue-400',
                       },
                       {
                         step: '4. Order Placed & Sent',
                         desc: 'Dispatched to kitchen display',
-                        count: trafficSummary.funnel.ordersCompleted,
-                        color: 'text-emerald-400',
+                        count: completedOrdersCount,
+                        color: 'text-blue-400',
                       },
-                    ].map((step, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between"
-                      >
-                        <div>
-                          <div className={`text-xs font-bold ${step.color}`}>{step.step}</div>
-                          <div className="text-[11px] text-zinc-500">{step.desc}</div>
-                        </div>
-                        <div className="text-base font-black text-white font-mono">
-                          {step.count}
-                        </div>
+                    ];
+
+                    return (
+                      <div className="space-y-3 pt-1">
+                        {funnelSteps.map((step, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 flex items-center justify-between"
+                          >
+                            <div>
+                              <div className={`text-xs font-bold ${step.color}`}>{step.step}</div>
+                              <div className="text-[11px] text-zinc-500">{step.desc}</div>
+                            </div>
+                            <div className="text-base font-black text-blue-400 font-mono">
+                              {step.count}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })()}
                 </div>
 
               </div>

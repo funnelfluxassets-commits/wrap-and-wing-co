@@ -142,7 +142,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     await createLiveOrder(payload);
     try {
       logOrderCompleted(
-        items.map((i) => ({ name: i.menuItem.name, quantity: i.quantity }))
+        items.map((i) => ({
+          name: i.menuItem.name,
+          quantity: i.quantity,
+          flavour: i.customization?.flavour,
+          extras: i.customization?.extras,
+        }))
       );
     } catch {}
 

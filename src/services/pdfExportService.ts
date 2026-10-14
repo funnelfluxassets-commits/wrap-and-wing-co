@@ -267,6 +267,7 @@ export function exportTrafficToPdf(
     revenue: number;
     itemsMap: Record<string, number>;
     totalItemsCount: number;
+    flavourCounts?: Record<string, number>;
   }
 ) {
   const doc = new jsPDF({
@@ -279,6 +280,9 @@ export function exportTrafficToPdf(
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 14;
   let y = 18;
+
+  // Single brand result color: vibrant blue matching Total Page Views
+  const RESULT_BLUE: [number, number, number] = [59, 130, 246];
 
   // Header Banner
   doc.setFillColor(19, 19, 26);
@@ -340,13 +344,14 @@ export function exportTrafficToPdf(
   const cardWidth = (pageWidth - margin * 2 - 6) / 3;
   const cardHeight = 15;
 
+  // All results recorded use the single blue color from Total Page Views
   const kpis = [
-    { label: 'TOTAL PAGE VIEWS', val: `${trafficSummary.totalPageViews || 0} Views`, color: [59, 130, 246] },
-    { label: 'UNIQUE DINERS', val: `${trafficSummary.uniqueVisitorIds?.length || 0} Devices`, color: [168, 85, 247] },
-    { label: 'ONLINE RIGHT NOW', val: `1 Active Diner`, color: [14, 165, 233] },
-    { label: 'ITEMS ORDERED', val: `${totalOrderedUnits} Units Sold`, color: [245, 158, 11] },
-    { label: 'MOST CRAVED ITEMS VIEWED', val: `${totalCravedViews} Craved Views`, color: [225, 29, 72] },
-    { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: [16, 185, 129] },
+    { label: 'TOTAL PAGE VIEWS', val: `${trafficSummary.totalPageViews || 0} Views`, color: RESULT_BLUE },
+    { label: 'UNIQUE DINERS', val: `${trafficSummary.uniqueVisitorIds?.length || 0} Devices`, color: RESULT_BLUE },
+    { label: 'ONLINE RIGHT NOW', val: `1 Active Diner`, color: RESULT_BLUE },
+    { label: 'ITEMS ORDERED', val: `${totalOrderedUnits} Units Sold`, color: RESULT_BLUE },
+    { label: 'MOST CRAVED ITEMS VIEWED', val: `${totalCravedViews} Craved Views`, color: RESULT_BLUE },
+    { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: RESULT_BLUE },
   ];
 
   kpis.forEach((kpi, idx) => {
@@ -411,7 +416,7 @@ export function exportTrafficToPdf(
     doc.text(src.name, margin + 4, sy);
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(24, 24, 27);
+    doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
     doc.text(`${src.count} (${pct}%)`, margin + colWidth - 4, sy, { align: 'right' });
     sy += 6.5;
   });
@@ -440,7 +445,7 @@ export function exportTrafficToPdf(
     doc.text(dev.name, margin + colWidth + 10, dy);
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(24, 24, 27);
+    doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
     doc.text(`${dev.count} ${dev.name.includes('Online') ? 'Active' : `(${pct}%)`}`, margin + colWidth * 2 + 2, dy, { align: 'right' });
     dy += 6.5;
   });
@@ -474,7 +479,7 @@ export function exportTrafficToPdf(
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8.5);
-    doc.setTextColor(24, 24, 27);
+    doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
     doc.text(act.val, x + 3, y + 9.5);
   });
 
@@ -531,7 +536,7 @@ export function exportTrafficToPdf(
       doc.text(name, margin + 8, y + 3.2);
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(245, 158, 11);
+      doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
       doc.text(`${ord[1]}x`, margin + colWidth - 2.5, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
@@ -557,7 +562,7 @@ export function exportTrafficToPdf(
       doc.text(name, rx + 8, y + 3.2);
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(225, 29, 72);
+      doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
       doc.text(`${crv[1]} views`, rx + colWidth - 2.5, y + 3.2, { align: 'right' });
     } else if (idx === 0) {
       doc.setFont('helvetica', 'italic');
@@ -579,16 +584,16 @@ export function exportTrafficToPdf(
   doc.text('Customer Ordering Funnel', margin + colWidth + 6, y);
   y += 4.5;
 
-  // Left: Flavours Box
+  // Left: Flavours Box (combines live traffic choices and actual order choices)
   doc.setFillColor(244, 244, 245);
   doc.roundedRect(margin, y, colWidth, 27, 2, 2, 'F');
   let fy = y + 4.5;
   const flavoursList = [
-    { name: 'Lemony Basting', count: trafficSummary.flavourPreferences?.lemony || 0 },
-    { name: 'Mild Basting', count: trafficSummary.flavourPreferences?.mild || 0 },
-    { name: 'Barbeque Basting', count: trafficSummary.flavourPreferences?.bbq || 0 },
-    { name: 'Sweet Chilli Basting', count: trafficSummary.flavourPreferences?.sweet_chilli || 0 },
-    { name: 'Hot Basting', count: trafficSummary.flavourPreferences?.hot || 0 },
+    { name: 'Lemony Basting', count: Math.max(trafficSummary.flavourPreferences?.lemony || 0, ordersData?.flavourCounts?.lemony || 0) },
+    { name: 'Mild Basting', count: Math.max(trafficSummary.flavourPreferences?.mild || 0, ordersData?.flavourCounts?.mild || 0) },
+    { name: 'Barbeque Basting', count: Math.max(trafficSummary.flavourPreferences?.bbq || 0, ordersData?.flavourCounts?.bbq || 0) },
+    { name: 'Sweet Chilli Basting', count: Math.max(trafficSummary.flavourPreferences?.sweet_chilli || 0, ordersData?.flavourCounts?.sweet_chilli || 0) },
+    { name: 'Hot Basting', count: Math.max(trafficSummary.flavourPreferences?.hot || 0, ordersData?.flavourCounts?.hot || 0) },
   ];
   flavoursList.forEach((flv) => {
     doc.setFont('helvetica', 'normal');
@@ -597,20 +602,40 @@ export function exportTrafficToPdf(
     doc.text(flv.name, margin + 4, fy);
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(245, 158, 11);
+    doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
     doc.text(`${flv.count} choices`, margin + colWidth - 4, fy, { align: 'right' });
     fy += 5;
   });
 
-  // Right: Funnel Box
+  // Right: Funnel Box (accurately captures completed orders, checkout starts, cart adds, and page views)
   doc.setFillColor(244, 244, 245);
   doc.roundedRect(rx, y, colWidth, 27, 2, 2, 'F');
   let fuy = y + 5;
+
+  const completedOrdersCount = Math.max(
+    trafficSummary.funnel?.ordersCompleted || 0,
+    ordersData?.ordersCount || 0
+  );
+  const checkoutCount = Math.max(
+    trafficSummary.funnel?.checkoutStarts || 0,
+    completedOrdersCount
+  );
+  const cartAddsCount = Math.max(
+    trafficSummary.funnel?.cartAdds || 0,
+    ordersData?.totalItemsCount || 0,
+    completedOrdersCount
+  );
+  const menuViewsCount = Math.max(
+    trafficSummary.funnel?.menuViews || 0,
+    trafficSummary.totalPageViews || 0,
+    cartAddsCount
+  );
+
   const funnelSteps = [
-    { name: '1. Menu Browsed', count: trafficSummary.funnel?.menuViews || trafficSummary.totalPageViews || 0 },
-    { name: '2. Items Added to Cart', count: trafficSummary.funnel?.cartAdds || 0 },
-    { name: '3. Checkout Initiated', count: trafficSummary.funnel?.checkoutStarts || 0 },
-    { name: '4. Orders Completed', count: trafficSummary.funnel?.ordersCompleted || 0 },
+    { name: '1. Menu Browsed', count: menuViewsCount },
+    { name: '2. Items Added to Cart', count: cartAddsCount },
+    { name: '3. Checkout Initiated', count: checkoutCount },
+    { name: '4. Orders Completed', count: completedOrdersCount },
   ];
   funnelSteps.forEach((st) => {
     doc.setFont('helvetica', 'normal');
@@ -619,7 +644,7 @@ export function exportTrafficToPdf(
     doc.text(st.name, rx + 4, fuy);
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(16, 185, 129);
+    doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
     doc.text(`${st.count} sessions`, rx + colWidth - 4, fuy, { align: 'right' });
     fuy += 6;
   });

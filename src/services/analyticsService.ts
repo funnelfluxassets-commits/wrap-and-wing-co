@@ -361,15 +361,32 @@ export function logItemView(itemName: string): void {
 }
 
 /**
+ * Normalizes any raw flavour text or extra sauce description into standard keys:
+ * 'lemony' | 'mild' | 'bbq' | 'sweet_chilli' | 'hot'
+ */
+export function normalizeFlavourKey(raw: string): 'lemony' | 'mild' | 'bbq' | 'sweet_chilli' | 'hot' | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (lower.includes('lemon')) return 'lemony';
+  if (lower.includes('mild')) return 'mild';
+  if (lower.includes('bbq') || lower.includes('barbeque') || lower.includes('barbecue')) return 'bbq';
+  if (lower.includes('sweet') || lower.includes('chilli') || lower.includes('chili')) return 'sweet_chilli';
+  if (lower.includes('hot') || lower.includes('fiery')) return 'hot';
+  return null;
+}
+
+/**
  * Log when a customer selects a basting sauce flavour
  */
 export function logFlavourSelect(flavour: string): void {
   if (typeof window === 'undefined' || !flavour) return;
-  const clean = flavour.toLowerCase().replace(/[^a-z_]/g, '');
+  const key = normalizeFlavourKey(flavour);
+  if (!key) return;
+
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
-  current.flavourPreferences[clean] = (current.flavourPreferences[clean] || 0) + 1;
+  current.flavourPreferences[key] = (current.flavourPreferences[key] || 0) + 1;
   current.lastActive = Date.now();
 
   saveLocalDailyDoc(current);
@@ -380,7 +397,9 @@ export function logFlavourSelect(flavour: string): void {
       docRef,
       {
         date: today,
-        [`flavourPreferences.${clean}`]: increment(1),
+        flavourPreferences: {
+          [key]: increment(1),
+        },
         lastActive: Date.now(),
       },
       { merge: true }
@@ -408,7 +427,9 @@ export function logAddToCart(itemName: string): void {
     const docRef = doc(db, TRAFFIC_COLLECTION, today);
     const payload: Record<string, any> = {
       date: today,
-      'funnel.cartAdds': increment(1),
+      funnel: {
+        cartAdds: increment(1),
+      },
       lastActive: Date.now(),
     };
     if (itemName) {
@@ -443,7 +464,9 @@ export function logCheckoutStart(): void {
       docRef,
       {
         date: today,
-        'funnel.checkoutStarts': increment(1),
+        funnel: {
+          checkoutStarts: increment(1),
+        },
         lastActive: Date.now(),
       },
       { merge: true }
@@ -451,10 +474,17 @@ export function logCheckoutStart(): void {
   }
 }
 
+export interface CompletedOrderItem {
+  name: string;
+  quantity: number;
+  flavour?: string;
+  extras?: { name: string; price?: number }[];
+}
+
 /**
- * Log when an order is submitted successfully with exact items and quantities
+ * Log when an order is submitted successfully with exact items, quantities, and sauces
  */
-export function logOrderCompleted(items?: { name: string; quantity: number }[]): void {
+export function logOrderCompleted(items?: CompletedOrderItem[]): void {
   if (typeof window === 'undefined') return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
@@ -465,7 +495,9 @@ export function logOrderCompleted(items?: { name: string; quantity: number }[]):
 
   const orderPayload: Record<string, any> = {
     date: today,
-    'funnel.ordersCompleted': increment(1),
+    funnel: {
+      ordersCompleted: increment(1),
+    },
     lastActive: Date.now(),
   };
 
@@ -479,6 +511,28 @@ export function logOrderCompleted(items?: { name: string; quantity: number }[]):
         if (!orderPayload.orderedItems) orderPayload.orderedItems = {};
         orderPayload.orderedItems[item.name] = increment(qty);
         orderPayload.totalOrderedQuantity = increment(qty);
+
+        // Also record flavour choice or extra sauce if selected
+        if (item.flavour) {
+          const flvKey = normalizeFlavourKey(item.flavour);
+          if (flvKey) {
+            current.flavourPreferences[flvKey] = (current.flavourPreferences[flvKey] || 0) + qty;
+            if (!orderPayload.flavourPreferences) orderPayload.flavourPreferences = {};
+            orderPayload.flavourPreferences[flvKey] = increment(qty);
+          }
+        }
+        if (item.extras && Array.isArray(item.extras)) {
+          for (const ext of item.extras) {
+            if (ext.name && (ext.name.toLowerCase().includes('sauce') || ext.name.toLowerCase().includes('basting'))) {
+              const flvKey = normalizeFlavourKey(ext.name);
+              if (flvKey) {
+                current.flavourPreferences[flvKey] = (current.flavourPreferences[flvKey] || 0) + qty;
+                if (!orderPayload.flavourPreferences) orderPayload.flavourPreferences = {};
+                orderPayload.flavourPreferences[flvKey] = increment(qty);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -680,20 +734,59 @@ export function subscribeToTraffic(callback: () => void): () => void {
         }
 
         // 6. Flavours
+        const rawCloud = cloudData as Record<string, any>;
         const mergedFlavours = {
-          lemony: Math.max(local.flavourPreferences?.lemony || 0, cloudData.flavourPreferences?.lemony || 0),
-          mild: Math.max(local.flavourPreferences?.mild || 0, cloudData.flavourPreferences?.mild || 0),
-          bbq: Math.max(local.flavourPreferences?.bbq || 0, cloudData.flavourPreferences?.bbq || 0),
-          sweet_chilli: Math.max(local.flavourPreferences?.sweet_chilli || 0, cloudData.flavourPreferences?.sweet_chilli || 0),
-          hot: Math.max(local.flavourPreferences?.hot || 0, cloudData.flavourPreferences?.hot || 0),
+          lemony: Math.max(
+            local.flavourPreferences?.lemony || 0,
+            cloudData.flavourPreferences?.lemony || 0,
+            rawCloud['flavourPreferences.lemony'] || 0
+          ),
+          mild: Math.max(
+            local.flavourPreferences?.mild || 0,
+            cloudData.flavourPreferences?.mild || 0,
+            rawCloud['flavourPreferences.mild'] || 0
+          ),
+          bbq: Math.max(
+            local.flavourPreferences?.bbq || 0,
+            cloudData.flavourPreferences?.bbq || 0,
+            rawCloud['flavourPreferences.bbq'] || 0,
+            rawCloud['flavourPreferences.barbeque'] || 0
+          ),
+          sweet_chilli: Math.max(
+            local.flavourPreferences?.sweet_chilli || 0,
+            cloudData.flavourPreferences?.sweet_chilli || 0,
+            rawCloud['flavourPreferences.sweet_chilli'] || 0,
+            rawCloud['flavourPreferences.sweetchilli'] || 0
+          ),
+          hot: Math.max(
+            local.flavourPreferences?.hot || 0,
+            cloudData.flavourPreferences?.hot || 0,
+            rawCloud['flavourPreferences.hot'] || 0
+          ),
         };
 
         // 7. Funnel
         const mergedFunnel = {
-          menuViews: Math.max(local.funnel?.menuViews || 0, cloudData.funnel?.menuViews || 0),
-          cartAdds: Math.max(local.funnel?.cartAdds || 0, cloudData.funnel?.cartAdds || 0),
-          checkoutStarts: Math.max(local.funnel?.checkoutStarts || 0, cloudData.funnel?.checkoutStarts || 0),
-          ordersCompleted: Math.max(local.funnel?.ordersCompleted || 0, cloudData.funnel?.ordersCompleted || 0),
+          menuViews: Math.max(
+            local.funnel?.menuViews || 0,
+            cloudData.funnel?.menuViews || 0,
+            rawCloud['funnel.menuViews'] || 0
+          ),
+          cartAdds: Math.max(
+            local.funnel?.cartAdds || 0,
+            cloudData.funnel?.cartAdds || 0,
+            rawCloud['funnel.cartAdds'] || 0
+          ),
+          checkoutStarts: Math.max(
+            local.funnel?.checkoutStarts || 0,
+            cloudData.funnel?.checkoutStarts || 0,
+            rawCloud['funnel.checkoutStarts'] || 0
+          ),
+          ordersCompleted: Math.max(
+            local.funnel?.ordersCompleted || 0,
+            cloudData.funnel?.ordersCompleted || 0,
+            rawCloud['funnel.ordersCompleted'] || 0
+          ),
         };
 
         // 8. Direct Actions

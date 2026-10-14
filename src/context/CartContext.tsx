@@ -76,6 +76,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (customization?.flavour) {
         logFlavourSelect(customization.flavour);
       }
+      if (customization?.extras && Array.isArray(customization.extras)) {
+        for (const ext of customization.extras) {
+          if (ext.name && (ext.name.toLowerCase().includes('sauce') || ext.name.toLowerCase().includes('basting'))) {
+            logFlavourSelect(ext.name);
+          }
+        }
+      }
     } catch {}
   };
 
