@@ -24,10 +24,10 @@ import { OrderTrackerView } from './components/OrderTrackerView';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
-import { CheckoutPayload } from './services/payment';
-import { subscribeToOrders, getCurrentOrderId } from './services/orderService';
+import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
+import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId } from './services/orderService';
 import { logPageView, logItemView } from './services/analyticsService';
-import { Search, ShoppingBag, ArrowRight, Flame } from 'lucide-react';
+import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 
 const getInitialView = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
@@ -86,6 +86,39 @@ const MainContent: React.FC = () => {
   });
   const [isStaffLoginOpen, setIsStaffLoginOpen] = useState(false);
   const [staffLoginInitialRole, setStaffLoginInitialRole] = useState<StaffRole>('kitchen');
+  const [payfastNotice, setPayfastNotice] = useState<{ type: 'success' | 'cancelled'; orderId?: string } | null>(null);
+  const [isStaffTestActive, setIsStaffTestActive] = useState(() => isPayFastStaffTestMode());
+
+  // Detect PayFast callback redirects or staff test mode flag in URL
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const pfStatus = params.get('payfast');
+      const pfOrderId = params.get('orderId');
+
+      if (params.get('test_payfast') === '1' || params.get('test_payfast') === 'true') {
+        setPayFastStaffTestMode(true);
+        setIsStaffTestActive(true);
+      } else if (params.get('test_payfast') === '0' || params.get('test_payfast') === 'false') {
+        setPayFastStaffTestMode(false);
+        setIsStaffTestActive(false);
+      }
+
+      if (pfStatus === 'success' && pfOrderId) {
+        setCurrentOrderId(pfOrderId);
+        setTrackedOrderId(pfOrderId);
+        setCurrentView('track');
+        setPayfastNotice({ type: 'success', orderId: pfOrderId });
+        const cleanUrl = window.location.pathname + '#track';
+        history.replaceState(null, '', cleanUrl);
+      } else if (pfStatus === 'cancelled') {
+        setPayfastNotice({ type: 'cancelled', orderId: pfOrderId || undefined });
+        const cleanUrl = window.location.pathname + (window.location.hash || '');
+        history.replaceState(null, '', cleanUrl);
+      }
+    } catch {}
+  }, []);
 
   const handleStaffLogout = () => {
     if (typeof window !== 'undefined') {
@@ -198,6 +231,56 @@ const MainContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0d0d11] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white pb-16 lg:pb-0">
+      
+      {/* PayFast Sandbox Notice Banner (After Return from Gateway) */}
+      {payfastNotice && (
+        <div
+          className={`py-2.5 px-4 text-center text-xs font-bold flex items-center justify-between shadow-lg sticky top-0 z-[60] animate-fadeIn ${
+            payfastNotice.type === 'success'
+              ? 'bg-emerald-600 text-white'
+              : 'bg-amber-600 text-white'
+          }`}
+        >
+          <div className="flex items-center gap-2 mx-auto">
+            {payfastNotice.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-white" />
+            ) : (
+              <ShieldAlert className="w-4 h-4 shrink-0 text-white" />
+            )}
+            <span>
+              {payfastNotice.type === 'success'
+                ? `🎉 PayFast Sandbox Payment Approved! Order #${payfastNotice.orderId} is confirmed and sent to kitchen display.`
+                : 'PayFast checkout was cancelled. Your items remain saved in your cart.'}
+            </span>
+          </div>
+          <button
+            onClick={() => setPayfastNotice(null)}
+            className="p-1 rounded hover:bg-black/20 text-white/90 hover:text-white ml-2 cursor-pointer"
+            title="Dismiss notice"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Staff Test Mode Subtle Bar */}
+      {isStaffTestActive && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 px-3 py-1.5 flex items-center justify-between text-[11px] text-amber-300">
+          <div className="flex items-center gap-1.5 font-medium">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>Staff Test Mode: PayFast Sandbox Active</span>
+          </div>
+          <button
+            onClick={() => {
+              setPayFastStaffTestMode(false);
+              setIsStaffTestActive(false);
+            }}
+            className="underline hover:text-white font-bold cursor-pointer text-[10px]"
+          >
+            Exit Test Mode
+          </button>
+        </div>
+      )}
       
       {/* ── View Routing ────────────────────────────────────────────────────── */}
       {currentView === 'admin' ? (

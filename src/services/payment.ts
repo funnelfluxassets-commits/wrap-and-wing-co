@@ -121,3 +121,98 @@ export function openWhatsAppOrder(payload: CheckoutPayload) {
   const url = getWhatsAppOrderUrl(payload);
   window.open(url, '_blank');
 }
+
+// ── PayFast Gateway & Staff Test Mode ────────────────────────────────────────
+export const PAYFAST_TEST_STORAGE_KEY = 'wrap_wing_payfast_test';
+
+export function isPayFastStaffTestMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const testParam = params.get('test_payfast');
+    if (testParam === '1' || testParam === 'true') {
+      sessionStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true');
+      return true;
+    }
+    if (testParam === '0' || testParam === 'false') {
+      sessionStorage.removeItem(PAYFAST_TEST_STORAGE_KEY);
+      return false;
+    }
+    return sessionStorage.getItem(PAYFAST_TEST_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setPayFastStaffTestMode(enabled: boolean) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (enabled) {
+      sessionStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true');
+    } else {
+      sessionStorage.removeItem(PAYFAST_TEST_STORAGE_KEY);
+    }
+  } catch {}
+}
+
+export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { isSandbox?: boolean }) {
+  if (typeof window === 'undefined') return;
+
+  const isSandbox = options?.isSandbox ?? true;
+  const processUrl = isSandbox
+    ? 'https://sandbox.payfast.co.za/eng/process'
+    : 'https://www.payfast.co.za/eng/process';
+
+  // PayFast official sandbox merchant credentials (or production if isSandbox is false)
+  const merchantId = isSandbox ? '10000100' : '37558383';
+  const merchantKey = isSandbox ? '46f0cd694581a' : '1hbeo86df6tge';
+
+  const origin = window.location.origin;
+  const cleanId = String(payload.orderId).replace('#', '').trim();
+  const returnUrl = `${origin}/?view=track&orderId=${encodeURIComponent(cleanId)}&payfast=success`;
+  const cancelUrl = `${origin}/?view=menu&orderId=${encodeURIComponent(cleanId)}&payfast=cancelled`;
+
+  const rawName = (payload.customer.customerName || 'Wrap Wing Guest').trim();
+  const parts = rawName.split(' ');
+  const firstName = parts[0] || 'Guest';
+  const lastName = parts.slice(1).join(' ') || 'Customer';
+
+  // PayFast requires an email address. Use customer phone or store fallback if not entered
+  const cleanPhone = (payload.customer.phone || '').replace(/\D/g, '');
+  const email = `${cleanPhone || 'orders'}@wrapandwings.co.za`;
+
+  const fields: Record<string, string> = {
+    merchant_id: merchantId,
+    merchant_key: merchantKey,
+    return_url: returnUrl,
+    cancel_url: cancelUrl,
+    notify_url: `${origin}/api/orders`,
+    name_first: firstName,
+    name_last: lastName,
+    email_address: email,
+    cell_number: payload.customer.phone || '0820000000',
+    m_payment_id: cleanId,
+    amount: payload.grandTotal.toFixed(2),
+    item_name: `Wrap & Wings Co Order #${cleanId}`,
+    item_description: `${payload.items.length} item(s) from ${payload.store.name}`,
+  };
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = processUrl;
+  form.style.display = 'none';
+
+  Object.entries(fields).forEach(([key, val]) => {
+    if (val) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = val;
+      form.appendChild(input);
+    }
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+

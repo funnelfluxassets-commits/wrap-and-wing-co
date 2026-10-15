@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { DeliveryDetails, PaymentGatewayType } from '../types';
-import { openWhatsAppOrder, CheckoutPayload } from '../services/payment';
+import {
+  openWhatsAppOrder,
+  CheckoutPayload,
+  isPayFastStaffTestMode,
+  setPayFastStaffTestMode,
+  initiatePayFastCheckout,
+} from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
 import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag } from 'lucide-react';
@@ -56,9 +62,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [preferredTime, setPreferredTime] = useState('ASAP');
   const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isStaffTest, setIsStaffTest] = useState(() => isPayFastStaffTestMode());
 
   useEffect(() => {
     if (isOpen) {
+      setIsStaffTest(isPayFastStaffTestMode());
       try {
         logCheckoutStart();
       } catch {}
@@ -154,6 +162,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     // If customer chose WhatsApp confirmation, open WhatsApp
     if (paymentMethod === 'whatsapp') {
       openWhatsAppOrder(payload);
+    }
+
+    // If staff test mode used PayFast, redirect to PayFast sandbox
+    if (paymentMethod === 'payfast') {
+      setIsProcessing(false);
+      clearCart();
+      onClose();
+      initiatePayFastCheckout(payload, { isSandbox: true });
+      return;
     }
 
     setTimeout(() => {
@@ -377,74 +394,111 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
           {/* Payment Method Selector */}
           <div className="space-y-3 pt-3 border-t border-white/10">
-            <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-rose-500" />
-              <span>Payment Method</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-rose-500" />
+                <span>Payment Method</span>
+              </h3>
+              {isStaffTest && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPayFastStaffTestMode(false);
+                    setIsStaffTest(false);
+                    if (paymentMethod === 'payfast') setPaymentMethod('cod');
+                  }}
+                  className="text-[10px] text-amber-400 hover:text-white underline font-semibold cursor-pointer"
+                >
+                  Exit Test Mode
+                </button>
+              )}
+            </div>
+
+            {isStaffTest && (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 animate-fadeIn">
+                <div className="flex items-center gap-1.5 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Staff Test Mode: PayFast Sandbox Active (Zero real money charged)</span>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Pay On Handover (Active) */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod('cod')}
-                className="p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white shadow-sm"
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                  paymentMethod === 'cod'
+                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
+                    : 'border-white/10 bg-zinc-900/60 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                }`}
               >
                 <div>
                   <div className="text-xs font-black flex items-center gap-1.5">
-                    <span>Pay On Handover</span>
+                    <span className={paymentMethod === 'cod' ? 'text-white' : 'text-zinc-200'}>Pay On Handover</span>
                     <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold uppercase">ACTIVE</span>
                   </div>
                   <div className="text-[11px] text-zinc-300">Cash or Speedpoint card machine</div>
                 </div>
-                <div className="w-4 h-4 rounded-full border border-rose-500 bg-rose-500 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                <div
+                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                    paymentMethod === 'cod'
+                      ? 'border-rose-500 bg-rose-500'
+                      : 'border-zinc-700 bg-zinc-900'
+                  }`}
+                >
+                  {paymentMethod === 'cod' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </div>
               </button>
 
-              {/* PayFast (Coming Soon) */}
-              <div
-                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
-                title="Online payments coming soon"
-              >
-                <div>
-                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
-                    <span>PayFast</span>
-                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+              {/* PayFast (Active in Staff Test Mode, Coming Soon for public) */}
+              {isStaffTest ? (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('payfast')}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                    paymentMethod === 'payfast'
+                      ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
+                      : 'border-white/10 bg-zinc-900/60 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                  }`}
+                >
+                  <div>
+                    <div className="text-xs font-black flex items-center gap-1.5">
+                      <span className={paymentMethod === 'payfast' ? 'text-white' : 'text-zinc-200'}>PayFast</span>
+                      <span className="text-[9px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-1.5 py-0.5 rounded font-extrabold uppercase">
+                        SANDBOX TEST
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-400">Instant EFT, Capitec Pay, Cards</div>
                   </div>
-                  <div className="text-[11px] text-zinc-500">Instant EFT, Capitec Pay, Cards</div>
-                </div>
-                <div className="w-4 h-4 rounded-full border border-zinc-700" />
-              </div>
-
-              {/* Yoco (Coming Soon) */}
-              <div
-                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
-                title="Card gateway coming soon"
-              >
-                <div>
-                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
-                    <span>Yoco Checkout</span>
-                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+                  <div
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                      paymentMethod === 'payfast'
+                        ? 'border-rose-500 bg-rose-500'
+                        : 'border-zinc-700 bg-zinc-900'
+                    }`}
+                  >
+                    {paymentMethod === 'payfast' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
-                  <div className="text-[11px] text-zinc-500">Credit / Debit Card & Apple Pay</div>
-                </div>
-                <div className="w-4 h-4 rounded-full border border-zinc-700" />
-              </div>
-
-              {/* WhatsApp Direct (Coming Soon) */}
-              <div
-                className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
-                title="WhatsApp ordering coming soon"
-              >
-                <div>
-                  <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
-                    <span>WhatsApp Order</span>
-                    <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">COMING SOON</span>
+                </button>
+              ) : (
+                <div
+                  className="p-3 rounded-xl border border-white/5 bg-zinc-900/40 text-left flex items-center justify-between opacity-50 cursor-not-allowed select-none"
+                  title="Online payments coming soon"
+                >
+                  <div>
+                    <div className="text-xs font-bold text-zinc-400 flex items-center gap-1.5">
+                      <span>PayFast</span>
+                      <span className="text-[9px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase font-black">
+                        COMING SOON
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-zinc-500">Instant EFT, Capitec Pay, Cards</div>
                   </div>
-                  <div className="text-[11px] text-zinc-500">Confirm order directly with kitchen</div>
+                  <div className="w-4 h-4 rounded-full border border-zinc-700" />
                 </div>
-                <div className="w-4 h-4 rounded-full border border-zinc-700" />
-              </div>
+              )}
             </div>
           </div>
 
