@@ -225,11 +225,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       if (!o || !o.orderId) return false;
       // Do not count cancelled, unpaid, or PayFast test orders in meals sold
       if (o.status === 'cancelled') return false;
-      if (o.paymentMethod === 'payfast' && (o.paymentStatus !== 'paid' || (o as any).isTest || isPayFastStaffTestMode() || (o as any).isSandbox)) {
-        return false;
-      }
+      if (o.paymentMethod === 'payfast') return false;
       const cName = (o.customer?.customerName || '').toLowerCase();
-      if (cName.includes('test customer') || cName === 'test') return false;
+      if (cName.includes('test')) return false;
 
       const d = getOrderDateString(o);
       if (trafficRange === 'all') return true;
@@ -286,20 +284,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           }
         }
       }
-    } else if (orders.length === 0 && trafficSummary) {
-      // Fallback only if orders have not loaded yet from backend
-      for (const [name, qty] of Object.entries(trafficSummary.orderedItems || {})) {
-        itemsMap[name] = qty;
-        totalItemsCount += qty;
-      }
     }
 
-    const ordersCount =
-      filtered.length > 0
-        ? filtered.length
-        : orders.length === 0
-        ? trafficSummary.funnel?.ordersCompleted || 0
-        : 0;
+    const ordersCount = filtered.length;
 
     return {
       ordersCount,
@@ -399,11 +386,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       if (!o || !o.orderId) return false;
       // Do not count cancelled, unpaid, or PayFast test orders in daily sales report
       if (o.status === 'cancelled') return false;
-      if (o.paymentMethod === 'payfast' && (o.paymentStatus !== 'paid' || (o as any).isTest || isPayFastStaffTestMode() || (o as any).isSandbox)) {
-        return false;
-      }
+      if (o.paymentMethod === 'payfast') return false;
       const cName = (o.customer?.customerName || '').toLowerCase();
-      if (cName.includes('test customer') || cName === 'test') return false;
+      if (cName.includes('test')) return false;
 
       if (targetDate === 'all') return true;
       return getOrderDateString(o) === targetDate;

@@ -323,9 +323,6 @@ export function exportTrafficToPdf(
 
   // Calculate Totals & Rankings
   const itemsMap: Record<string, number> = { ...(ordersData.itemsMap || {}) };
-  if (Object.keys(itemsMap).length === 0 && trafficSummary.orderedItems) {
-    Object.assign(itemsMap, trafficSummary.orderedItems);
-  }
 
   const sortedOrdered = Object.entries(itemsMap)
     .filter(([_, qty]) => qty > 0)
@@ -334,7 +331,6 @@ export function exportTrafficToPdf(
   const totalOrderedUnits =
     ordersData.totalItemsCount ||
     sortedOrdered.reduce((s, [_, q]) => s + q, 0) ||
-    trafficSummary.totalOrderedQuantity ||
     0;
 
   const sortedCraved = Object.entries(trafficSummary.popularItems || {})

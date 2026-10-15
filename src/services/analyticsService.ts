@@ -249,6 +249,14 @@ export function cleanLocalTrafficData(targetDate?: string): void {
           }
         }
       }
+      if (parsed.orderedItems) {
+        parsed.orderedItems = {};
+      }
+      parsed.totalOrderedQuantity = 0;
+      if (parsed.funnel) {
+        parsed.funnel.ordersCompleted = 0;
+        parsed.funnel.checkoutStarts = 0;
+      }
       localStorage.setItem(STORAGE_PREFIX + date, JSON.stringify(parsed));
     }
   } catch (e) {
@@ -436,6 +444,26 @@ function loadLocalDailyDoc(date: string): TrafficDailyDoc {
           'Wrap It Like A Shwarma': 1,
           '3 Wings with a Side': 1,
         };
+      }
+
+      // Strip any PayFast test ordered items from today
+      if (date === getTodayString() && parsed.orderedItems) {
+        const testKeys = ['1/4 Chicken, Side & Roll', 'Chicken Burger & Chips', '10 Wings with a Side'];
+        let hasTestItems = false;
+        for (const k of testKeys) {
+          if (parsed.orderedItems[k]) {
+            delete parsed.orderedItems[k];
+            hasTestItems = true;
+          }
+        }
+        if (hasTestItems) {
+          parsed.totalOrderedQuantity = Object.values(parsed.orderedItems).reduce((a, b) => a + b, 0);
+          if (parsed.funnel) {
+            parsed.funnel.ordersCompleted = 0;
+            parsed.funnel.checkoutStarts = 0;
+          }
+          saveLocalDailyDoc(parsed);
+        }
       }
 
       return parsed;
