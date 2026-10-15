@@ -16,16 +16,22 @@ const DEMO_NAMES = new Set(['Sipho Khumalo', 'Thabo Mbeki', 'Sarah Jenkins']);
 
 const DEFAULT_INITIAL_ORDERS: any[] = [];
 
+const TEST_IDS = new Set(['C-1501', 'D-1501', 'C-1502', '#C-1501', '#D-1501', '#C-1502']);
+
 function getStore(): any[] {
   if (!(global as any).__wrap_wing_orders || !Array.isArray((global as any).__wrap_wing_orders)) {
     (global as any).__wrap_wing_orders = [];
   }
-  // Sanitize out any legacy mock demo orders permanently
+  // Sanitize out any legacy mock demo orders and test orders permanently
   (global as any).__wrap_wing_orders = (global as any).__wrap_wing_orders.filter((o: any) => {
     if (!o || typeof o !== 'object') return false;
+    const cleanId = String(o.orderId || '').replace('#', '').trim().toUpperCase();
+    if (TEST_IDS.has(cleanId) || TEST_IDS.has(String(o.orderId || '').trim())) return false;
     const name = (o.customer?.customerName || '').trim().toLowerCase();
     const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(o.orderId).includes(id));
-    return !isLegacyDemo;
+    if (isLegacyDemo) return false;
+    if (name === 'john doe' && (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502')) return false;
+    return true;
   });
   return (global as any).__wrap_wing_orders;
 }

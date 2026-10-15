@@ -56,9 +56,18 @@ export function unlockAudio() {
   }
 }
 
-// Web Audio API Ding-Dong Chime for Kitchen Display (New Order Arrival & Status Progression)
+let lastKitchenChimePlayedAt = 0;
+
+// Web Audio API MR D Style High-Visibility Chime for Kitchen Display
+// Ascending 5-tone bright chime with harmonic layering to cut through kitchen noise & music
 export function playKitchenChime() {
   try {
+    const nowEpoch = Date.now();
+    if (nowEpoch - lastKitchenChimePlayedAt < 1200) {
+      return; // Prevent overlapping audio when events fire close together
+    }
+    lastKitchenChimePlayedAt = nowEpoch;
+
     const ctx = getSharedAudioContext();
     if (!ctx) return;
     if (ctx.state === 'suspended') {
@@ -67,33 +76,51 @@ export function playKitchenChime() {
 
     const now = ctx.currentTime;
 
-    // First Tone: High Ding (880 Hz - A5)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(880, now);
-    gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(0.4, now + 0.04);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.6);
+    // Upbeat 5-note ascending arpeggio (G5 -> C6 -> E6 -> G6 -> C7)
+    // Layered with sine (warm bell fundamental) + triangle (bright mallet overtone)
+    const notes = [
+      { freq: 783.99, delay: 0.0, dur: 0.22, vol: 0.8 }, // G5
+      { freq: 1046.5, delay: 0.11, dur: 0.22, vol: 0.82 }, // C6
+      { freq: 1318.51, delay: 0.22, dur: 0.24, vol: 0.84 }, // E6
+      { freq: 1567.98, delay: 0.33, dur: 0.26, vol: 0.86 }, // G6
+      { freq: 2093.0, delay: 0.46, dur: 0.75, vol: 0.9 }, // C7 (High ringing bell finale)
+    ];
 
-    // Second Tone: Harmonious Dong (1174.66 Hz - D6)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(1174.66, now + 0.15);
-    gain2.gain.setValueAtTime(0, now + 0.15);
-    gain2.gain.linearRampToValueAtTime(0.45, now + 0.19);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.15);
-    osc2.stop(now + 1.1);
+    notes.forEach(({ freq, delay, dur, vol }) => {
+      const start = now + delay;
+
+      // Primary tone: warm resonant sine wave
+      const oscSine = ctx.createOscillator();
+      oscSine.type = 'sine';
+      oscSine.frequency.setValueAtTime(freq, start);
+
+      // Mallet attack overtone: crisp triangle wave to pierce kitchen background music & fan noise
+      const oscTri = ctx.createOscillator();
+      oscTri.type = 'triangle';
+      oscTri.frequency.setValueAtTime(freq, start);
+
+      const gainSine = ctx.createGain();
+      gainSine.gain.setValueAtTime(0, start);
+      gainSine.gain.linearRampToValueAtTime(vol * 0.55, start + 0.012);
+      gainSine.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
+      const gainTri = ctx.createGain();
+      gainTri.gain.setValueAtTime(0, start);
+      gainTri.gain.linearRampToValueAtTime(vol * 0.35, start + 0.012);
+      gainTri.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+
+      oscSine.connect(gainSine);
+      oscTri.connect(gainTri);
+      gainSine.connect(ctx.destination);
+      gainTri.connect(ctx.destination);
+
+      oscSine.start(start);
+      oscSine.stop(start + dur);
+      oscTri.start(start);
+      oscTri.stop(start + dur);
+    });
   } catch (err) {
-    console.warn('Audio chime could not play:', err);
+    console.warn('Kitchen chime could not play:', err);
   }
 }
 
@@ -253,6 +280,42 @@ export const DEFAULT_INITIAL_ORDERS: LiveOrder[] = [];
 
 const DEMO_CUSTOMER_NAMES = new Set(['Sipho Khumalo', 'Thabo Mbeki', 'Sarah Jenkins']);
 
+export const TEST_ORDER_IDS = new Set([
+  'C-1501',
+  'D-1501',
+  'C-1502',
+  '#C-1501',
+  '#D-1501',
+  '#C-1502',
+]);
+
+export function isTestOrder(order: Partial<LiveOrder> | null | undefined): boolean {
+  if (!order) return false;
+  const rawId = String(order.orderId || '').trim();
+  const cleanId = rawId.replace('#', '').trim().toUpperCase();
+  if (TEST_ORDER_IDS.has(rawId) || TEST_ORDER_IDS.has(cleanId)) {
+    return true;
+  }
+  const custName = (order.customer?.customerName || '').trim().toLowerCase();
+  if (
+    (custName === 'john doe' || custName.includes('john doe')) &&
+    (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502' || cleanId.startsWith('C-15') || cleanId.startsWith('D-15'))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function purgeKnownTestOrdersFromCloud(): void {
+  if (typeof window === 'undefined') return;
+  const testIds = ['C-1501', 'D-1501', 'C-1502', '#C-1501', '#D-1501', '#C-1502'];
+  for (const id of testIds) {
+    if (isFirebaseConfigured) {
+      deleteOrderFromFirestore(id).catch(() => {});
+    }
+    fetch(`/api/orders?orderId=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
+  }
+}
 
 // Local Storage helpers with full schema sanitization and no auto-mock generation
 export function getAllOrders(): LiveOrder[] {
@@ -266,7 +329,7 @@ export function getAllOrders(): LiveOrder[] {
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [];
     }
-    // Sanitize and filter out invalid orders, plus purge legacy static demo mock tickets
+    // Sanitize and filter out invalid orders, legacy static demo mock tickets, and test orders
     const valid = parsed
       .filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId))
       .filter((o) => {
@@ -275,8 +338,8 @@ export function getAllOrders(): LiveOrder[] {
         const isLegacyStaticDemoId = o.orderId === 'D-1001' || o.orderId === 'D-1002' || o.orderId === 'C-1001';
         if (isLegacyDemoName && isLegacyStaticDemoId) return false;
 
-        // Clean out all PayFast sandbox test orders
-        if (o.paymentMethod === 'payfast') {
+        // Clean out all PayFast test orders
+        if (isTestOrder(o)) {
           return false;
         }
         return true;
@@ -694,7 +757,9 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
           cloudOrders = data.filter((raw: any) => {
             const name = (raw?.customer?.customerName || '').trim().toLowerCase();
             const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(raw.orderId).includes(id));
-            return !isLegacyDemo;
+            if (isLegacyDemo) return false;
+            if (isTestOrder(raw)) return false;
+            return true;
           });
         }
       }
@@ -712,14 +777,14 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
 
       // 1. Seed with local orders
       for (const local of currentOrders) {
-        if (local && local.orderId) {
+        if (local && local.orderId && !isTestOrder(local)) {
           mergedMap.set(local.orderId, local);
         }
       }
 
       // 2. Merge cloud orders into map
       for (const raw of cloudOrders) {
-        if (raw && raw.orderId) {
+        if (raw && raw.orderId && !isTestOrder(raw)) {
           const sanitized: LiveOrder = {
             ...raw,
             customer: raw.customer || {
@@ -775,6 +840,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
 
       // 3. Two-way sync: If local device has an order that cloud does not have, auto-push to cloud
       for (const local of currentOrders) {
+        if (isTestOrder(local)) continue;
         const localName = (local.customer?.customerName || '').trim().toLowerCase();
         const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => localName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(local.orderId).includes(id));
         if (isLegacyDemo) continue;
@@ -805,6 +871,9 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
 // Start continuous Real-Time SSE listener
 export function initCloudSyncListener() {
   if (typeof window === 'undefined') return;
+
+  // Purge any known test orders from cloud / Firestore immediately
+  purgeKnownTestOrdersFromCloud();
 
   // Initial catch up from cloud
   syncOrdersFromCloud();
@@ -1176,9 +1245,14 @@ export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () =
         const currentOrders = getAllOrders();
         const orderMap = new Map<string, LiveOrder>();
         for (const o of currentOrders) {
-          if (o && o.orderId) orderMap.set(o.orderId, o);
+          if (o && o.orderId && !isTestOrder(o)) orderMap.set(o.orderId, o);
         }
         for (const f of firestoreOrders) {
+          if (isTestOrder(f)) {
+            // Permanently delete from Firestore so it never downloads or cycles again
+            deleteOrderFromFirestore(f.orderId).catch(() => {});
+            continue;
+          }
           if (f && f.orderId) {
             const existing = orderMap.get(f.orderId);
             if (!existing) {

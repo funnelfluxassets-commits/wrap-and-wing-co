@@ -79,7 +79,8 @@ import {
   getLocalTodayDateString,
   formatToLocalDateString,
   getOrderDateString,
-  generateWhatsAppDailyOrdersReportText
+  generateWhatsAppDailyOrdersReportText,
+  isTestOrder,
 } from '../services/orderService';
 import { generateGoogleMapsUrl } from '../services/payment';
 import {
@@ -223,9 +224,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     const filtered = orders.filter((o) => {
       if (!o || !o.orderId) return false;
-      // Do not count cancelled, unpaid, or PayFast test orders in meals sold
+      // Do not count cancelled, test orders, or unpaid PayFast orders in meals sold
       if (o.status === 'cancelled') return false;
-      if (o.paymentMethod === 'payfast') return false;
+      if (isTestOrder(o)) return false;
+      if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
       const cName = (o.customer?.customerName || '').toLowerCase();
       if (cName.includes('test')) return false;
 

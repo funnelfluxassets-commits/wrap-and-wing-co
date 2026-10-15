@@ -7,6 +7,7 @@ import {
   deleteOrder,
   playKitchenChime,
   playCookingAlarm,
+  playCustomerUpdateChime,
   unlockAudio,
   syncOrdersFromCloud,
   resetToDefaultOrders,
@@ -14,6 +15,7 @@ import {
   getLocalTodayDateString,
   formatToLocalDateString,
   getOrderDateString,
+  isTestOrder,
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
@@ -34,7 +36,8 @@ import {
   RefreshCw,
   RotateCcw,
   Trash2,
-  LogOut
+  LogOut,
+  Bell,
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DriverTicketModal } from './DriverTicketModal';
@@ -103,7 +106,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onViewOrderTracker,
   onLogout,
 }) => {
-  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
+  const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders().filter((o) => !isTestOrder(o)));
   const [filter, setFilter] = useState<'active' | 'cooking' | 'ready' | 'completed_today' | 'history'>('active');
   const [currentDate, setCurrentDate] = useState(() => formatDisplayDate(new Date()));
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
@@ -113,7 +116,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [viewingDriverOrder, setViewingDriverOrder] = useState<LiveOrder | null>(null);
 
   // Track known order IDs to immediately chime on brand new incoming orders
-  const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().map((o) => o.orderId)));
+  const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().filter((o) => !isTestOrder(o)).map((o) => o.orderId)));
   const isInitializedRef = useRef<boolean>(false);
 
   // Unlock browser audio context on first user tap/click on tablet
@@ -133,8 +136,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
   useEffect(() => {
     const unsubscribe = subscribeToOrders((newOrders) => {
+      const cleanOrders = newOrders.filter((o) => !isTestOrder(o));
       const currentKnown = knownOrderIdsRef.current;
-      const newIncoming = newOrders.filter((o) => {
+      const newIncoming = cleanOrders.filter((o) => {
         if (currentKnown.has(o.orderId)) return false;
         if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
         return true;
@@ -142,13 +146,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
         playKitchenChime();
       }
-      newOrders.forEach((o) => {
+      cleanOrders.forEach((o) => {
         // Only mark known if it was eligible to chime (or paid)
         if (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid') {
           currentKnown.add(o.orderId);
         }
       });
-      setOrders(newOrders);
+      setOrders(cleanOrders);
     });
 
     const clockTimer = setInterval(() => {
@@ -156,9 +160,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       setCurrentTime(now.toLocaleTimeString());
       setCurrentDate(formatDisplayDate(now));
 
-      // Overdue Cooking Alarm: pulse alert chime every 4 seconds when cooking order exceeds 10 minutes
-      if (now.getSeconds() % 4 === 0 && soundEnabled) {
-        const currentOrders = getAllOrders();
+      if (soundEnabled) {
+        const currentOrders = getAllOrders().filter((o) => !isTestOrder(o));
+
+        // 1. Unaccepted Incoming Orders (Ring continuously every 3 seconds until staff accept & start grilling)
+        const hasUnacceptedOrder = currentOrders.some((order) => {
+          if (order.status !== 'received') return false;
+          if (order.paymentMethod === 'payfast' && order.paymentStatus !== 'paid') return false;
+          if (silencedAlarms.has(order.orderId)) return false;
+          return true;
+        });
+
+        // 2. Overdue Cooking Alarm: pulse alert chime every 4 seconds when cooking order exceeds 10 minutes
         const hasOverdueCookingOrder = currentOrders.some((order) => {
           if (order.status !== 'cooking') return false;
           if (silencedAlarms.has(order.orderId)) return false;
@@ -167,8 +180,16 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           return elapsedSeconds >= 600; // 10 minutes reached
         });
 
-        if (hasOverdueCookingOrder) {
-          playCookingAlarm();
+        // Ringtone cadence:
+        // Incoming orders repeat every 3 seconds until accepted; overdue cooking alert pulses every 4 seconds
+        if (hasUnacceptedOrder) {
+          if (now.getSeconds() % 3 === 0) {
+            playKitchenChime();
+          }
+        } else if (hasOverdueCookingOrder) {
+          if (now.getSeconds() % 4 === 0) {
+            playCookingAlarm();
+          }
         }
       }
     }, 1000);
@@ -176,13 +197,22 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     // Active 2-second live kitchen radar to guarantee instant detection across devices
     const radarTimer = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
+      const cleanOrders = freshOrders.filter((o) => !isTestOrder(o));
       const currentKnown = knownOrderIdsRef.current;
-      const newIncoming = freshOrders.filter((o) => !currentKnown.has(o.orderId));
+      const newIncoming = cleanOrders.filter((o) => {
+        if (currentKnown.has(o.orderId)) return false;
+        if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
+        return true;
+      });
       if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
         playKitchenChime();
       }
-      freshOrders.forEach((o) => currentKnown.add(o.orderId));
-      setOrders(freshOrders);
+      cleanOrders.forEach((o) => {
+        if (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid') {
+          currentKnown.add(o.orderId);
+        }
+      });
+      setOrders(cleanOrders);
     }, 2000);
 
     return () => {
@@ -205,14 +235,12 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   };
 
   const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
-    // If order was in cooking or silenced, clear silence state
-    if (nextStatus !== 'cooking') {
-      setSilencedAlarms((prev) => {
-        const next = new Set(prev);
-        next.delete(orderId);
-        return next;
-      });
-    }
+    // Reset silence state for this order whenever transitioning status
+    setSilencedAlarms((prev) => {
+      const next = new Set(prev);
+      next.delete(orderId);
+      return next;
+    });
 
     const updated = updateOrderStatus(orderId, nextStatus);
     if (updated) {
@@ -227,10 +255,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         })
       );
     } else {
-      setOrders(getAllOrders());
+      setOrders(getAllOrders().filter((o) => !isTestOrder(o)));
     }
     if (soundEnabled) {
-      playKitchenChime();
+      playCustomerUpdateChime();
     }
   };
 
@@ -302,8 +330,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     }, 250);
   };
 
-  // Filter orders safely: Only display paid PayFast orders or COD orders to the kitchen!
-  const validOrders = orders.filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId));
+  // Filter orders safely: Only display real non-test orders, and only paid PayFast orders or COD orders to the kitchen!
+  const validOrders = orders.filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId && !isTestOrder(o)));
   const kitchenEligibleOrders = validOrders.filter((o) => {
     // If order was placed via PayFast, ONLY show to kitchen once payment is approved (paid)
     if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') {
@@ -724,6 +752,47 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 sm:gap-2">
+                      {/* Incoming Order Ringing Badge & Silence Toggle */}
+                      {order.status === 'received' && (() => {
+                        const isSilenced = silencedAlarms.has(order.orderId);
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/25 border-2 border-amber-400 text-amber-300 font-mono font-black shadow-lg shadow-amber-500/30 animate-pulse"
+                              title="Incoming order awaiting acceptance to start grilling"
+                            >
+                              <Bell className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
+                              <div className="text-right leading-none">
+                                <div className="text-xs sm:text-sm tracking-tight font-black uppercase text-amber-300">
+                                  NEW ORDER
+                                </div>
+                                <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-amber-200/80 font-sans font-extrabold mt-0.5">
+                                  {isSilenced ? 'Muted' : 'Ringing'}
+                                </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleSilenceAlarm(order.orderId)}
+                              className={`px-2.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1 shadow-md ${
+                                isSilenced
+                                  ? 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
+                                  : 'bg-amber-400 hover:bg-amber-300 text-zinc-950 border-amber-300 animate-bounce'
+                              }`}
+                              title={isSilenced ? 'Unmute ringtone for this ticket' : 'Silence ringtone for this ticket'}
+                            >
+                              {isSilenced ? (
+                                <VolumeX className="w-3.5 h-3.5" />
+                              ) : (
+                                <Volume2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>{isSilenced ? 'Muted' : 'Silence'}</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
+
                       {/* 10-Minute Cooking Countdown Timer & Overdue Alarm */}
                       {order.status === 'cooking' && (() => {
                         const cookingStart = getOrderCookingStartTime(order);
