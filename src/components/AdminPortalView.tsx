@@ -39,9 +39,11 @@ import {
   Copy,
   Check,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard,
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
+import { isPayFastStaffTestMode, setPayFastStaffTestMode } from '../services/payment';
 import { LiveOrder, ReviewDrawEntry, OrderStatus } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
 import {
@@ -91,6 +93,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 }) => {
   // Navigation Tab: Orders & Sales CRM vs Google Review Draw vs Customer Traffic
   const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'traffic'>('orders');
+  const [isPayFastTesting, setIsPayFastTesting] = useState(() => isPayFastStaffTestMode());
 
   // --- Orders State ---
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
@@ -594,6 +597,25 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             >
               <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-400" />
               <span>Driver Portal</span>
+            </button>
+
+            {/* PayFast Sandbox Staff Test Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !isPayFastTesting;
+                setPayFastStaffTestMode(next);
+                setIsPayFastTesting(next);
+              }}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isPayFastTesting
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30 ring-1 ring-amber-500/30'
+                  : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Toggle PayFast Sandbox Test Mode for your device"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+              <span>PayFast Sandbox: <strong className={isPayFastTesting ? 'text-amber-300' : 'text-zinc-500'}>{isPayFastTesting ? 'ON' : 'OFF'}</strong></span>
             </button>
 
             <button
