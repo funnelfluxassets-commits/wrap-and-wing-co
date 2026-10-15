@@ -216,6 +216,7 @@ export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { is
     amount: payload.grandTotal.toFixed(2),
     item_name: `Wrap & Wings Co Order #${cleanId}`,
     item_description: `${payload.items.length} item(s) from ${payload.store.name}`,
+    payment_method: 'cc', // Forces PayFast to display the Credit / Debit Card input screen
   };
 
   const form = document.createElement('form');
