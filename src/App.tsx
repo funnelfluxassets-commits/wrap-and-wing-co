@@ -25,7 +25,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
-import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder } from './services/orderService';
+import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder } from './services/orderService';
 import { logPageView, logItemView } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 
@@ -137,12 +137,23 @@ const MainContent: React.FC = () => {
         const cleanUrl = window.location.pathname + '#track';
         history.replaceState(null, '', cleanUrl);
       } else if (pfStatus === 'cancelled') {
-        // Payment was cancelled or abandoned - clean up without creating kitchen order
+        let pendingPayload: CheckoutPayload | null = null;
         try {
-          localStorage.removeItem('wrap_wing_pending_payfast_order');
-          sessionStorage.removeItem('wrap_wing_pending_payfast_order');
+          const raw = localStorage.getItem('wrap_wing_pending_payfast_order') ||
+                      sessionStorage.getItem('wrap_wing_pending_payfast_order');
+          if (raw) pendingPayload = JSON.parse(raw);
         } catch {}
-        setPayfastNotice({ type: 'cancelled', orderId: pfOrderId || undefined });
+
+        if (pendingPayload) {
+          // Log failed / cancelled attempt into Admin CRM report so manager can follow up with customer
+          recordCancelledOrder(pendingPayload, 'Payment Unsuccessful / Cancelled on PayFast');
+          try {
+            localStorage.removeItem('wrap_wing_pending_payfast_order');
+            sessionStorage.removeItem('wrap_wing_pending_payfast_order');
+          } catch {}
+        }
+
+        setPayfastNotice({ type: 'cancelled', orderId: pfOrderId || pendingPayload?.orderId || undefined });
         const cleanUrl = window.location.pathname + (window.location.hash || '');
         history.replaceState(null, '', cleanUrl);
       }

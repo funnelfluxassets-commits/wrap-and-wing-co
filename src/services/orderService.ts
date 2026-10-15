@@ -972,6 +972,62 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   return newOrder;
 }
 
+/**
+ * Record an unfulfilled, cancelled, or declined online payment order in CRM reports
+ * Hidden from Kitchen Display to prevent wasted food, but accessible to Managers for customer follow-up.
+ */
+export function recordCancelledOrder(
+  payload: CheckoutPayload,
+  reason: string = 'Payment Unsuccessful / Cancelled on PayFast'
+): LiveOrder {
+  const isDelivery = payload.orderMode === 'delivery';
+  const now = new Date();
+  const dateStr = now.toLocaleDateString();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const cancelledOrder: LiveOrder = {
+    orderId: payload.orderId,
+    orderMode: payload.orderMode,
+    status: 'cancelled',
+    items: payload.items,
+    subtotal: payload.subtotal,
+    deliveryFee: payload.deliveryFee,
+    tip: typeof payload.tip === 'number' ? payload.tip : 0,
+    grandTotal: payload.grandTotal,
+    customer: payload.customer,
+    store: payload.store,
+    paymentMethod: payload.paymentMethod,
+    paymentStatus: 'pending',
+    preferredTime: payload.preferredTime || (isDelivery ? 'ASAP (35–45 mins)' : 'ASAP (15–20 mins)'),
+    createdAt: `${dateStr} ${timeStr}`,
+    estimatedMinutes: 0,
+    timeline: [
+      {
+        status: 'cancelled',
+        timestamp: timeStr,
+        label: reason,
+        note: reason,
+      },
+    ],
+  };
+
+  const existing = getAllOrders().filter((o) => o.orderId !== cancelledOrder.orderId);
+  saveOrders([cancelledOrder, ...existing]);
+
+  if (isFirebaseConfigured) {
+    saveOrderToFirestore(cancelledOrder).catch((e) => console.warn('Firestore order save error:', e));
+  }
+
+  publishCloudEvent({
+    type: 'ORDER_UPDATED',
+    orderId: cancelledOrder.orderId,
+    newStatus: 'cancelled',
+    timestamp: Date.now(),
+  }).catch(() => {});
+
+  return cancelledOrder;
+}
+
 export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?: string): LiveOrder | null {
   const cleanId = orderId.replace('#', '').trim();
   const orders = getAllOrders();

@@ -1135,10 +1135,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'
                                   : o.status === 'dispatched'
                                   ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                                  : o.status === 'cancelled'
+                                  ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                                   : 'bg-zinc-800 text-zinc-300 border border-white/10'
                               }`}
                             >
-                              {o.status}
+                              {o.status === 'cancelled' ? '❌ UNPAID / CANCELLED' : o.status}
                             </span>
                           </div>
 
