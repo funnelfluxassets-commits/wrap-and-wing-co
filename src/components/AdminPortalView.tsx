@@ -1540,7 +1540,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                 <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href="https://wrapandwings.funnelfluxassets.com/#review"
+                    href="https://wrapandwings.co.za/#review"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1550,7 +1550,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </a>
 
                   <a
-                    href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
+                    href="https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=https%3A%2F%2Fwrapandwings.co.za%2F%23review"
                     download="wrap-and-wings-meal-qr-code.png"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1566,12 +1566,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* QR Code Preview */}
                 <div className="p-3.5 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col items-center justify-center text-center space-y-2">
                   <img
-                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwrapandwings.funnelfluxassets.com%2F%23review"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fwrapandwings.co.za%2F%23review"
                     alt="Scan for Weekly Meal Draw"
                     className="w-32 h-32 rounded-xl bg-white p-2 shadow-inner"
                   />
                   <div className="text-[11px] font-mono text-amber-300 font-bold break-all">
-                    wrapandwings.funnelfluxassets.com/#review
+                    wrapandwings.co.za/#review
                   </div>
                 </div>
 
@@ -1585,7 +1585,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          "WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.funnelfluxassets.com/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!"
+                          "WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.co.za/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!"
                         );
                         alert("Flyer text copied to clipboard!");
                       }}
@@ -1597,7 +1597,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <div className="p-3 rounded-xl bg-zinc-900 border border-white/5 font-mono text-[11px] text-zinc-300 leading-relaxed">
                     <p className="font-bold text-white">WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥</p>
                     <p>Loved your meal? Want to help our brand new local spot grow?</p>
-                    <p>1. Scan the QR code or visit <strong>wrapandwings.funnelfluxassets.com/#review</strong></p>
+                    <p>1. Scan the QR code or visit <strong>wrapandwings.co.za/#review</strong></p>
                     <p>2. Enter your receipt slip number &amp; leave a quick review on Google</p>
                     <p>3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!</p>
                   </div>

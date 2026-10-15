@@ -60,5 +60,7 @@ export const SOCIAL_LINKS = {
   facebook: 'https://www.facebook.com/wrapandwingsco',
   whatsappDirect: 'https://wa.me/27688863892',
   phoneDirect: 'tel:0688863892',
+  emailInfo: 'mailto:info@wrapandwings.co.za',
+  emailOrders: 'mailto:orders@wrapandwings.co.za',
   googleBusiness: GOOGLE_BUSINESS_URL,
 };

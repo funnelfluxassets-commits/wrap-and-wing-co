@@ -195,7 +195,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   <div><strong>Wrap & Wings Co</strong> (Information Officer)</div>
                   <div>📍 Shop 1, Uniland Centre, Pinetown, Durban, KZN</div>
                   <div>📞 Telephone / WhatsApp: 068 886 3892</div>
-                  <div>✉️ Email: funnelflux.assets@gmail.com</div>
+                  <div>✉️ Email: info@wrapandwings.co.za</div>
                 </div>
               </section>
             </div>
@@ -222,7 +222,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
               <section className="space-y-2">
                 <h3 className="text-sm font-black text-white uppercase tracking-wide">1. Agreement to Terms</h3>
                 <p>
-                  By accessing our website (wrapandwings.funnelfluxassets.com) or placing an order with{' '}
+                  By accessing our website (wrapandwings.co.za) or placing an order with{' '}
                   <strong className="text-white">Wrap & Wings Co</strong>, you agree to be bound by these Terms of Service.
                   If you do not agree, please do not use our services.
                 </p>

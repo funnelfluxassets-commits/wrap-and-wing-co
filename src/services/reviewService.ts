@@ -61,9 +61,9 @@ export async function saveReviewDrawEntry(
     }
   }
 
-  // 3. Email notification via FormSubmit AJAX to funnelflux.assets@gmail.com
+  // 3. Email notification via FormSubmit AJAX to info@wrapandwings.co.za
   try {
-    fetch('https://formsubmit.co/ajax/funnelflux.assets@gmail.com', {
+    fetch('https://formsubmit.co/ajax/info@wrapandwings.co.za', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

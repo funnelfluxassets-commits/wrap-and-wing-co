@@ -4,7 +4,10 @@ import {
   AlertCircle,
   HelpCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Mail,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 import { PageView } from '../types';
 
@@ -99,8 +102,8 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
     setErrorMessage('');
 
     try {
-      // Dispatch via FormSubmit AJAX service straight to funnelflux.assets@gmail.com
-      const response = await fetch('https://formsubmit.co/ajax/funnelflux.assets@gmail.com', {
+      // Dispatch via FormSubmit AJAX service straight to info@wrapandwings.co.za
+      const response = await fetch('https://formsubmit.co/ajax/info@wrapandwings.co.za', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +131,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
     } catch {
       // Fallback: If network or blocker stops AJAX, offer graceful direct mailto
       try {
-        const mailtoUrl = `mailto:funnelflux.assets@gmail.com?subject=${encodeURIComponent(
+        const mailtoUrl = `mailto:info@wrapandwings.co.za?subject=${encodeURIComponent(
           `Wrap & Wings Co Inquiry from ${formData.firstName} ${formData.lastName}`
         )}&body=${encodeURIComponent(
           `Title: ${formData.title}\nName: ${formData.firstName} ${formData.lastName}\nEmail: ${formData.email}\nPhone: ${formData.telephone}\n\nMessage:\n${formData.message}`
@@ -138,7 +141,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
         setFormData(INITIAL_FORM);
       } catch {
         setStatus('error');
-        setErrorMessage('Unable to send at this moment. Please call us at 068 886 3892 or WhatsApp us directly.');
+        setErrorMessage('Unable to send at this moment. Please email info@wrapandwings.co.za or call us at 068 886 3892.');
       }
     }
   };
@@ -193,7 +196,49 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
       </section>
 
       {/* ── Main Content Container ─────────────────────────────────────────── */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-12 flex-1 w-full">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-8 flex-1 w-full">
+
+        {/* ── Direct Contact Cards ────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <a
+            href="mailto:info@wrapandwings.co.za"
+            className="p-4 rounded-2xl bg-[#121217] border border-white/10 hover:border-amber-400/40 transition-all flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 group-hover:scale-105 transition-transform shrink-0">
+              <Mail className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">General Enquiries</div>
+              <div className="text-xs font-bold text-white group-hover:text-amber-300 truncate">info@wrapandwings.co.za</div>
+            </div>
+          </a>
+
+          <a
+            href="mailto:orders@wrapandwings.co.za"
+            className="p-4 rounded-2xl bg-[#121217] border border-white/10 hover:border-rose-400/40 transition-all flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 group-hover:scale-105 transition-transform shrink-0">
+              <Mail className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Orders & Support</div>
+              <div className="text-xs font-bold text-white group-hover:text-rose-300 truncate">orders@wrapandwings.co.za</div>
+            </div>
+          </a>
+
+          <a
+            href="tel:0688863892"
+            className="p-4 rounded-2xl bg-[#121217] border border-white/10 hover:border-emerald-400/40 transition-all flex items-start gap-3 group"
+          >
+            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+              <Phone className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Call / WhatsApp</div>
+              <div className="text-xs font-bold text-white group-hover:text-emerald-300 truncate">068 886 3892</div>
+            </div>
+          </a>
+        </div>
 
         {/* ── Customer Form (sitting directly under header) ────────────────── */}
         <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-6">

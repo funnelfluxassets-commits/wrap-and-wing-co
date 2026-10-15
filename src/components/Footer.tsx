@@ -2,7 +2,7 @@ import React from 'react';
 import { SOCIAL_LINKS, STORES } from '../data/stores';
 import { TikTokIcon } from './icons/TikTokIcon';
 import { FacebookIcon } from './icons/FacebookIcon';
-import { MapPin, Phone, Clock, Heart, ShieldCheck } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Heart, ShieldCheck } from 'lucide-react';
 import { LegalTab } from './LegalModal';
 import { PageView } from '../types';
 
@@ -158,6 +158,13 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenS
                 <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
                 <a href={SOCIAL_LINKS.phoneDirect} className="text-white font-extrabold hover:text-rose-400">
                   {store.phone}
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2.5 pt-1">
+                <Mail className="w-4 h-4 text-rose-400 shrink-0" />
+                <a href={SOCIAL_LINKS.emailInfo} className="text-zinc-300 hover:text-white font-medium">
+                  info@wrapandwings.co.za
                 </a>
               </div>
             </div>
