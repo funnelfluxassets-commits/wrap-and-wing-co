@@ -134,11 +134,20 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   useEffect(() => {
     const unsubscribe = subscribeToOrders((newOrders) => {
       const currentKnown = knownOrderIdsRef.current;
-      const newIncoming = newOrders.filter((o) => !currentKnown.has(o.orderId));
+      const newIncoming = newOrders.filter((o) => {
+        if (currentKnown.has(o.orderId)) return false;
+        if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
+        return true;
+      });
       if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
         playKitchenChime();
       }
-      newOrders.forEach((o) => currentKnown.add(o.orderId));
+      newOrders.forEach((o) => {
+        // Only mark known if it was eligible to chime (or paid)
+        if (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid') {
+          currentKnown.add(o.orderId);
+        }
+      });
       setOrders(newOrders);
     });
 
@@ -293,11 +302,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     }, 250);
   };
 
-  // Filter orders safely
+  // Filter orders safely: Only display paid PayFast orders or COD orders to the kitchen!
   const validOrders = orders.filter((o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId));
-  const activeOrders = validOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
-  const cookingOrders = validOrders.filter((o) => o.status === 'cooking');
-  const readyOrders = validOrders.filter((o) => o.status === 'ready' || o.status === 'dispatched');
+  const kitchenEligibleOrders = validOrders.filter((o) => {
+    // If order was placed via PayFast, ONLY show to kitchen once payment is approved (paid)
+    if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') {
+      return false;
+    }
+    return true;
+  });
+  const activeOrders = kitchenEligibleOrders.filter((o) => o.status !== 'completed' && o.status !== 'cancelled');
+  const cookingOrders = kitchenEligibleOrders.filter((o) => o.status === 'cooking');
+  const readyOrders = kitchenEligibleOrders.filter((o) => o.status === 'ready' || o.status === 'dispatched');
 
   // Extract completion timestamp safely to sort history newest-first
   const getOrderCompletionEpoch = (order: LiveOrder): number => {

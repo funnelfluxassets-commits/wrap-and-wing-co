@@ -113,9 +113,12 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     }
   };
 
-  // Filter only home delivery orders
+  // Filter only home delivery orders (must be COD or successfully paid via PayFast)
   const deliveryOrders = orders.filter(
-    (o): o is LiveOrder => Boolean(o && typeof o === 'object' && o.orderId && o.orderMode === 'delivery')
+    (o): o is LiveOrder => Boolean(
+      o && typeof o === 'object' && o.orderId && o.orderMode === 'delivery' &&
+      (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid')
+    )
   );
   
   // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)

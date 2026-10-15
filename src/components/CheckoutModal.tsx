@@ -146,7 +146,21 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       createdAt: deliveryDetails.createdAt || 'Just now',
     };
 
-    // Save to real-time order service for kitchen display & live tracking (awaited so cloud receives it)
+    // If customer selected PayFast, store pending order in browser memory and forward to PayFast.
+    // The order will ONLY be dispatched to the kitchen once payment approval is confirmed!
+    if (paymentMethod === 'payfast') {
+      try {
+        localStorage.setItem('wrap_wing_pending_payfast_order', JSON.stringify(payload));
+        sessionStorage.setItem('wrap_wing_pending_payfast_order', JSON.stringify(payload));
+      } catch {}
+      setIsProcessing(false);
+      clearCart();
+      onClose();
+      initiatePayFastCheckout(payload, { isSandbox: true });
+      return;
+    }
+
+    // For Pay on Handover (Cash/Speedpoint), dispatch immediately to kitchen
     await createLiveOrder(payload);
     try {
       logOrderCompleted(
@@ -162,15 +176,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     // If customer chose WhatsApp confirmation, open WhatsApp
     if (paymentMethod === 'whatsapp') {
       openWhatsAppOrder(payload);
-    }
-
-    // If staff test mode used PayFast, redirect to PayFast sandbox
-    if (paymentMethod === 'payfast') {
-      setIsProcessing(false);
-      clearCart();
-      onClose();
-      initiatePayFastCheckout(payload, { isSandbox: true });
-      return;
     }
 
     setTimeout(() => {
