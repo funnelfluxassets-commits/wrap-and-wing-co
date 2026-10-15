@@ -186,11 +186,23 @@ export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { is
   const firstName = parts[0] || 'Guest';
   const lastName = parts.slice(1).join(' ') || 'Customer';
 
-  // PayFast requires an email address. Use customer phone or store fallback if not entered
-  const cleanPhone = (payload.customer.phone || '').replace(/\D/g, '');
-  const email = `${cleanPhone || 'orders'}@wrapandwings.co.za`;
+  // Sanitize South African mobile number: PayFast requires 10 digits (e.g. 0821234567) without spaces or plus
+  let sanitizedCell: string | undefined = undefined;
+  if (payload.customer.phone) {
+    let digits = payload.customer.phone.replace(/\D/g, '');
+    if (digits.startsWith('27') && digits.length === 11) {
+      digits = '0' + digits.slice(2);
+    }
+    if (digits.length === 10 && digits.startsWith('0')) {
+      sanitizedCell = digits;
+    }
+  }
 
-  const fields: Record<string, string> = {
+  // PayFast requires an email address. Use customer phone or fallback if not entered
+  const emailPhoneTag = sanitizedCell || (payload.customer.phone || '').replace(/\D/g, '') || 'orders';
+  const email = `${emailPhoneTag}@wrapandwings.co.za`;
+
+  const fields: Record<string, string | undefined> = {
     merchant_id: merchantId,
     merchant_key: merchantKey,
     return_url: returnUrl,
@@ -199,7 +211,7 @@ export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { is
     name_first: firstName,
     name_last: lastName,
     email_address: email,
-    cell_number: payload.customer.phone || '0820000000',
+    cell_number: sanitizedCell, // only include if strictly valid SA format; omitted otherwise so PayFast never errors
     m_payment_id: cleanId,
     amount: payload.grandTotal.toFixed(2),
     item_name: `Wrap & Wings Co Order #${cleanId}`,
