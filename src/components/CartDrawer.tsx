@@ -1,6 +1,6 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
@@ -66,22 +66,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             <button
               type="button"
               onClick={() => setOrderMode('collection')}
-              className="py-2.5 rounded-lg bg-rose-600 text-white shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                orderMode === 'collection'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
             >
               <span>🛍️ Store Collection</span>
+              {orderMode === 'collection' && <Check className="w-3 h-3" />}
             </button>
-            <div
-              className="py-2 rounded-lg flex flex-col items-center justify-center gap-0.5 text-zinc-500 bg-zinc-900/40 border border-white/5 cursor-not-allowed select-none opacity-60"
-              title="Delivery service coming soon!"
+            <button
+              type="button"
+              onClick={() => setOrderMode('delivery')}
+              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                orderMode === 'delivery'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
             >
-              <div className="flex items-center gap-1">
-                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
-                <span className="text-zinc-400">Delivery</span>
-              </div>
-              <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider">
-                Coming Soon
-              </span>
-            </div>
+              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>🏍️ Home Delivery</span>
+              {orderMode === 'delivery' && <Check className="w-3 h-3" />}
+            </button>
           </div>
         </div>
 
