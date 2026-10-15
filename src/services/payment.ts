@@ -130,15 +130,22 @@ export function isPayFastStaffTestMode(): boolean {
   try {
     const params = new URLSearchParams(window.location.search);
     const testParam = params.get('test_payfast');
-    if (testParam === '1' || testParam === 'true') {
-      sessionStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true');
+    const hasHash = (window.location.hash || '').toLowerCase().includes('test_payfast');
+
+    if (testParam === '1' || testParam === 'true' || hasHash) {
+      try { localStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true'); } catch {}
+      try { sessionStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true'); } catch {}
       return true;
     }
     if (testParam === '0' || testParam === 'false') {
-      sessionStorage.removeItem(PAYFAST_TEST_STORAGE_KEY);
+      try { localStorage.removeItem(PAYFAST_TEST_STORAGE_KEY); } catch {}
+      try { sessionStorage.removeItem(PAYFAST_TEST_STORAGE_KEY); } catch {}
       return false;
     }
-    return sessionStorage.getItem(PAYFAST_TEST_STORAGE_KEY) === 'true';
+
+    const fromLocal = localStorage.getItem(PAYFAST_TEST_STORAGE_KEY);
+    const fromSession = sessionStorage.getItem(PAYFAST_TEST_STORAGE_KEY);
+    return fromLocal === 'true' || fromSession === 'true';
   } catch {
     return false;
   }
@@ -148,8 +155,10 @@ export function setPayFastStaffTestMode(enabled: boolean) {
   if (typeof window === 'undefined') return;
   try {
     if (enabled) {
+      localStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true');
       sessionStorage.setItem(PAYFAST_TEST_STORAGE_KEY, 'true');
     } else {
+      localStorage.removeItem(PAYFAST_TEST_STORAGE_KEY);
       sessionStorage.removeItem(PAYFAST_TEST_STORAGE_KEY);
     }
   } catch {}

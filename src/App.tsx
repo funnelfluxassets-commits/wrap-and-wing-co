@@ -97,12 +97,15 @@ const MainContent: React.FC = () => {
       const pfStatus = params.get('payfast');
       const pfOrderId = params.get('orderId');
 
-      if (params.get('test_payfast') === '1' || params.get('test_payfast') === 'true') {
+      const hasHashTest = (window.location.hash || '').toLowerCase().includes('test_payfast');
+      if (params.get('test_payfast') === '1' || params.get('test_payfast') === 'true' || hasHashTest) {
         setPayFastStaffTestMode(true);
         setIsStaffTestActive(true);
       } else if (params.get('test_payfast') === '0' || params.get('test_payfast') === 'false') {
         setPayFastStaffTestMode(false);
         setIsStaffTestActive(false);
+      } else {
+        setIsStaffTestActive(isPayFastStaffTestMode());
       }
 
       if (pfStatus === 'success' && pfOrderId) {
@@ -263,19 +266,25 @@ const MainContent: React.FC = () => {
         </div>
       )}
 
-      {/* Staff Test Mode Subtle Bar */}
+      {/* Staff Test Mode Prominent Sticky Banner */}
       {isStaffTestActive && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 px-3 py-1.5 flex items-center justify-between text-[11px] text-amber-300">
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Staff Test Mode: PayFast Sandbox Active</span>
+        <div className="sticky top-0 z-[100] bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-zinc-950 px-3 sm:px-4 py-2 flex items-center justify-between text-xs font-black shadow-2xl border-b-2 border-amber-600 animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-zinc-950 animate-ping" />
+            <span className="tracking-wide uppercase font-black text-zinc-950">
+              ⚡ Staff Test Mode: PayFast Sandbox Active
+            </span>
+            <span className="hidden sm:inline font-bold text-zinc-800 text-[11px]">
+              • Simulated Orders Only (No Real Money Charged)
+            </span>
           </div>
           <button
+            type="button"
             onClick={() => {
               setPayFastStaffTestMode(false);
               setIsStaffTestActive(false);
             }}
-            className="underline hover:text-white font-bold cursor-pointer text-[10px]"
+            className="px-2.5 py-1 rounded-lg bg-zinc-950 hover:bg-zinc-800 text-white font-black text-[10px] tracking-wider uppercase transition-colors shadow-sm cursor-pointer shrink-0 ml-2"
           >
             Exit Test Mode
           </button>
