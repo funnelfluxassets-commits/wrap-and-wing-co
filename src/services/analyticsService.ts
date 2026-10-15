@@ -58,6 +58,203 @@ export interface LiveVisitorPing {
 const STORAGE_PREFIX = 'wrap_wing_traffic_';
 const LIVE_PING_KEY = 'wrap_wing_live_pings';
 const TRAFFIC_COLLECTION = 'customer_traffic_daily';
+export const EXCLUDE_ANALYTICS_KEY = 'wrap_wing_exclude_analytics';
+export const EXCLUDED_IPS_KEY = 'wrap_wing_excluded_ips';
+export const CLIENT_IP_KEY = 'wrap_wing_client_ip';
+export const SETTINGS_COLLECTION = 'system_settings';
+export const ANALYTICS_CONFIG_DOC = 'analytics_config';
+
+/**
+ * Check if the current device/browser is explicitly excluded from customer analytics
+ */
+export function isDeviceAnalyticsExcluded(): boolean {
+  if (typeof window === 'undefined') return true;
+  const val = localStorage.getItem(EXCLUDE_ANALYTICS_KEY);
+  if (val === 'false') return false;
+  if (val === 'true') return true;
+
+  // Auto-exclude if user has ever had staff role or accessed staff/admin views
+  if (
+    sessionStorage.getItem('wrap_wing_staff_role') ||
+    localStorage.getItem('wrap_wing_staff_role') ||
+    sessionStorage.getItem('wrap_wing_payfast_test_mode') ||
+    localStorage.getItem('wrap_wing_payfast_test_mode')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Toggle device exclusion on or off
+ */
+export function setDeviceAnalyticsExcluded(excluded: boolean): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(EXCLUDE_ANALYTICS_KEY, excluded ? 'true' : 'false');
+}
+
+/**
+ * Get client IP from session or local cache
+ */
+export function getCachedClientIp(): string {
+  if (typeof window === 'undefined') return '';
+  return sessionStorage.getItem(CLIENT_IP_KEY) || localStorage.getItem(CLIENT_IP_KEY) || '';
+}
+
+/**
+ * Get list of excluded IP addresses (defaults to user's public IP)
+ */
+export function getExcludedIps(): string[] {
+  if (typeof window === 'undefined') return ['105.245.182.242'];
+  try {
+    const raw = localStorage.getItem(EXCLUDED_IPS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return ['105.245.182.242'];
+}
+
+/**
+ * Check if a specific IP or current client IP is in the exclusion list
+ */
+export function isIpExcluded(ipToCheck?: string): boolean {
+  const ip = (ipToCheck || getCachedClientIp()).trim();
+  if (!ip) return false;
+  const list = getExcludedIps();
+  return list.includes(ip);
+}
+
+/**
+ * Combined check: returns true if either device flag is excluded OR public IP is excluded
+ */
+export function isAnalyticsExcluded(): boolean {
+  if (typeof window === 'undefined') return true;
+  if (isDeviceAnalyticsExcluded()) return true;
+  if (isIpExcluded()) return true;
+  return false;
+}
+
+/**
+ * Fetch client's public IP from ipify and sync excluded IP list from Firestore
+ */
+export async function fetchAndSyncClientIp(): Promise<{ clientIp: string; isExcluded: boolean }> {
+  if (typeof window === 'undefined') return { clientIp: '', isExcluded: true };
+
+  let currentIp = getCachedClientIp();
+
+  if (!currentIp) {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.ip) {
+          currentIp = String(data.ip).trim();
+          sessionStorage.setItem(CLIENT_IP_KEY, currentIp);
+          localStorage.setItem(CLIENT_IP_KEY, currentIp);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not detect public IP:', e);
+    }
+  }
+
+  // Sync excluded IPs from Firestore system_settings/analytics_config
+  if (db) {
+    try {
+      const cfgRef = doc(db, SETTINGS_COLLECTION, ANALYTICS_CONFIG_DOC);
+      const snap = await getDoc(cfgRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data.excludedIps)) {
+          localStorage.setItem(EXCLUDED_IPS_KEY, JSON.stringify(data.excludedIps));
+        }
+      }
+    } catch (e) {
+      console.warn('Could not sync excluded IPs from Firestore:', e);
+    }
+  }
+
+  return { clientIp: currentIp, isExcluded: isAnalyticsExcluded() };
+}
+
+/**
+ * Add an IP to the excluded IP list (saved locally and to Firestore)
+ */
+export async function addExcludedIp(ip: string): Promise<string[]> {
+  const cleanIp = (ip || '').trim();
+  if (!cleanIp) return getExcludedIps();
+
+  const current = getExcludedIps();
+  if (!current.includes(cleanIp)) {
+    const updated = [...current, cleanIp];
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(EXCLUDED_IPS_KEY, JSON.stringify(updated));
+    }
+    if (db) {
+      try {
+        const cfgRef = doc(db, SETTINGS_COLLECTION, ANALYTICS_CONFIG_DOC);
+        await setDoc(cfgRef, { excludedIps: updated, updatedAt: Date.now() }, { merge: true });
+      } catch (e) {
+        console.warn('Could not save excluded IP to Firestore:', e);
+      }
+    }
+    return updated;
+  }
+  return current;
+}
+
+/**
+ * Remove an IP from the excluded IP list (saved locally and to Firestore)
+ */
+export async function removeExcludedIp(ip: string): Promise<string[]> {
+  const cleanIp = (ip || '').trim();
+  const current = getExcludedIps();
+  const updated = current.filter((item) => item !== cleanIp);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(EXCLUDED_IPS_KEY, JSON.stringify(updated));
+  }
+  if (db) {
+    try {
+      const cfgRef = doc(db, SETTINGS_COLLECTION, ANALYTICS_CONFIG_DOC);
+      await setDoc(cfgRef, { excludedIps: updated, updatedAt: Date.now() }, { merge: true });
+    } catch (e) {
+      console.warn('Could not remove excluded IP in Firestore:', e);
+    }
+  }
+  return updated;
+}
+
+/**
+ * Purge desktop interactions from localStorage for target date
+ */
+export function cleanLocalTrafficData(targetDate?: string): void {
+  if (typeof window === 'undefined') return;
+  const date = targetDate || getTodayString();
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + date);
+    if (raw) {
+      const parsed: TrafficDailyDoc = JSON.parse(raw);
+      if (parsed.devices) {
+        parsed.devices.desktop = 0;
+      }
+      if (parsed.visitorDevices) {
+        for (const [vid, dev] of Object.entries(parsed.visitorDevices)) {
+          if (dev === 'desktop') {
+            delete parsed.visitorDevices[vid];
+            if (parsed.visitorSources) delete parsed.visitorSources[vid];
+            parsed.uniqueVisitorIds = (parsed.uniqueVisitorIds || []).filter((id) => id !== vid);
+          }
+        }
+      }
+      localStorage.setItem(STORAGE_PREFIX + date, JSON.stringify(parsed));
+    }
+  } catch (e) {
+    console.warn('Error cleaning local traffic:', e);
+  }
+}
 
 function getTodayString(): string {
   const d = new Date();
@@ -262,7 +459,7 @@ function saveLocalDailyDoc(docData: TrafficDailyDoc): void {
  * Record a heartbeat ping for "Live Visitors Online Right Now"
  */
 function recordLivePing(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
   try {
     const vid = getVisitorId();
     const sid = getSessionId();
@@ -302,7 +499,7 @@ export function getLiveVisitorsCount(): number {
  * Log a page view event (e.g. 'menu', 'story', 'team', etc.)
  */
 export function logPageView(page: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
 
   // Never count internal staff or manager views in customer dining room analytics
   const cleanPage = (page || '').toLowerCase();
@@ -368,7 +565,7 @@ export function logPageView(page: string): void {
  * Log when a user views or opens a menu item modal
  */
 export function logItemView(itemName: string): void {
-  if (typeof window === 'undefined' || !itemName) return;
+  if (typeof window === 'undefined' || !itemName || isAnalyticsExcluded()) return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
   current.popularItems[itemName] = (current.popularItems[itemName] || 0) + 1;
@@ -414,7 +611,7 @@ export function normalizeFlavourKey(raw: string): 'lemony' | 'mild' | 'bbq' | 's
  * Log when a customer selects a basting sauce flavour
  */
 export function logFlavourSelect(flavour: string): void {
-  if (typeof window === 'undefined' || !flavour) return;
+  if (typeof window === 'undefined' || !flavour || isAnalyticsExcluded()) return;
   const key = normalizeFlavourKey(flavour);
   if (!key) return;
 
@@ -446,7 +643,7 @@ export function logFlavourSelect(flavour: string): void {
  * Log an item added to cart
  */
 export function logAddToCart(itemName: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
@@ -484,7 +681,7 @@ export function logAddToCart(itemName: string): void {
  * Log when checkout modal is opened
  */
 export function logCheckoutStart(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
@@ -520,7 +717,7 @@ export interface CompletedOrderItem {
  * Log when an order is submitted successfully with exact items, quantities, and sauces
  */
 export function logOrderCompleted(items?: CompletedOrderItem[]): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
@@ -588,7 +785,7 @@ export function logOrderCompleted(items?: CompletedOrderItem[]): void {
  * Log direct customer actions (WhatsApp, phone call, navigation, review competition)
  */
 export function logDirectAction(action: 'whatsappChat' | 'phoneCall' | 'directions' | 'reviewDraw'): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isAnalyticsExcluded()) return;
   const today = getTodayString();
   const current = loadLocalDailyDoc(today);
 
@@ -711,7 +908,7 @@ export function subscribeToTraffic(callback: () => void): () => void {
         const local = loadLocalDailyDoc(today);
 
         // 1. Visitors
-        const mergedUniqueVisitors = Array.from(
+        let mergedUniqueVisitors = Array.from(
           new Set([...(local.uniqueVisitorIds || []), ...(cloudData.uniqueVisitorIds || [])])
         );
 
@@ -754,11 +951,29 @@ export function subscribeToTraffic(callback: () => void): () => void {
             ? 0
             : local.devices?.desktop || 0;
 
+        if (cloudDesktop === 0) {
+          for (const [vid, dev] of Object.entries(mergedVisitorDevices)) {
+            if (dev === 'desktop') {
+              delete mergedVisitorDevices[vid];
+              delete mergedVisitorSources[vid];
+            }
+          }
+          desktopFromMap = 0;
+        }
+
         const mergedDevices = {
           ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0, iosFromMap),
           android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0, androidFromMap),
-          desktop: Math.max(cloudDesktop, localDesktopClean, desktopFromMap),
+          desktop: cloudDesktop === 0 ? 0 : Math.max(cloudDesktop, localDesktopClean, desktopFromMap),
         };
+
+        if (cloudDesktop === 0) {
+          if (cloudData.uniqueVisitorIds && cloudData.uniqueVisitorIds.length > 0) {
+            mergedUniqueVisitors = cloudData.uniqueVisitorIds;
+          } else {
+            mergedUniqueVisitors = mergedUniqueVisitors.filter((id) => mergedVisitorDevices[id] !== 'desktop');
+          }
+        }
 
         // 4. Sources
         let googleFromMap = 0;
@@ -776,7 +991,9 @@ export function subscribeToTraffic(callback: () => void): () => void {
           google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0, googleFromMap),
           whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0, whatsappFromMap),
           social: Math.max(local.sources?.social || 0, cloudData.sources?.social || 0, socialFromMap),
-          direct: Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0, directFromMap),
+          direct: cloudDesktop === 0 && cloudData.sources?.direct !== undefined
+            ? cloudData.sources.direct
+            : Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0, directFromMap),
         };
 
         // 4. Popular Craved Items - Deep merge so items are NEVER lost
@@ -877,17 +1094,21 @@ export function subscribeToTraffic(callback: () => void): () => void {
 
         const merged: TrafficDailyDoc = {
           date: today,
-          totalPageViews: Math.max(local.totalPageViews || 0, cloudData.totalPageViews || 0),
+          totalPageViews: cloudDesktop === 0 && cloudData.totalPageViews !== undefined
+            ? cloudData.totalPageViews
+            : Math.max(local.totalPageViews || 0, cloudData.totalPageViews || 0),
           uniqueVisitorIds: mergedUniqueVisitors,
           sources: mergedSources,
           devices: mergedDevices,
           visitorDevices: mergedVisitorDevices,
           visitorSources: mergedVisitorSources,
-          popularItems: mergedPopularItems,
-          orderedItems: mergedOrderedItems,
-          totalOrderedQuantity: Math.max(local.totalOrderedQuantity || 0, cloudData.totalOrderedQuantity || 0),
+          popularItems: cloudDesktop === 0 && cloudData.popularItems ? cloudData.popularItems : mergedPopularItems,
+          orderedItems: cloudDesktop === 0 && cloudData.orderedItems ? cloudData.orderedItems : mergedOrderedItems,
+          totalOrderedQuantity: cloudDesktop === 0 && cloudData.totalOrderedQuantity !== undefined
+            ? cloudData.totalOrderedQuantity
+            : Math.max(local.totalOrderedQuantity || 0, cloudData.totalOrderedQuantity || 0),
           flavourPreferences: mergedFlavours,
-          funnel: mergedFunnel,
+          funnel: cloudDesktop === 0 && cloudData.funnel ? cloudData.funnel : mergedFunnel,
           directActions: mergedDirectActions,
           hourlyFootfall: mergedHourly,
           lastActive: Math.max(local.lastActive || 0, cloudData.lastActive || 0),

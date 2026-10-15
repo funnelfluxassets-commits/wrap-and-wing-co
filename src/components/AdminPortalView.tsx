@@ -55,6 +55,14 @@ import {
   resetDailyTraffic,
   normalizeFlavourKey,
   TrafficDailyDoc,
+  isDeviceAnalyticsExcluded,
+  setDeviceAnalyticsExcluded,
+  getCachedClientIp,
+  getExcludedIps,
+  addExcludedIp,
+  removeExcludedIp,
+  cleanLocalTrafficData,
+  fetchAndSyncClientIp,
 } from '../services/analyticsService';
 import {
   subscribeToReviewEntries,
@@ -124,6 +132,62 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [isRefreshingTraffic, setIsRefreshingTraffic] = useState(false);
   const [dailyReportModalOpen, setDailyReportModalOpen] = useState(false);
   const [copiedReportFeedback, setCopiedReportFeedback] = useState(false);
+
+  // --- Staff & Device Analytics Exclusion State ---
+  const [isDeviceExcluded, setIsDeviceExcluded] = useState<boolean>(() => isDeviceAnalyticsExcluded());
+  const [clientIp, setClientIp] = useState<string>(() => getCachedClientIp());
+  const [excludedIpsList, setExcludedIpsList] = useState<string[]>(() => getExcludedIps());
+  const [customIpInput, setCustomIpInput] = useState('');
+  const [cleanDataFeedback, setCleanDataFeedback] = useState(false);
+
+  useEffect(() => {
+    fetchAndSyncClientIp()
+      .then((res) => {
+        if (res.clientIp) setClientIp(res.clientIp);
+        setExcludedIpsList(getExcludedIps());
+        setIsDeviceExcluded(isDeviceAnalyticsExcluded());
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleToggleDeviceExclusion = () => {
+    const next = !isDeviceExcluded;
+    setDeviceAnalyticsExcluded(next);
+    setIsDeviceExcluded(next);
+  };
+
+  const handleToggleCurrentIpExclusion = async () => {
+    if (!clientIp) return;
+    if (excludedIpsList.includes(clientIp)) {
+      const updated = await removeExcludedIp(clientIp);
+      setExcludedIpsList(updated);
+    } else {
+      const updated = await addExcludedIp(clientIp);
+      setExcludedIpsList(updated);
+    }
+  };
+
+  const handleAddCustomIp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = customIpInput.trim();
+    if (!clean) return;
+    const updated = await addExcludedIp(clean);
+    setExcludedIpsList(updated);
+    setCustomIpInput('');
+  };
+
+  const handleRemoveIp = async (ipToRemove: string) => {
+    const updated = await removeExcludedIp(ipToRemove);
+    setExcludedIpsList(updated);
+  };
+
+  const handleCleanTodayTestData = () => {
+    cleanLocalTrafficData('today');
+    setTrafficSummary(getTrafficSummary(trafficRange));
+    setLiveVisitors(getLiveVisitorsCount());
+    setCleanDataFeedback(true);
+    setTimeout(() => setCleanDataFeedback(false), 3000);
+  };
 
   const handleRefreshTraffic = () => {
     setIsRefreshingTraffic(true);
@@ -616,6 +680,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             >
               <CreditCard className="w-3.5 h-3.5 text-amber-400" />
               <span>PayFast Sandbox: <strong className={isPayFastTesting ? 'text-amber-300' : 'text-zinc-500'}>{isPayFastTesting ? 'ON' : 'OFF'}</strong></span>
+            </button>
+
+            {/* Device Exclusion Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleDeviceExclusion}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                isDeviceExcluded
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 ring-1 ring-emerald-500/30'
+                  : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Toggle whether interactions from this computer are excluded from customer analytics"
+            >
+              <ShieldCheck className={`w-3.5 h-3.5 ${isDeviceExcluded ? 'text-emerald-400' : 'text-zinc-500'}`} />
+              <span>Device Shield: <strong className={isDeviceExcluded ? 'text-emerald-300' : 'text-zinc-500'}>{isDeviceExcluded ? 'ON' : 'OFF'}</strong></span>
             </button>
 
             <button
@@ -1769,6 +1848,118 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     {range.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Staff Testing & Privacy Shield Control Center */}
+            <div className="bg-gradient-to-r from-emerald-950/30 via-zinc-900 to-zinc-900 border border-emerald-500/30 rounded-3xl p-4 sm:p-5 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm sm:text-base font-black text-white">
+                        Staff Testing &amp; Privacy Shield
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        {isDeviceExcluded ? 'Protection Active' : 'Protection Off'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400">
+                      Excludes your computer &amp; staff Wi-Fi from diner analytics so reports stay 100% accurate.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleToggleDeviceExclusion}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer flex-1 sm:flex-initial ${
+                      isDeviceExcluded
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                        : 'bg-zinc-800 text-zinc-400 border border-white/10 hover:text-white'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>This Computer: {isDeviceExcluded ? 'Excluded (Hidden)' : 'Include in Analytics'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCleanTodayTestData}
+                    className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/10 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+                    title="Clean up local test visits and sync with cloud"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{cleanDataFeedback ? 'Cleaned!' : 'Sync Clean Data'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* IP Exclusion Row */}
+              <div className="pt-3 border-t border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-zinc-400 flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-blue-400" />
+                    Your Public IP:
+                  </span>
+                  <span className="font-mono font-bold text-white bg-black/40 px-2 py-0.5 rounded border border-white/10">
+                    {clientIp || 'Detecting...'}
+                  </span>
+                  {clientIp && (
+                    <button
+                      type="button"
+                      onClick={handleToggleCurrentIpExclusion}
+                      className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                        excludedIpsList.includes(clientIp)
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-blue-600 hover:bg-blue-500 text-white'
+                      }`}
+                    >
+                      {excludedIpsList.includes(clientIp) ? '✓ IP Excluded' : '+ Exclude This IP'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Excluded IPs Chips and Add Form */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-zinc-500 text-[11px]">Excluded IPs:</span>
+                  {excludedIpsList.map((ip) => (
+                    <span
+                      key={ip}
+                      className="px-2 py-0.5 rounded bg-zinc-800 border border-white/10 text-zinc-300 font-mono text-[11px] flex items-center gap-1.5"
+                    >
+                      <span>{ip}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveIp(ip)}
+                        className="text-zinc-500 hover:text-rose-400 transition-colors ml-0.5"
+                        title="Remove IP"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+
+                  <form onSubmit={handleAddCustomIp} className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      placeholder="Add IP (e.g. 105.x.x.x)"
+                      value={customIpInput}
+                      onChange={(e) => setCustomIpInput(e.target.value)}
+                      className="px-2 py-1 rounded-lg bg-black/40 border border-white/10 text-zinc-200 text-[11px] font-mono placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500/50 w-36"
+                    />
+                    <button
+                      type="submit"
+                      className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-bold border border-white/10 cursor-pointer"
+                    >
+                      + Add
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
 

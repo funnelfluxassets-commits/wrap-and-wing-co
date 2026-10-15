@@ -26,7 +26,7 @@ import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
 import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder } from './services/orderService';
-import { logPageView, logItemView } from './services/analyticsService';
+import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 
 const getInitialView = (): PageView => {
@@ -168,10 +168,20 @@ const MainContent: React.FC = () => {
     handleNavigate('menu');
   };
 
-  // Customer Traffic & Analytics tracking (excludes internal staff/manager portals)
+  // Initialize IP detection & exclusion sync
+  useEffect(() => {
+    fetchAndSyncClientIp().catch(() => {});
+  }, []);
+
+  // Customer Traffic & Analytics tracking (excludes internal staff/manager portals and excluded testing devices/IPs)
   useEffect(() => {
     try {
       if (staffRole || ['admin', 'kitchen', 'delivery'].includes(currentView)) {
+        // Automatically mark staff device as excluded from analytics
+        setDeviceAnalyticsExcluded(true);
+        return;
+      }
+      if (isAnalyticsExcluded()) {
         return;
       }
       logPageView(currentView);
@@ -179,7 +189,7 @@ const MainContent: React.FC = () => {
   }, [currentView, staffRole]);
 
   useEffect(() => {
-    if (selectedItem) {
+    if (selectedItem && !isAnalyticsExcluded()) {
       try {
         logItemView(selectedItem.name);
       } catch {}
