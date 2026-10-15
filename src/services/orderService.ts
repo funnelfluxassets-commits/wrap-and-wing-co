@@ -273,7 +273,13 @@ export function getAllOrders(): LiveOrder[] {
         const name = (o.customer?.customerName || '').trim().toLowerCase();
         const isLegacyDemoName = DEMO_CUSTOMER_NAMES.has((o.customer?.customerName || '').trim()) || ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n));
         const isLegacyStaticDemoId = o.orderId === 'D-1001' || o.orderId === 'D-1002' || o.orderId === 'C-1001';
-        return !(isLegacyDemoName && isLegacyStaticDemoId);
+        if (isLegacyDemoName && isLegacyStaticDemoId) return false;
+
+        // Clean out PayFast sandbox test orders
+        if (o.paymentMethod === 'payfast' && (name.includes('test') || (o as any).isTest || (o as any).isSandbox)) {
+          return false;
+        }
+        return true;
       })
       .map((o) => ({
         ...o,

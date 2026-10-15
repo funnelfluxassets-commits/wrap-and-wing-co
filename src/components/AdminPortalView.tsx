@@ -223,6 +223,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     const filtered = orders.filter((o) => {
       if (!o || !o.orderId) return false;
+      // Do not count cancelled, unpaid, or PayFast test orders in meals sold
+      if (o.status === 'cancelled') return false;
+      if (o.paymentMethod === 'payfast' && (o.paymentStatus !== 'paid' || (o as any).isTest || isPayFastStaffTestMode() || (o as any).isSandbox)) {
+        return false;
+      }
+      const cName = (o.customer?.customerName || '').toLowerCase();
+      if (cName.includes('test customer') || cName === 'test') return false;
+
       const d = getOrderDateString(o);
       if (trafficRange === 'all') return true;
       if (trafficRange === 'today') return d === todayStr;
@@ -389,6 +397,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const targetDate = selectedOrderDate;
     const targetList = orders.filter((o) => {
       if (!o || !o.orderId) return false;
+      // Do not count cancelled, unpaid, or PayFast test orders in daily sales report
+      if (o.status === 'cancelled') return false;
+      if (o.paymentMethod === 'payfast' && (o.paymentStatus !== 'paid' || (o as any).isTest || isPayFastStaffTestMode() || (o as any).isSandbox)) {
+        return false;
+      }
+      const cName = (o.customer?.customerName || '').toLowerCase();
+      if (cName.includes('test customer') || cName === 'test') return false;
+
       if (targetDate === 'all') return true;
       return getOrderDateString(o) === targetDate;
     });
