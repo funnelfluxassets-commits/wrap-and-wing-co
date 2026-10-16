@@ -1,3 +1,4 @@
+// Vercel Serverless Function: Direct Hostinger SMTP Email Notification
 import nodemailer from 'nodemailer';
 
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
