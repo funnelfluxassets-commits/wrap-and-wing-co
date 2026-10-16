@@ -1422,12 +1422,34 @@ export async function sendOrderToGoogleSheets(order: LiveOrder): Promise<boolean
 }
 
 /**
- * Sends an automated, formatted email order ticket directly to orders@wrapandwings.co.za
- * via FormSubmit AJAX service whenever a customer places an order (collection or delivery).
+ * Sends an automated, beautifully formatted email order ticket directly to orders@wrapandwings.co.za
+ * First attempts to dispatch via direct Hostinger SMTP serverless function (/api/send-order-email).
+ * If unavailable, smoothly falls back to FormSubmit AJAX service as backup.
  */
 export async function sendOrderEmailNotification(order: LiveOrder): Promise<boolean> {
   if (!order || !order.orderId) return false;
 
+  // 1. Primary: Direct Hostinger SMTP Serverless Function (Clean custom branded email)
+  try {
+    const res = await fetch('/api/send-order-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ order }),
+    });
+
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (data.success) {
+        return true;
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Primary Hostinger SMTP API notice, trying backup:', apiErr);
+  }
+
+  // 2. Backup Fallback: FormSubmit AJAX Service
   try {
     const cleanPhone = order.customer?.phone || 'Not provided';
     const itemsSummary = (order.items || [])
@@ -1448,7 +1470,7 @@ export async function sendOrderEmailNotification(order: LiveOrder): Promise<bool
       })
       .join('\n');
 
-    const modeLabel = order.orderMode === 'collection' ? 'Collection (Pick Up in Store)' : 'Home / Office Delivery';
+    const modeLabel = order.orderMode === 'collection' ? 'Collection' : 'Delivery';
     const paymentLabel =
       order.paymentMethod === 'payfast'
         ? 'PayFast Online (Confirmed Paid)'
@@ -1458,7 +1480,7 @@ export async function sendOrderEmailNotification(order: LiveOrder): Promise<bool
         ? order.orderMode === 'collection'
           ? 'Pay on Collection (Card / Cash)'
           : 'Pay on Delivery (Card / Cash)'
-        : (order.paymentMethod || 'Pay on Handover');
+        : (order.paymentMethod || 'Paid');
 
     const address =
       order.orderMode === 'delivery'
@@ -1474,7 +1496,7 @@ export async function sendOrderEmailNotification(order: LiveOrder): Promise<bool
         Accept: 'application/json',
       },
       body: JSON.stringify({
-        'Status Notice': '🍗 Someone just submitted their order on wrapandwings.co.za',
+        'Status Notice': '🌯 Someone just submitted their order on wrapandwings.co.za',
         'Order Number': order.orderId,
         'Order Type': modeLabel,
         'Customer Name': order.customer?.customerName || 'Customer',
@@ -1491,8 +1513,8 @@ export async function sendOrderEmailNotification(order: LiveOrder): Promise<bool
         'Tip': `R${(order.tip || 0).toFixed(2)}`,
         'Grand Total': `R${(order.grandTotal || 0).toFixed(2)}`,
         'Order Placed At': order.createdAt || new Date().toLocaleString('en-ZA'),
-        _subject: `🍗 [NEW ORDER] ${order.orderId} - ${
-          order.orderMode === 'collection' ? 'COLLECT' : 'DELIVERY'
+        _subject: `🌯 [NEW ORDER] #${order.orderId} - ${
+          order.orderMode === 'collection' ? 'COLLECTION' : 'DELIVERY'
         } - ${order.customer?.customerName || 'Customer'} (R${(order.grandTotal || 0).toFixed(2)})`,
         _template: 'table',
         _captcha: 'false',
