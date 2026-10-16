@@ -182,8 +182,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setExcludedIpsList(updated);
   };
 
-  const handleCleanTodayTestData = () => {
-    cleanLocalTrafficData('today');
+  const handleCleanTodayTestData = async () => {
+    await cleanLocalTrafficData('today');
     setTrafficSummary(getTrafficSummary(trafficRange));
     setLiveVisitors(getLiveVisitorsCount());
     setCleanDataFeedback(true);

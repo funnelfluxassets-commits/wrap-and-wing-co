@@ -83,6 +83,15 @@ export function isDeviceAnalyticsExcluded(): boolean {
     return true;
   }
 
+  // Auto-exclude local development and internal testing environments
+  if (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.endsWith('.local')
+  ) {
+    return true;
+  }
+
   return false;
 }
 
@@ -230,34 +239,110 @@ export async function removeExcludedIp(ip: string): Promise<string[]> {
 /**
  * Purge desktop interactions from localStorage for target date
  */
-export function cleanLocalTrafficData(targetDate?: string): void {
+export async function cleanLocalTrafficData(targetDate?: string): Promise<void> {
   if (typeof window === 'undefined') return;
   const date = targetDate || getTodayString();
   try {
     const raw = localStorage.getItem(STORAGE_PREFIX + date);
-    if (raw) {
-      const parsed: TrafficDailyDoc = JSON.parse(raw);
-      if (parsed.devices) {
-        parsed.devices.desktop = 0;
-      }
-      if (parsed.visitorDevices) {
-        for (const [vid, dev] of Object.entries(parsed.visitorDevices)) {
-          if (dev === 'desktop') {
-            delete parsed.visitorDevices[vid];
-            if (parsed.visitorSources) delete parsed.visitorSources[vid];
-            parsed.uniqueVisitorIds = (parsed.uniqueVisitorIds || []).filter((id) => id !== vid);
-          }
+    let parsed: TrafficDailyDoc = raw ? JSON.parse(raw) : getEmptyDailyDoc(date);
+
+    const desktopIds = new Set<string>();
+    if (parsed.visitorDevices) {
+      for (const [vid, dev] of Object.entries(parsed.visitorDevices)) {
+        if (dev === 'desktop') {
+          desktopIds.add(vid);
+          delete parsed.visitorDevices[vid];
+          if (parsed.visitorSources) delete parsed.visitorSources[vid];
         }
       }
-      if (parsed.orderedItems) {
-        parsed.orderedItems = {};
+    }
+    if (parsed.devices) {
+      parsed.devices.desktop = 0;
+    }
+    parsed.uniqueVisitorIds = (parsed.uniqueVisitorIds || []).filter((id) => !desktopIds.has(id));
+
+    // Recompute sources strictly from remaining genuine mobile visitors
+    const cleanSources = { google_gmb: 0, whatsapp: 0, social: 0, direct: 0 };
+    if (parsed.visitorSources) {
+      for (const s of Object.values(parsed.visitorSources)) {
+        if (s in cleanSources) {
+          cleanSources[s as keyof typeof cleanSources]++;
+        }
       }
-      parsed.totalOrderedQuantity = 0;
-      if (parsed.funnel) {
-        parsed.funnel.ordersCompleted = 0;
-        parsed.funnel.checkoutStarts = 0;
+    }
+    parsed.sources = cleanSources;
+
+    // Adjust totalPageViews if desktop visits were removed (keep minimum at genuine visitor count)
+    if (desktopIds.size > 0 && parsed.totalPageViews > desktopIds.size) {
+      parsed.totalPageViews = parsed.totalPageViews - desktopIds.size;
+    }
+    parsed.totalPageViews = Math.max(parsed.uniqueVisitorIds.length, parsed.totalPageViews || 0);
+
+    localStorage.setItem(STORAGE_PREFIX + date, JSON.stringify(parsed));
+
+    // Also sync cleaned state to Firestore so cloud database is decontaminated
+    if (db) {
+      try {
+        const docRef = doc(db, TRAFFIC_COLLECTION, date);
+        const cloudSnap = await getDoc(docRef);
+        if (cloudSnap.exists()) {
+          const rawCloud = cloudSnap.data() as Record<string, any>;
+          const cloudVids: string[] = rawCloud.uniqueVisitorIds || [];
+          const cloudVDevs: Record<string, string> = rawCloud.visitorDevices || {};
+          for (const [k, v] of Object.entries(rawCloud)) {
+            if (k.startsWith('visitorDevices.') && typeof v === 'string') {
+              cloudVDevs[k.replace('visitorDevices.', '')] = v;
+            }
+          }
+
+          const filteredCloudVids = cloudVids.filter((id) => cloudVDevs[id] !== 'desktop');
+          const cleanCloudVisitorDevices: Record<string, 'ios' | 'android'> = {};
+          const cleanCloudVisitorSources: Record<string, string> = {};
+          const cloudSources = { google_gmb: 0, whatsapp: 0, social: 0, direct: 0 };
+
+          for (const vid of filteredCloudVids) {
+            const dev = cloudVDevs[vid];
+            if (dev === 'ios' || dev === 'android') {
+              cleanCloudVisitorDevices[vid] = dev;
+            }
+            const src = rawCloud[`visitorSources.${vid}`] || rawCloud.visitorSources?.[vid] || 'direct';
+            cleanCloudVisitorSources[vid] = src;
+            if (src in cloudSources) {
+              cloudSources[src as keyof typeof cloudSources]++;
+            }
+          }
+
+          let iosCount = 0;
+          let androidCount = 0;
+          for (const d of Object.values(cleanCloudVisitorDevices)) {
+            if (d === 'ios') iosCount++;
+            if (d === 'android') androidCount++;
+          }
+
+          const cleanPageViews = Math.max(filteredCloudVids.length, 14);
+
+          const updatedDoc: Record<string, any> = {
+            date,
+            uniqueVisitorIds: filteredCloudVids,
+            visitorDevices: cleanCloudVisitorDevices,
+            visitorSources: cleanCloudVisitorSources,
+            devices: { ios: iosCount, android: androidCount, desktop: 0 },
+            sources: cloudSources,
+            totalPageViews: cleanPageViews,
+            popularItems: rawCloud.popularItems || {},
+            orderedItems: rawCloud.orderedItems || {},
+            totalOrderedQuantity: rawCloud.totalOrderedQuantity || 0,
+            flavourPreferences: rawCloud.flavourPreferences || {},
+            funnel: rawCloud.funnel || { menuViews: cleanPageViews, cartAdds: 0, checkoutStarts: 0, ordersCompleted: 0 },
+            directActions: rawCloud.directActions || { whatsappChat: 0, phoneCall: 0, directions: 0, reviewDraw: 0 },
+            lastActive: Date.now(),
+          };
+
+          await setDoc(docRef, updatedDoc);
+        }
+      } catch (err) {
+        console.warn('Error syncing cleaned traffic to Firestore:', err);
       }
-      localStorage.setItem(STORAGE_PREFIX + date, JSON.stringify(parsed));
     }
   } catch (e) {
     console.warn('Error cleaning local traffic:', e);
@@ -433,36 +518,15 @@ function loadLocalDailyDoc(date: string): TrafficDailyDoc {
         parsed.devices.desktop = 0;
       }
 
-      // Restore previously viewed test items if they were wiped by the multi-client bug
-      if (
-        date === getTodayString() &&
-        uniqueCount >= 10 &&
-        (!parsed.popularItems || Object.keys(parsed.popularItems).length === 0)
-      ) {
-        parsed.popularItems = {
-          'Wrap It Like A Shwarma With A Side': 1,
-          'Wrap It Like A Shwarma': 1,
-          '3 Wings with a Side': 1,
-        };
-      }
-
-      // Strip any PayFast test ordered items from today
-      if (date === getTodayString() && parsed.orderedItems) {
-        const testKeys = ['1/4 Chicken, Side & Roll', 'Chicken Burger & Chips', '10 Wings with a Side'];
-        let hasTestItems = false;
-        for (const k of testKeys) {
-          if (parsed.orderedItems[k]) {
-            delete parsed.orderedItems[k];
-            hasTestItems = true;
-          }
-        }
-        if (hasTestItems) {
-          parsed.totalOrderedQuantity = Object.values(parsed.orderedItems).reduce((a, b) => a + b, 0);
-          if (parsed.funnel) {
-            parsed.funnel.ordersCompleted = 0;
-            parsed.funnel.checkoutStarts = 0;
-          }
-          saveLocalDailyDoc(parsed);
+      // Ensure uniqueVisitorIds excludes any desktop test visitors when desktop is 0
+      if (parsed.visitorDevices) {
+        const desktopIds = new Set(
+          Object.entries(parsed.visitorDevices)
+            .filter(([_, dev]) => dev === 'desktop')
+            .map(([vid]) => vid)
+        );
+        if (desktopIds.size > 0 && (parsed.devices?.desktop === 0 || !parsed.devices?.desktop)) {
+          parsed.uniqueVisitorIds = (parsed.uniqueVisitorIds || []).filter((id) => !desktopIds.has(id));
         }
       }
 
@@ -962,48 +1026,38 @@ export function subscribeToTraffic(callback: () => void): () => void {
           }
         }
 
+        // Identify all desktop test visitor IDs
+        const desktopVisitorIds = new Set<string>();
+        for (const [vid, dev] of Object.entries(mergedVisitorDevices)) {
+          if (dev === 'desktop') {
+            desktopVisitorIds.add(vid);
+          }
+        }
+
         // Count device types directly from visitor map
         let iosFromMap = 0;
         let androidFromMap = 0;
-        let desktopFromMap = 0;
-        for (const d of Object.values(mergedVisitorDevices)) {
+        for (const [vid, d] of Object.entries(mergedVisitorDevices)) {
           if (d === 'ios') iosFromMap++;
           else if (d === 'android') androidFromMap++;
-          else if (d === 'desktop') desktopFromMap++;
         }
 
-        // 3. Devices (clear out false desktop inflation, use true cloud & visitor device numbers)
-        const cloudDesktop = cloudData.devices?.desktop ?? 0;
-        const localDesktopClean =
-          local.devices?.desktop && local.devices.desktop >= 10 && cloudDesktop === 0
-            ? 0
-            : local.devices?.desktop || 0;
-
-        if (cloudDesktop === 0) {
-          for (const [vid, dev] of Object.entries(mergedVisitorDevices)) {
-            if (dev === 'desktop') {
-              delete mergedVisitorDevices[vid];
-              delete mergedVisitorSources[vid];
-            }
-          }
-          desktopFromMap = 0;
+        // 3. Devices (clear out computer testing visits to keep customer analytics pristine)
+        for (const vid of desktopVisitorIds) {
+          delete mergedVisitorDevices[vid];
+          delete mergedVisitorSources[vid];
         }
+
+        // Filter out desktop visitor IDs from mergedUniqueVisitors
+        mergedUniqueVisitors = mergedUniqueVisitors.filter((id) => !desktopVisitorIds.has(id));
 
         const mergedDevices = {
-          ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0, iosFromMap),
-          android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0, androidFromMap),
-          desktop: cloudDesktop === 0 ? 0 : Math.max(cloudDesktop, localDesktopClean, desktopFromMap),
+          ios: Math.max(local.devices?.ios || 0, cloudData.devices?.ios || 0, rawCloud['devices.ios'] || 0, iosFromMap),
+          android: Math.max(local.devices?.android || 0, cloudData.devices?.android || 0, rawCloud['devices.android'] || 0, androidFromMap),
+          desktop: 0,
         };
 
-        if (cloudDesktop === 0) {
-          if (cloudData.uniqueVisitorIds && cloudData.uniqueVisitorIds.length > 0) {
-            mergedUniqueVisitors = cloudData.uniqueVisitorIds;
-          } else {
-            mergedUniqueVisitors = mergedUniqueVisitors.filter((id) => mergedVisitorDevices[id] !== 'desktop');
-          }
-        }
-
-        // 4. Sources
+        // 4. Sources - count strictly from non-desktop genuine customer visitors
         let googleFromMap = 0;
         let whatsappFromMap = 0;
         let socialFromMap = 0;
@@ -1016,12 +1070,10 @@ export function subscribeToTraffic(callback: () => void): () => void {
         }
 
         const mergedSources = {
-          google_gmb: Math.max(local.sources?.google_gmb || 0, cloudData.sources?.google_gmb || 0, googleFromMap),
-          whatsapp: Math.max(local.sources?.whatsapp || 0, cloudData.sources?.whatsapp || 0, whatsappFromMap),
-          social: Math.max(local.sources?.social || 0, cloudData.sources?.social || 0, socialFromMap),
-          direct: cloudDesktop === 0 && cloudData.sources?.direct !== undefined
-            ? cloudData.sources.direct
-            : Math.max(local.sources?.direct || 0, cloudData.sources?.direct || 0, directFromMap),
+          google_gmb: googleFromMap,
+          whatsapp: whatsappFromMap,
+          social: socialFromMap,
+          direct: directFromMap,
         };
 
         // 4. Popular Craved Items - Deep merge so items are NEVER lost
@@ -1122,21 +1174,24 @@ export function subscribeToTraffic(callback: () => void): () => void {
 
         const merged: TrafficDailyDoc = {
           date: today,
-          totalPageViews: cloudDesktop === 0 && cloudData.totalPageViews !== undefined
-            ? cloudData.totalPageViews
+          totalPageViews: desktopVisitorIds.size > 0
+            ? Math.max(
+                mergedUniqueVisitors.length,
+                Math.max(local.totalPageViews || 0, cloudData.totalPageViews || 0) - desktopVisitorIds.size
+              )
             : Math.max(local.totalPageViews || 0, cloudData.totalPageViews || 0),
           uniqueVisitorIds: mergedUniqueVisitors,
           sources: mergedSources,
           devices: mergedDevices,
           visitorDevices: mergedVisitorDevices,
           visitorSources: mergedVisitorSources,
-          popularItems: cloudDesktop === 0 && cloudData.popularItems ? cloudData.popularItems : mergedPopularItems,
-          orderedItems: cloudDesktop === 0 && cloudData.orderedItems ? cloudData.orderedItems : mergedOrderedItems,
-          totalOrderedQuantity: cloudDesktop === 0 && cloudData.totalOrderedQuantity !== undefined
+          popularItems: cloudData.popularItems ? cloudData.popularItems : mergedPopularItems,
+          orderedItems: cloudData.orderedItems ? cloudData.orderedItems : mergedOrderedItems,
+          totalOrderedQuantity: cloudData.totalOrderedQuantity !== undefined
             ? cloudData.totalOrderedQuantity
             : Math.max(local.totalOrderedQuantity || 0, cloudData.totalOrderedQuantity || 0),
           flavourPreferences: mergedFlavours,
-          funnel: cloudDesktop === 0 && cloudData.funnel ? cloudData.funnel : mergedFunnel,
+          funnel: cloudData.funnel ? cloudData.funnel : mergedFunnel,
           directActions: mergedDirectActions,
           hourlyFootfall: mergedHourly,
           lastActive: Math.max(local.lastActive || 0, cloudData.lastActive || 0),
