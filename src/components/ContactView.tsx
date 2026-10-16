@@ -102,7 +102,34 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
     setErrorMessage('');
 
     try {
-      // Dispatch via FormSubmit AJAX service straight to info@wrapandwings.co.za
+      // 1. Primary: Direct Hostinger SMTP Serverless Function to info@wrapandwings.co.za
+      let sentSuccessfully = false;
+      try {
+        const primaryRes = await fetch('/api/send-contact-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (primaryRes.ok) {
+          const data = await primaryRes.json().catch(() => ({}));
+          if (data.success) {
+            sentSuccessfully = true;
+          }
+        }
+      } catch (primaryErr) {
+        console.warn('Primary Hostinger SMTP contact API notice, attempting backup:', primaryErr);
+      }
+
+      if (sentSuccessfully) {
+        setStatus('success');
+        setFormData(INITIAL_FORM);
+        return;
+      }
+
+      // 2. Backup Fallback: FormSubmit AJAX service straight to info@wrapandwings.co.za
       const response = await fetch('https://formsubmit.co/ajax/info@wrapandwings.co.za', {
         method: 'POST',
         headers: {
@@ -110,13 +137,14 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
           Accept: 'application/json',
         },
         body: JSON.stringify({
+          'Status Notice': '🌯 New Website Contact Form Message',
           Title: formData.title || 'Not specified',
           'First Name': formData.firstName,
           'Last Name': formData.lastName,
           Email: formData.email,
           Telephone: formData.telephone,
           Message: formData.message,
-          _subject: `Wrap & Wings Co. Contact: ${formData.firstName} ${formData.lastName}`,
+          _subject: `🌯 [NEW INQUIRY] ${formData.firstName} ${formData.lastName} - Website Contact Form`,
           _template: 'table',
           _captcha: 'false',
         }),
@@ -129,7 +157,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
         throw new Error('Server returned an unexpected response');
       }
     } catch {
-      // Fallback: If network or blocker stops AJAX, offer graceful direct mailto
+      // 3. Fallback: If network or blocker stops AJAX, offer graceful direct mailto
       try {
         const mailtoUrl = `mailto:info@wrapandwings.co.za?subject=${encodeURIComponent(
           `Wrap & Wings Co Inquiry from ${formData.firstName} ${formData.lastName}`
