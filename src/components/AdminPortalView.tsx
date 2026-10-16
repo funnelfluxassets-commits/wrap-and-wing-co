@@ -1820,7 +1820,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                    <span>Customer Traffic &amp; Footfall Intelligence</span>
+                    <span>Customer Traffic &amp; Website Intelligence</span>
                   </h2>
                   <p className="text-xs text-zinc-400">
                     Real-time digital dining room activity across Pinetown &amp; surrounds

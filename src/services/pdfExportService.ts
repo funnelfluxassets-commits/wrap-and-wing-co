@@ -266,7 +266,7 @@ export function exportOrdersToPdf(
 
 /**
  * ============================================================================
- * EXPORT CUSTOMER TRAFFIC & FOOTFALL INTELLIGENCE TO PDF
+ * EXPORT CUSTOMER TRAFFIC & WEBSITE INTELLIGENCE TO PDF
  * ============================================================================
  */
 export function exportTrafficToPdf(
@@ -311,7 +311,7 @@ export function exportTrafficToPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(212, 212, 216);
-  doc.text('Customer Traffic & Footfall Intelligence Report', margin, 18);
+  doc.text('Customer Traffic & Website Intelligence Report', margin, 18);
 
   // Meta on Right
   doc.setFontSize(8);
