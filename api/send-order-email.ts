@@ -1,15 +1,20 @@
 // Vercel Serverless Function: Direct Hostinger SMTP Email Notification
 import nodemailer from 'nodemailer';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-const SMTP_USER = process.env.SMTP_USER || 'orders@wrapandwings.co.za';
+const SMTP_HOST = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST || 'smtp.hostinger.com';
+const SMTP_PORT = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 465);
+const SMTP_USER = process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'orders@wrapandwings.co.za';
 const SMTP_PASS =
   process.env.SMTP_PASS ||
   process.env.SMTP_PASSWORD ||
   process.env.ORDERS_PASSWORD ||
   process.env.ORDERS_EMAIL_PASSWORD ||
-  process.env.EMAIL_PASSWORD;
+  process.env.EMAIL_PASSWORD ||
+  process.env.VITE_SMTP_PASS ||
+  process.env.VITE_SMTP_PASSWORD ||
+  process.env.VITE_ORDERS_PASSWORD ||
+  process.env.VITE_ORDERS_PASS ||
+  process.env.VITE_EMAIL_PASSWORD;
 
 export default async function handler(req: any, res: any) {
   // CORS Headers
@@ -30,8 +35,18 @@ export default async function handler(req: any, res: any) {
   }
 
   if (!SMTP_PASS) {
-    console.warn('SMTP_PASS environment variable is not configured');
-    return res.status(500).json({ error: 'SMTP credentials not configured on server' });
+    const keys = Object.keys(process.env).filter(
+      (k) =>
+        k.toLowerCase().includes('pass') ||
+        k.toLowerCase().includes('smtp') ||
+        k.toLowerCase().includes('order') ||
+        k.toLowerCase().includes('email') ||
+        k.startsWith('VITE_')
+    );
+    return res.status(500).json({
+      error: 'SMTP credentials not configured on server',
+      debugMatchingKeys: keys,
+    });
   }
 
   try {
