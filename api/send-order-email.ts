@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
   const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST || 'smtp.hostinger.com';
   const port = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 465);
   const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'orders@wrapandwings.co.za';
-  const pass =
+  let pass =
     process.env.SMTP_PASS ||
     process.env.SMTP_PASSWORD ||
     process.env.ORDERS_PASSWORD ||
@@ -35,6 +35,15 @@ export default async function handler(req: any, res: any) {
     process.env.VITE_ORDERS_PASS ||
     process.env.VITE_EMAIL_PASSWORD;
 
+  // Fallback if Vercel saved as Key/Value
+  if (!pass) {
+    if (process.env.Value && (process.env.Value.startsWith('Orders_') || process.env.Key === 'SMTP_PASS')) {
+      pass = process.env.Value;
+    } else if (process.env.Key && process.env.Key.startsWith('Orders_')) {
+      pass = process.env.Key;
+    }
+  }
+
   if (!pass) {
     const allKeys = Object.keys(process.env).filter(
       (k) => !k.startsWith('npm_') && !k.startsWith('_') && k !== 'PATH'
@@ -42,6 +51,12 @@ export default async function handler(req: any, res: any) {
     return res.status(500).json({
       error: 'SMTP credentials not configured on server',
       availableEnvKeys: allKeys,
+      keyDebug: {
+        KeyName: process.env.Key ? 'Present' : 'Missing',
+        ValueName: process.env.Value ? 'Present' : 'Missing',
+        KeyPreview: (process.env.Key || '').slice(0, 6),
+        ValuePreview: (process.env.Value || '').slice(0, 6),
+      },
     });
   }
 
