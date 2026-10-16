@@ -1,21 +1,6 @@
 // Vercel Serverless Function: Direct Hostinger SMTP Email Notification
 import nodemailer from 'nodemailer';
 
-const SMTP_HOST = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST || 'smtp.hostinger.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 465);
-const SMTP_USER = process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'orders@wrapandwings.co.za';
-const SMTP_PASS =
-  process.env.SMTP_PASS ||
-  process.env.SMTP_PASSWORD ||
-  process.env.ORDERS_PASSWORD ||
-  process.env.ORDERS_EMAIL_PASSWORD ||
-  process.env.EMAIL_PASSWORD ||
-  process.env.VITE_SMTP_PASS ||
-  process.env.VITE_SMTP_PASSWORD ||
-  process.env.VITE_ORDERS_PASSWORD ||
-  process.env.VITE_ORDERS_PASS ||
-  process.env.VITE_EMAIL_PASSWORD;
-
 export default async function handler(req: any, res: any) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -34,18 +19,29 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  if (!SMTP_PASS) {
-    const keys = Object.keys(process.env).filter(
-      (k) =>
-        k.toLowerCase().includes('pass') ||
-        k.toLowerCase().includes('smtp') ||
-        k.toLowerCase().includes('order') ||
-        k.toLowerCase().includes('email') ||
-        k.startsWith('VITE_')
+  // Read environment variables INSIDE handler execution
+  const host = process.env.SMTP_HOST || process.env.VITE_SMTP_HOST || 'smtp.hostinger.com';
+  const port = Number(process.env.SMTP_PORT || process.env.VITE_SMTP_PORT || 465);
+  const user = process.env.SMTP_USER || process.env.VITE_SMTP_USER || 'orders@wrapandwings.co.za';
+  const pass =
+    process.env.SMTP_PASS ||
+    process.env.SMTP_PASSWORD ||
+    process.env.ORDERS_PASSWORD ||
+    process.env.ORDERS_EMAIL_PASSWORD ||
+    process.env.EMAIL_PASSWORD ||
+    process.env.VITE_SMTP_PASS ||
+    process.env.VITE_SMTP_PASSWORD ||
+    process.env.VITE_ORDERS_PASSWORD ||
+    process.env.VITE_ORDERS_PASS ||
+    process.env.VITE_EMAIL_PASSWORD;
+
+  if (!pass) {
+    const allKeys = Object.keys(process.env).filter(
+      (k) => !k.startsWith('npm_') && !k.startsWith('_') && k !== 'PATH'
     );
     return res.status(500).json({
       error: 'SMTP credentials not configured on server',
-      debugMatchingKeys: keys,
+      availableEnvKeys: allKeys,
     });
   }
 
@@ -397,12 +393,12 @@ export default async function handler(req: any, res: any) {
     `;
 
     const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
+      host,
+      port,
+      secure: port === 465,
       auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
+        user,
+        pass,
       },
     });
 
@@ -411,7 +407,7 @@ export default async function handler(req: any, res: any) {
     } - ${customerName} (${grandTotal})`;
 
     await transporter.sendMail({
-      from: `"Wrap & Wings Co Orders" <${SMTP_USER}>`,
+      from: `"Wrap & Wings Co Orders" <${user}>`,
       to: 'orders@wrapandwings.co.za',
       replyTo: order.customer?.email || 'info@wrapandwings.co.za',
       subject,
