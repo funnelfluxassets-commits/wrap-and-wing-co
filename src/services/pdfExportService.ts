@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf';
-import { LiveOrder } from '../types';
+import { LiveOrder, ReviewDrawEntry } from '../types';
 import { TrafficDailyDoc } from './analyticsService';
-import { ReviewDrawEntry } from './reviewService';
 import { getOrderDateString } from './orderService';
 
 /**
@@ -37,11 +36,13 @@ export function exportOrdersToPdf(
     totalRevenue: number;
     subtotal: number;
     deliveryFees: number;
-    driverTips: number;
+    driverTips?: number;
+    totalTips?: number;
     deliveriesCount: number;
     collectionsCount: number;
     totalItemsCount: number;
     avgOrderValue: number;
+    [key: string]: any;
   }
 ) {
   const doc = new jsPDF({
@@ -781,11 +782,13 @@ export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7.5);
     doc.setTextColor(24, 24, 27);
-    doc.text((entry.customerName || '-').slice(0, 22), margin + 3, y + 3.5);
+    const entryName = entry.fullName || (entry as any).customerName || '-';
+    doc.text(entryName.slice(0, 22), margin + 3, y + 3.5);
 
     doc.setFont('helvetica', 'normal');
     doc.text(entry.phone || '-', margin + 45, y + 3.5);
-    doc.text((entry.favoriteMeal || '-').slice(0, 26), margin + 85, y + 3.5);
+    const entryDetail = (entry as any).favoriteMeal || entry.receiptNumber || entry.comments || '-';
+    doc.text(entryDetail.slice(0, 26), margin + 85, y + 3.5);
 
     const isWinner = entry.status === 'winner';
     doc.setFont('helvetica', 'bold');

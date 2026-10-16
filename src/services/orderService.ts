@@ -1037,6 +1037,9 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   // Auto-sync to Google Sheets webhook if configured
   sendOrderToGoogleSheets(newOrder).catch((e) => console.warn('Google Sheets auto-sync notice:', e));
 
+  // Auto-send instant email notification to orders@wrapandwings.co.za
+  sendOrderEmailNotification(newOrder).catch((e) => console.warn('Order email notification notice:', e));
+
   // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
   await publishCloudEvent({
     type: 'ORDER_CREATED',
@@ -1414,6 +1417,90 @@ export async function sendOrderToGoogleSheets(order: LiveOrder): Promise<boolean
     return true;
   } catch (err) {
     console.warn('Google Sheets webhook post error:', err);
+    return false;
+  }
+}
+
+/**
+ * Sends an automated, formatted email order ticket directly to orders@wrapandwings.co.za
+ * via FormSubmit AJAX service whenever a customer places an order (collection or delivery).
+ */
+export async function sendOrderEmailNotification(order: LiveOrder): Promise<boolean> {
+  if (!order || !order.orderId) return false;
+
+  try {
+    const cleanPhone = order.customer?.phone || 'Not provided';
+    const itemsSummary = (order.items || [])
+      .map((it, idx) => {
+        let txt = `${idx + 1}. ${it.quantity || 1}x ${it.menuItem?.name || 'Meal'}`;
+        const details: string[] = [];
+        if (it.customization?.flavour) details.push(`Flavour: ${it.customization.flavour}`);
+        if (it.customization?.side) details.push(`Side: ${it.customization.side}`);
+        if (it.customization?.extras && it.customization.extras.length > 0) {
+          details.push(`Extras: ${it.customization.extras.map((e) => e.name).join(', ')}`);
+        }
+        if (it.customization?.notes) details.push(`Note: ${it.customization.notes}`);
+        if (details.length > 0) {
+          txt += ` (${details.join(' | ')})`;
+        }
+        txt += ` - R${(it.itemTotal || 0).toFixed(2)}`;
+        return txt;
+      })
+      .join('\n');
+
+    const modeLabel = order.orderMode === 'collection' ? 'Collection (Pick Up in Store)' : 'Home / Office Delivery';
+    const paymentLabel =
+      order.paymentMethod === 'payfast'
+        ? 'PayFast Online (Confirmed Paid)'
+        : order.paymentMethod === 'whatsapp'
+        ? 'WhatsApp Order'
+        : order.paymentMethod === 'cod'
+        ? order.orderMode === 'collection'
+          ? 'Pay on Collection (Card / Cash)'
+          : 'Pay on Delivery (Card / Cash)'
+        : (order.paymentMethod || 'Pay on Handover');
+
+    const address =
+      order.orderMode === 'delivery'
+        ? `${order.customer?.address || ''}, ${order.customer?.suburb || 'Pinetown'}${
+            order.customer?.complexOrUnit ? ` (${order.customer.complexOrUnit})` : ''
+          }${order.customer?.gateCode ? ` [Gate: ${order.customer.gateCode}]` : ''}`
+        : 'Store Collection (Pine Crest Centre, Pinetown)';
+
+    const response = await fetch('https://formsubmit.co/ajax/orders@wrapandwings.co.za', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        'Order Number': order.orderId,
+        'Order Type': modeLabel,
+        'Customer Name': order.customer?.customerName || 'Customer',
+        'Customer Phone': cleanPhone,
+        'Store Location': order.store?.name || 'Pine Crest Centre, Pinetown',
+        'Pickup / Delivery Time': order.preferredTime || 'ASAP',
+        'Payment Method': paymentLabel,
+        'Payment Status': order.paymentStatus === 'paid' ? 'PAID' : 'PENDING PAYMENT',
+        'Delivery / Pickup Address': address,
+        'Special Instructions': order.customer?.notes || 'None',
+        'Order Items': itemsSummary || 'No items listed',
+        'Subtotal': `R${(order.subtotal || 0).toFixed(2)}`,
+        'Delivery Fee': `R${(order.deliveryFee || 0).toFixed(2)}`,
+        'Tip': `R${(order.tip || 0).toFixed(2)}`,
+        'Grand Total': `R${(order.grandTotal || 0).toFixed(2)}`,
+        'Order Placed At': order.createdAt || new Date().toLocaleString('en-ZA'),
+        _subject: `🍗 [NEW ORDER] ${order.orderId} - ${
+          order.orderMode === 'collection' ? 'COLLECT' : 'DELIVERY'
+        } - ${order.customer?.customerName || 'Customer'} (R${(order.grandTotal || 0).toFixed(2)})`,
+        _template: 'table',
+        _captcha: 'false',
+      }),
+    });
+
+    return response.ok;
+  } catch (err) {
+    console.warn('Order email notification error:', err);
     return false;
   }
 }
