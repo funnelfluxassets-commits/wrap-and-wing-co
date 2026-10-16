@@ -4,7 +4,12 @@ import nodemailer from 'nodemailer';
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.hostinger.com';
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_USER = process.env.SMTP_USER || 'orders@wrapandwings.co.za';
-const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_PASS =
+  process.env.SMTP_PASS ||
+  process.env.SMTP_PASSWORD ||
+  process.env.ORDERS_PASSWORD ||
+  process.env.ORDERS_EMAIL_PASSWORD ||
+  process.env.EMAIL_PASSWORD;
 
 export default async function handler(req: any, res: any) {
   // CORS Headers
