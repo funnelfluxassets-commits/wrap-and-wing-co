@@ -61,30 +61,25 @@ export async function saveReviewDrawEntry(
     }
   }
 
-  // 3. Email notification via FormSubmit AJAX to info@wrapandwings.co.za
+  // 3. Direct Email notification to info@wrapandwings.co.za via our Hostinger SMTP server
   try {
-    fetch('https://formsubmit.co/ajax/info@wrapandwings.co.za', {
+    fetch('/api/send-review-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/json',
       },
-      body: JSON.stringify({
-        'Draw Entry ID': entry.id,
-        'Full Name': entry.fullName,
-        'WhatsApp / Cell': entry.phone,
-        'Order / Receipt Number': entry.receiptNumber,
-        'Google Account Name': entry.googleReviewName,
-        'Star Rating': `${entry.rating || 5} / 5`,
-        'Comments / Feedback': entry.comments || 'None',
-        'Submission Time': new Date(entry.createdAt).toLocaleString('en-ZA'),
-        _subject: `🍗 Wrap & Wings Weekly Meal Draw Entry: ${entry.fullName} (Slip #${entry.receiptNumber})`,
-        _template: 'table',
-        _captcha: 'false',
-      }),
-    }).catch((e) => console.warn('FormSubmit notification fallback:', e));
+      body: JSON.stringify(entry),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          console.warn('Hostinger review email status notice:', res.status);
+        }
+      })
+      .catch((err) => {
+        console.warn('Direct SMTP review email notice:', err);
+      });
   } catch (err) {
-    console.warn('FormSubmit network error:', err);
+    console.warn('Error dispatching review email:', err);
   }
 
   return entry;
