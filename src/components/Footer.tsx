@@ -37,9 +37,10 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenS
               className="text-left cursor-pointer"
             >
               <img
-                src="/images/logo/wrap-and-wings-co_optimized.webp"
+                src="/images/logo/wrap-and-wings-co-sm.webp"
                 alt="Wrap & Wings Co."
                 className="h-16 w-auto object-contain"
+                loading="lazy"
               />
             </button>
             <p className="text-xs sm:text-sm text-zinc-400 max-w-sm leading-relaxed">

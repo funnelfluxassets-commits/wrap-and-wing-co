@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { MENU_ITEMS, CATEGORIES } from '../data/menuData';
 import { MenuItem, CategoryId } from '../types';
 import { setItemStockStatus, resetAllToInStock } from '../services/stockService';
+import { getCdnThumbnailUrl } from '../utils/cdn';
 import {
   X,
   Search,
@@ -240,12 +241,18 @@ export const StockManagementModal: React.FC<StockManagementModalProps> = ({
                     <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden bg-zinc-950 shrink-0 border border-white/10">
                       {item.image ? (
                         <img
-                          src={item.image}
+                          src={getCdnThumbnailUrl(item.image)}
                           alt={item.name}
                           className={`w-full h-full object-cover transition-transform duration-300 ${
                             isOut ? 'opacity-40 grayscale group-hover:scale-105' : 'group-hover:scale-105'
                           }`}
                           loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            if (item.image && target.src !== item.image) {
+                              target.src = item.image;
+                            }
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xl bg-zinc-800">

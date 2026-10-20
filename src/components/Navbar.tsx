@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               className="flex items-center gap-2 group text-left cursor-pointer"
             >
               <img
-                src="/images/logo/wrap-and-wings-co_optimized.webp"
+                src="/images/logo/wrap-and-wings-co-sm.webp"
                 alt="Wrap & Wings Co."
                 className="h-11 sm:h-12 md:h-12 w-auto object-contain transition-transform group-hover:scale-105"
               />

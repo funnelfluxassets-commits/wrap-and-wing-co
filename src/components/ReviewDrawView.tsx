@@ -140,9 +140,10 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <div className="relative shrink-0 pt-2.5">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg">
                   <img
-                    src="/images/menu/wrap-and-side-1.webp"
+                    src="/images/menu/thumbs/wrap-and-side-1.webp"
                     alt="This Week's Featured Prize: Chicken Shwarma Wrap Meal + Side"
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[9px] sm:text-[10px] uppercase tracking-wider shadow-md whitespace-nowrap z-10 border border-amber-600/30">

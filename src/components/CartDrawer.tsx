@@ -4,6 +4,7 @@ import { isItemOutOfStock } from '../services/stockService';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
+import { getCdnThumbnailUrl } from '../utils/cdn';
 
 interface CartDrawerProps {
   onOpenCheckout: () => void;
@@ -114,9 +115,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-zinc-950 shrink-0 border border-white/5">
                   {item.menuItem.image ? (
                     <img
-                      src={item.menuItem.image}
+                      src={getCdnThumbnailUrl(item.menuItem.image)}
                       alt={item.menuItem.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (item.menuItem.image && target.src !== item.menuItem.image) {
+                          target.src = item.menuItem.image;
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-xl">🔥</div>
