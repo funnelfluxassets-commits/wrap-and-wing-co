@@ -252,7 +252,7 @@ export const MENU_ITEMS: MenuItem[] = [
     name: 'Borewors Combo',
     description: 'Flame-grilled traditional boerewors in a fresh roll topped with caramelized onions and signature sauces, served with an ice-cold 300ml Coca-Cola.',
     price: 49.90,
-    image: '/images/menu/borewors-combo.webp',
+    image: '/images/menu/borewors-combo-2.webp',
     popular: true,
     badge: 'COMBO DEAL',
   },
