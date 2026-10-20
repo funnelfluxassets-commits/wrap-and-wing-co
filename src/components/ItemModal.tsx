@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MenuItem, FlavourId } from '../types';
 import { FLAVOURS, SIDES_LIST, MENU_ITEMS } from '../data/menuData';
 import { useCart } from '../context/CartContext';
+import { isItemOutOfStock } from '../services/stockService';
 import { X, Plus, Minus, Flame, Check, Sparkles, ChevronDown } from 'lucide-react';
 
 interface ItemModalProps {
@@ -546,35 +547,47 @@ export const ItemModal: React.FC<ItemModalProps> = ({ item, onClose }) => {
 
         {/* Footer / Quantity & Add to Cart Action */}
         <div className="p-4 sm:p-5 bg-zinc-950 border-t border-white/10 flex items-center justify-between gap-4 mt-auto">
-          {/* Quantity Controls */}
-          <div className="flex items-center bg-zinc-900 border border-white/10 rounded-xl p-1 shrink-0">
+          {item && isItemOutOfStock(item.id) ? (
             <button
               type="button"
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 disabled:opacity-40 cursor-pointer"
+              disabled
+              className="w-full py-3.5 px-5 rounded-xl bg-zinc-800 text-zinc-400 font-black text-xs uppercase tracking-wider flex items-center justify-center cursor-not-allowed select-none border border-white/10"
             >
-              <Minus className="w-4 h-4" />
+              TEMPORARILY SOLD OUT TODAY
             </button>
-            <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
-            <button
-              type="button"
-              onClick={() => setQuantity(quantity + 1)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
+          ) : (
+            <>
+              {/* Quantity Controls */}
+              <div className="flex items-center bg-zinc-900 border border-white/10 rounded-xl p-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 disabled:opacity-40 cursor-pointer"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="w-8 text-center text-sm font-black text-white">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-300 hover:text-white hover:bg-zinc-800 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
 
-          {/* Submit Button */}
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-lg shadow-rose-900/30 transition-all hover:scale-[1.02] flex items-center justify-between cursor-pointer"
-          >
-            <span>ADD TO ORDER</span>
-            <span>R{totalPrice.toFixed(2)}</span>
-          </button>
+              {/* Submit Button */}
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-lg shadow-rose-900/30 transition-all hover:scale-[1.02] flex items-center justify-between cursor-pointer"
+              >
+                <span>ADD TO ORDER</span>
+                <span>R{totalPrice.toFixed(2)}</span>
+              </button>
+            </>
+          )}
         </div>
 
       </div>

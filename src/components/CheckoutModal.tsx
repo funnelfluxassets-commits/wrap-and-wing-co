@@ -9,8 +9,9 @@ import {
   initiatePayFastCheckout,
 } from '../services/payment';
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
+import { isItemOutOfStock } from '../services/stockService';
 import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface SavedCustomerProfile {
@@ -570,14 +571,38 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
           {/* Total & Submit Button */}
           <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isProcessing}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/40 hover:scale-[1.01] transition-all flex items-center justify-between cursor-pointer disabled:opacity-50"
-            >
-              <span>{isProcessing ? 'CONFIRMING ORDER...' : 'CONFIRM & PLACE ORDER'}</span>
-              <span>R{grandTotal.toFixed(2)}</span>
-            </button>
+            {(() => {
+              const hasOutOfStockItem = items.some((i) => isItemOutOfStock(i.menuItem.id));
+
+              if (hasOutOfStockItem) {
+                return (
+                  <div className="space-y-2">
+                    <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>One or more items in your order are now sold out. Please return to your basket to remove them.</span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3.5 px-4 rounded-xl bg-zinc-800 text-zinc-500 font-black text-xs uppercase tracking-wide border border-white/10 cursor-not-allowed select-none"
+                    >
+                      REMOVE SOLD OUT ITEMS TO PROCEED
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/40 hover:scale-[1.01] transition-all flex items-center justify-between cursor-pointer disabled:opacity-50"
+                >
+                  <span>{isProcessing ? 'CONFIRMING ORDER...' : 'CONFIRM & PLACE ORDER'}</span>
+                  <span>R{grandTotal.toFixed(2)}</span>
+                </button>
+              );
+            })()}
           </div>
         </form>
       </div>

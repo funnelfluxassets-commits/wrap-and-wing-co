@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check } from 'lucide-react';
+import { isItemOutOfStock } from '../services/stockService';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
@@ -151,6 +152,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                     {item.customization?.notes && (
                       <div className="italic text-zinc-300">"{item.customization.notes}"</div>
                     )}
+                    {isItemOutOfStock(item.menuItem.id) && (
+                      <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>Item is sold out today. Please remove to continue.</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Quantity & Remove controls */}
@@ -245,17 +252,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setIsCartOpen(false);
-                onOpenCheckout();
-              }}
-              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/40 hover:scale-[1.02] transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>PROCEED TO CHECKOUT</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {(() => {
+              const hasOutOfStockItem = items.some((i) => isItemOutOfStock(i.menuItem.id));
+
+              return (
+                <button
+                  type="button"
+                  disabled={hasOutOfStockItem}
+                  onClick={() => {
+                    if (hasOutOfStockItem) return;
+                    setIsCartOpen(false);
+                    onOpenCheckout();
+                  }}
+                  className={`w-full py-3.5 px-4 rounded-xl font-black text-sm tracking-wide shadow-xl transition-all flex items-center justify-center gap-2 ${
+                    hasOutOfStockItem
+                      ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed select-none border border-white/10'
+                      : 'bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-950/40 hover:scale-[1.02] cursor-pointer'
+                  }`}
+                >
+                  <span>{hasOutOfStockItem ? 'REMOVE SOLD OUT ITEMS TO PROCEED' : 'PROCEED TO CHECKOUT'}</span>
+                  {!hasOutOfStockItem && <ArrowRight className="w-4 h-4" />}
+                </button>
+              );
+            })()}
 
             <button
               type="button"

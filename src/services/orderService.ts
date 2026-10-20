@@ -599,6 +599,17 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
 function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false) {
   if (!event || !event.type) return;
 
+  if ((event as any).type === 'STOCK_CHANGED' && Array.isArray((event as any).outOfStockItemIds)) {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('wrap_wing_stock_status_updated', {
+          detail: { outOfStockItemIds: (event as any).outOfStockItemIds },
+        })
+      );
+    }
+    return;
+  }
+
   const currentOrders = getAllOrders();
 
   if (event.type === 'ORDER_DELETED') {

@@ -26,6 +26,7 @@ import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
 import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder } from './services/orderService';
+import { getOutOfStockItemIds, subscribeToStockStatus } from './services/stockService';
 import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 
@@ -88,6 +89,23 @@ const MainContent: React.FC = () => {
   const [staffLoginInitialRole, setStaffLoginInitialRole] = useState<StaffRole>('kitchen');
   const [payfastNotice, setPayfastNotice] = useState<{ type: 'success' | 'cancelled'; orderId?: string } | null>(null);
   const [isStaffTestActive, setIsStaffTestActive] = useState(() => isPayFastStaffTestMode());
+  const [outOfStockIds, setOutOfStockIds] = useState<string[]>(() => getOutOfStockItemIds());
+  const [soldOutToast, setSoldOutToast] = useState<string | null>(null);
+
+  // Subscribe to real-time menu stock changes (86 list)
+  useEffect(() => {
+    const unsub = subscribeToStockStatus((ids) => {
+      setOutOfStockIds(ids);
+    });
+    return unsub;
+  }, []);
+
+  const triggerSoldOutToast = (itemName: string) => {
+    setSoldOutToast(itemName);
+    setTimeout(() => {
+      setSoldOutToast((prev) => (prev === itemName ? null : prev));
+    }, 2800);
+  };
 
   // Detect PayFast callback redirects or staff test mode flag in URL
   useEffect(() => {
@@ -540,7 +558,13 @@ const MainContent: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
             {filteredItems.map((item) => (
-              <FoodCard key={item.id} item={item} onSelect={(i) => setSelectedItem(i)} />
+              <FoodCard
+                key={item.id}
+                item={item}
+                isOutOfStock={outOfStockIds.includes(item.id)}
+                onSoldOutClick={triggerSoldOutToast}
+                onSelect={(i) => setSelectedItem(i)}
+              />
             ))}
           </div>
         )}
@@ -665,6 +689,18 @@ const MainContent: React.FC = () => {
         </button>
       </div>
     )}
+
+  {/* Sold Out Quick Toast Notification */}
+  {soldOutToast && (
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#18181b]/95 border border-amber-500/50 shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-md animate-slideDown max-w-sm sm:max-w-md w-[92%]">
+      <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 text-base font-black">
+        ⚠️
+      </div>
+      <div className="text-xs text-zinc-300">
+        <strong className="text-white">{soldOutToast}</strong> is currently sold out today.
+      </div>
+    </div>
+  )}
 
   {/* Mobile Floating Bottom Cart Bar */}
   {totalItemCount > 0 && currentView !== 'kitchen' && currentView !== 'delivery' && currentView !== 'track' && (

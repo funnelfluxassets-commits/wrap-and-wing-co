@@ -38,9 +38,12 @@ import {
   Trash2,
   LogOut,
   Bell,
+  PackageX,
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DriverTicketModal } from './DriverTicketModal';
+import { StockManagementModal } from './StockManagementModal';
+import { getOutOfStockItemIds, subscribeToStockStatus } from '../services/stockService';
 
 interface KitchenDisplayViewProps {
   onBackToMenu: () => void;
@@ -114,10 +117,20 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [silencedAlarms, setSilencedAlarms] = useState<Set<string>>(new Set());
   const [viewingDriverOrder, setViewingDriverOrder] = useState<LiveOrder | null>(null);
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [outOfStockIds, setOutOfStockIds] = useState<string[]>(() => getOutOfStockItemIds());
 
   // Track known order IDs to immediately chime on brand new incoming orders
   const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().filter((o) => !isTestOrder(o)).map((o) => o.orderId)));
   const isInitializedRef = useRef<boolean>(false);
+
+  // Subscribe to real-time stock updates
+  useEffect(() => {
+    const unsubStock = subscribeToStockStatus((ids) => {
+      setOutOfStockIds(ids);
+    });
+    return unsubStock;
+  }, []);
 
   // Unlock browser audio context on first user tap/click on tablet
   useEffect(() => {
@@ -469,8 +482,32 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           </div>
         </div>
 
-        {/* Clock & Sound Control */}
+        {/* Clock, Stock & Sound Control */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Stock / 86 Items Control Button */}
+          <button
+            type="button"
+            onClick={() => setIsStockModalOpen(true)}
+            className={`p-2 px-2.5 sm:px-3 rounded-xl border text-xs font-black flex items-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-sm select-none ${
+              outOfStockIds.length > 0
+                ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30 ring-1 ring-amber-500/40'
+                : 'bg-zinc-900 hover:bg-zinc-800 border-white/10 text-zinc-300 hover:text-white'
+            }`}
+            title="Manage Menu Item Stock Availability (86 List)"
+          >
+            <PackageX className={`w-4 h-4 shrink-0 ${outOfStockIds.length > 0 ? 'text-amber-400' : 'text-zinc-400'}`} />
+            <span className="hidden xs:inline sm:inline">Stock</span>
+            {outOfStockIds.length > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-black text-[10px] font-black uppercase tracking-wider">
+                {outOfStockIds.length} Out
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                All In
+              </span>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -1169,6 +1206,15 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         <DriverTicketModal
           order={viewingDriverOrder}
           onClose={() => setViewingDriverOrder(null)}
+        />
+      )}
+
+      {/* Stock Management Modal */}
+      {isStockModalOpen && (
+        <StockManagementModal
+          isOpen={isStockModalOpen}
+          onClose={() => setIsStockModalOpen(false)}
+          outOfStockIds={outOfStockIds}
         />
       )}
     </div>

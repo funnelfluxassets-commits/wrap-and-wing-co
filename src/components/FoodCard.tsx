@@ -6,13 +6,32 @@ import { FLAVOURS } from '../data/menuData';
 interface FoodCardProps {
   item: MenuItem;
   onSelect: (item: MenuItem) => void;
+  isOutOfStock?: boolean;
+  onSoldOutClick?: (itemName: string) => void;
 }
 
-export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
+export const FoodCard: React.FC<FoodCardProps> = ({
+  item,
+  onSelect,
+  isOutOfStock = false,
+  onSoldOutClick,
+}) => {
+  const handleClick = () => {
+    if (isOutOfStock) {
+      onSoldOutClick?.(item.name);
+      return;
+    }
+    onSelect(item);
+  };
+
   return (
     <div
-      onClick={() => onSelect(item)}
-      className="group relative rounded-2xl bg-zinc-900/90 border border-white/10 hover:border-rose-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-rose-950/30 overflow-hidden flex flex-col justify-between cursor-pointer"
+      onClick={handleClick}
+      className={`group relative rounded-2xl bg-zinc-900/90 border transition-all duration-300 overflow-hidden flex flex-col justify-between cursor-pointer select-none ${
+        isOutOfStock
+          ? 'border-white/10 opacity-95'
+          : 'border-white/10 hover:border-rose-500/50 hover:shadow-xl hover:shadow-rose-950/30'
+      }`}
     >
       <div>
         {/* Food Image Container */}
@@ -21,7 +40,9 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
             <img
               src={item.image}
               alt={item.name}
-              className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500"
+              className={`w-full h-full object-cover object-center transition-transform duration-500 ${
+                isOutOfStock ? '' : 'group-hover:scale-108'
+              }`}
               loading="lazy"
             />
           ) : (
@@ -31,8 +52,17 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
             </div>
           )}
 
+          {/* (1) Small yellow beveled banner with "SOLD OUT" on the top border: 50% on image, 50% outside */}
+          {isOutOfStock && (
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-[88%] z-10 pointer-events-none">
+              <div className="bg-[#FFD100] text-black font-black text-[9px] sm:text-[10px] uppercase tracking-wider text-center py-0.5 shadow-xs border border-black/20 leading-tight rounded-[3px]">
+                SOLD OUT
+              </div>
+            </div>
+          )}
+
           {/* Badge */}
-          {item.badge && (
+          {item.badge && !isOutOfStock && (
             <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-gradient-to-r from-rose-600 to-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-md">
               {item.badge}
             </div>
@@ -49,12 +79,16 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
         {/* Content Body */}
         <div className="p-4 sm:p-5">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <h3 className="text-base sm:text-lg font-black text-white group-hover:text-rose-400 transition-colors leading-snug">
+            <h3
+              className={`text-base sm:text-lg font-black transition-colors leading-snug ${
+                isOutOfStock ? 'text-zinc-200' : 'text-white group-hover:text-rose-400'
+              }`}
+            >
               {item.name}
             </h3>
           </div>
 
-          <p className="text-[13px] sm:text-[14px] text-zinc-200 line-clamp-2 mb-3 leading-relaxed">
+          <p className="text-[13px] sm:text-[14px] text-zinc-300 line-clamp-2 mb-3 leading-relaxed">
             {item.description}
           </p>
 
@@ -89,14 +123,20 @@ export const FoodCard: React.FC<FoodCardProps> = ({ item, onSelect }) => {
 
         <button
           type="button"
+          disabled={isOutOfStock}
           onClick={(e) => {
             e.stopPropagation();
-            onSelect(item);
+            handleClick();
           }}
-          className="px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-rose-950/40 group-hover:scale-105 transition-all cursor-pointer"
+          className={`px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md transition-all cursor-pointer ${
+            isOutOfStock
+              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed select-none shadow-none border border-white/5'
+              : 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-950/40 group-hover:scale-105'
+          }`}
+          title={isOutOfStock ? 'Sold out today' : 'Customize & Add'}
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Add</span>
+          <span>{isOutOfStock ? 'Sold Out' : 'Add'}</span>
         </button>
       </div>
     </div>
