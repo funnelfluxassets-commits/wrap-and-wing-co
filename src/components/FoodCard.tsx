@@ -60,11 +60,11 @@ export const FoodCard: React.FC<FoodCardProps> = ({
             </div>
           )}
 
-          {/* (1) Small yellow beveled banner with "SOLD OUT" on the top border: 50% on image, 50% outside */}
+          {/* Bottom centered OUT OF STOCK badge */}
           {isOutOfStock && (
-            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-[88%] z-10 pointer-events-none">
-              <div className="bg-[#FFD100] text-black font-black text-[9px] sm:text-[10px] uppercase tracking-wider text-center py-0.5 shadow-xs border border-black/20 leading-tight rounded-[3px]">
-                SOLD OUT
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+              <div className="px-3 py-1 rounded-lg bg-[#FFD100] text-black font-black text-[10px] sm:text-[11px] uppercase tracking-wider shadow-lg border border-black/20 whitespace-nowrap">
+                OUT OF STOCK
               </div>
             </div>
           )}

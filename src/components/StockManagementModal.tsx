@@ -286,13 +286,13 @@ export const StockManagementModal: React.FC<StockManagementModalProps> = ({
                       {/* Stock Toggle Status Pill */}
                       <div className="mt-1.5 flex items-center gap-1.5">
                         {isOut ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black tracking-wider uppercase">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-black tracking-wider uppercase whitespace-nowrap shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                             Out of Stock
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold tracking-wider uppercase">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold tracking-wider uppercase whitespace-nowrap shrink-0">
+                            <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
                             In Stock
                           </span>
                         )}
