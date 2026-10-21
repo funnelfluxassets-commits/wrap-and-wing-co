@@ -198,7 +198,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenS
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
             <div>© {new Date().getFullYear()} Wrap & Wings Co. All Rights Reserved.</div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => onOpenLegal('privacy')}
@@ -213,6 +213,14 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenS
                 className="text-zinc-400 hover:text-white transition-colors underline-offset-4 hover:underline cursor-pointer"
               >
                 Terms of Service
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('refunds')}
+                className="text-zinc-400 hover:text-white transition-colors underline-offset-4 hover:underline cursor-pointer"
+              >
+                Refund & Cancellation Policy
               </button>
               {onOpenStaffLogin && (
                 <>

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, FileText, Lock, Scale, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { X, ShieldCheck, FileText, Lock, Scale, RotateCcw, Building2, Phone, Mail, MapPin } from 'lucide-react';
 import { STORES } from '../data/stores';
 
-export type LegalTab = 'privacy' | 'terms';
+export type LegalTab = 'privacy' | 'terms' | 'refunds';
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -13,6 +13,12 @@ interface LegalModalProps {
 export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'privacy', onClose }) => {
   const [activeTab, setActiveTab] = useState<LegalTab>(initialTab);
   const store = STORES[0];
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
 
   if (!isOpen) return null;
 
@@ -26,11 +32,15 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
         <div className="p-4 sm:p-5 bg-zinc-950 border-b border-white/10 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-              {activeTab === 'privacy' ? <ShieldCheck className="w-5 h-5" /> : <Scale className="w-5 h-5" />}
+              {activeTab === 'privacy' && <ShieldCheck className="w-5 h-5" />}
+              {activeTab === 'terms' && <Scale className="w-5 h-5" />}
+              {activeTab === 'refunds' && <RotateCcw className="w-5 h-5" />}
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-white">
-                {activeTab === 'privacy' ? 'Privacy Policy (POPIA)' : 'Terms of Service'}
+                {activeTab === 'privacy' && 'Privacy Policy (POPIA)'}
+                {activeTab === 'terms' && 'Terms of Service'}
+                {activeTab === 'refunds' && 'Refund & Cancellation Policy'}
               </h2>
               <p className="text-xs text-zinc-400">Wrap & Wings Co • South Africa</p>
             </div>
@@ -47,11 +57,11 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
         </div>
 
         {/* Tab Switcher */}
-        <div className="px-5 pt-3 bg-zinc-950/50 border-b border-white/5 flex gap-2 shrink-0">
+        <div className="px-5 pt-3 bg-zinc-950/50 border-b border-white/5 flex gap-2 shrink-0 overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('privacy')}
-            className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'privacy'
                 ? 'border-rose-500 text-white'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -64,7 +74,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
           <button
             type="button"
             onClick={() => setActiveTab('terms')}
-            className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 ${
+            className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'terms'
                 ? 'border-rose-500 text-white'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
@@ -72,6 +82,19 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
           >
             <FileText className="w-3.5 h-3.5" />
             <span>Terms of Service</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('refunds')}
+            className={`pb-3 px-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'refunds'
+                ? 'border-rose-500 text-white'
+                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Refund & Cancellation</span>
           </button>
         </div>
 
@@ -303,6 +326,120 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   Africa. Any dispute arising out of or in connection with these terms shall be subject to the jurisdiction of the
                   South African courts.
                 </p>
+              </section>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────────── */}
+          {/* TAB 3: REFUND & CANCELLATION POLICY                                */}
+          {/* ─────────────────────────────────────────────────────────────────── */}
+          {activeTab === 'refunds' && (
+            <div className="space-y-6">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+                  Consumer Protection Act (CPA) & PayFast Compliant
+                </span>
+                <p className="mt-2 text-zinc-400">
+                  Last updated: October 2026. This Refund & Cancellation Policy applies to all food orders, online transactions, collections, and deliveries placed with Wrap & Wings Co (Pty) Ltd via our website and secure payment gateway (PayFast).
+                </p>
+              </div>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">1. Fresh Food & Perishable Goods Nature</h3>
+                <p>
+                  At Wrap & Wings Co, every meal is prepared fresh to order using premium flame-grilled chicken, fresh produce, and handcrafted signature basting sauces. Because our menu consists of freshly cooked, perishable food items intended for immediate consumption, standard statutory cooling-off periods under Section 44 of the Electronic Communications and Transactions Act (ECTA) do not apply to customized prepared meals. However, we strictly honor your consumer rights under the South African Consumer Protection Act (No. 68 of 2008).
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">2. Order Cancellation Policy</h3>
+                <div className="space-y-3">
+                  <div className="p-3.5 rounded-xl bg-zinc-900 border border-white/5 space-y-1.5">
+                    <div className="font-bold text-white text-xs flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      Before Kitchen Preparation Commences
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      You may cancel your order free of charge within <strong>5 minutes</strong> of placing it, or at any time before the kitchen team has accepted and commenced grilling or preparing your meal. If cancelled before preparation begins, you will receive a <strong>100% full refund</strong> back to your original payment method.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-zinc-900 border border-white/5 space-y-1.5">
+                    <div className="font-bold text-white text-xs flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-400" />
+                      After Kitchen Preparation Has Commenced
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      Once our kitchen staff have accepted the order and started grilling, cooking, or plating the fresh ingredients, cancellations cannot be accepted as the ingredients and meals cannot be re-used or returned to stock.
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">3. Order Accuracy & Quality Guarantee</h3>
+                <p>
+                  We stand 100% behind the quality of our food. If your order falls short of our standards in any of the following circumstances, we will promptly make it right:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-zinc-300">
+                  <li><strong>Incorrect Item Received:</strong> If you received an item different from what was ordered (e.g. wrong wrap, incorrect basting sauce, wrong beverage).</li>
+                  <li><strong>Missing Items:</strong> If any paid item, side dish, sauce, or drink was omitted from your sealed package.</li>
+                  <li><strong>Quality or Food Safety Issues:</strong> In the rare event that food is undercooked, damaged during transit, or fails our freshness standards.</li>
+                </ul>
+                <p className="mt-2 text-zinc-400">
+                  Please notify our store team within <strong>2 hours</strong> of receiving your order (or collection) by calling <strong>068 886 3892</strong> or messaging our WhatsApp dispatch at <strong>+27 83 276 3273</strong> with your Order ID and a photo of the affected item.
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">4. Resolution & Remedy Options</h3>
+                <p>
+                  Upon validating an order accuracy or food quality issue, customer satisfaction is our top priority. We offer:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-zinc-300">
+                  <li><strong>Immediate Replacement:</strong> Priority re-preparation and prompt dispatch/handover of the correct freshly grilled meal at no additional cost.</li>
+                  <li><strong>Store Credit / Voucher:</strong> An instant digital coupon or store credit code equal to or greater than the value of the affected item for your next order.</li>
+                  <li><strong>Monetary Refund:</strong> A full or partial refund of the purchase price (including the delivery fee if the entire order was unfulfilled or compromised).</li>
+                </ul>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">5. Refund Processing via PayFast</h3>
+                <p>
+                  All online payments (Visa, Mastercard, Instant EFT, Debit Card, SnapScan, and digital wallets) are securely processed by our authorized South African payment gateway partner, <strong>PayFast (Pty) Ltd</strong>.
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-zinc-300">
+                  <li>Approved refunds are submitted directly through the <strong>PayFast merchant portal</strong> back to the customer's <strong>original payment method</strong>.</li>
+                  <li>Refund processing is initiated immediately by store management upon approval. Depending on your bank (Capitec, FNB, Standard Bank, Nedbank, Absa, Discovery, TymeBank), funds typically reflect within <strong>3 to 7 business days</strong>.</li>
+                  <li>For security and compliance reasons, we never issue cash refunds for transactions completed online via PayFast.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">6. Non-Refundable Circumstances</h3>
+                <p>
+                  Refunds cannot be issued under the following circumstances:
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5 text-zinc-300">
+                  <li>The customer provided an incorrect or incomplete delivery address, and the driver was unable to deliver after reasonable communication attempts.</li>
+                  <li>The customer was unreachable at the delivery destination, or failed to collect an order within 60 minutes of the ready-for-collection notice.</li>
+                  <li>Customer change of mind or personal taste preference after food has been prepared strictly according to the order placed.</li>
+                </ul>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-sm font-black text-white uppercase tracking-wide">7. Contact Information for Cancellations & Refunds</h3>
+                <p>
+                  To request a cancellation, report an order issue, or follow up on a refund, please contact our management team:
+                </p>
+                <div className="p-4 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-1.5 text-xs text-zinc-300">
+                  <div><strong>Business Name:</strong> Wrap & Wings Co. (Pty) Ltd</div>
+                  <div><strong>Physical Store Address:</strong> Shop 1, Uniland Centre, Pinetown, Durban, KwaZulu-Natal, South Africa</div>
+                  <div><strong>Order & Customer Care Line:</strong> 068 886 3892</div>
+                  <div><strong>WhatsApp Support & Dispatch:</strong> +27 83 276 3273</div>
+                  <div><strong>Customer Service Email:</strong> info@wrapandwings.co.za / orders@wrapandwings.co.za</div>
+                  <div><strong>Trading Hours:</strong> Monday – Sunday: 9:00 AM – 6:00 PM</div>
+                </div>
               </section>
             </div>
           )}
