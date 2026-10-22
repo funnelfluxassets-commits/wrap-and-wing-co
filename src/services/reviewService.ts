@@ -5,11 +5,20 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs } from '
 const STORAGE_KEY = 'wrap_wing_review_entries';
 const REVIEWS_COLLECTION = 'review_draw_entries';
 
+const TEST_REMOVED_IDS = new Set([
+  'R500-MV2OOP0X-6253',
+  'R500-MV5G7HVG-3558',
+  'WMV-MV5GS1XO-2784',
+  'WMV-MV5H9SXT-4926',
+  'WMV-MV5J16N5-7106',
+]);
+
 function getLocalEntries(): ReviewDrawEntry[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed: ReviewDrawEntry[] = raw ? JSON.parse(raw) : [];
+    return parsed.filter((e) => !TEST_REMOVED_IDS.has(e.id));
   } catch {
     return [];
   }
@@ -100,17 +109,13 @@ export async function fetchAllReviewEntries(): Promise<ReviewDrawEntry[]> {
       firestoreList.push(d.data() as ReviewDrawEntry);
     });
 
-    // Merge firestore with local
-    const map = new Map<string, ReviewDrawEntry>();
-    local.forEach((e) => map.set(e.id, e));
-    firestoreList.forEach((e) => map.set(e.id, e));
+    // When Firestore returns, it is the authoritative list
+    const sorted = firestoreList
+      .filter((e) => !TEST_REMOVED_IDS.has(e.id))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    const merged = Array.from(map.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    saveLocalEntries(merged);
-    return merged;
+    saveLocalEntries(sorted);
+    return sorted;
   } catch (err) {
     console.warn('Error fetching Firestore review entries, using local:', err);
     return local;
@@ -139,17 +144,12 @@ export function subscribeToReviewEntries(
           firestoreList.push(d.data() as ReviewDrawEntry);
         });
 
-        const local = getLocalEntries();
-        const map = new Map<string, ReviewDrawEntry>();
-        local.forEach((e) => map.set(e.id, e));
-        firestoreList.forEach((e) => map.set(e.id, e));
+        const sorted = firestoreList
+          .filter((e) => !TEST_REMOVED_IDS.has(e.id))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        const merged = Array.from(map.values()).sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-
-        saveLocalEntries(merged);
-        callback(merged);
+        saveLocalEntries(sorted);
+        callback(sorted);
       },
       (error) => {
         console.warn('Firestore review subscription error:', error);
