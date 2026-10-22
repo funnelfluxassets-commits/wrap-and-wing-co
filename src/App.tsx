@@ -30,46 +30,52 @@ import { getOutOfStockItemIds, subscribeToStockStatus } from './services/stockSe
 import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
 
-const getInitialView = (): PageView => {
+const VALID_VIEWS: PageView[] = [
+  'menu',
+  'story',
+  'team',
+  'kitchen',
+  'delivery',
+  'track',
+  'contact',
+  'review',
+  'admin',
+];
+
+const parseViewFromUrl = (): PageView => {
   if (typeof window === 'undefined') return 'menu';
-  
-  // 1. Hash check (e.g. /#review, /#admin, /#kitchen)
-  const hash = window.location.hash.toLowerCase().replace('#', '');
-  if (
-    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
-      hash
-    )
-  ) {
-    return hash as PageView;
+
+  // 1. Hash check (handles single #story and stacked #review#story safely)
+  if (window.location.hash) {
+    const rawHash = window.location.hash.toLowerCase().replace(/^#+/, '');
+    const segments = rawHash.split('#').map((s) => s.trim()).filter(Boolean);
+    // Prefer the last valid segment (e.g. in #review#story -> 'story')
+    for (const seg of [...segments].reverse()) {
+      if (VALID_VIEWS.includes(seg as PageView)) {
+        return seg as PageView;
+      }
+    }
   }
 
-  // 2. Pathname check (e.g. /review, /admin, /kitchen)
+  // 2. Pathname check (e.g. /review, /story, /admin)
   const path = window.location.pathname.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
-  if (
-    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
-      path
-    )
-  ) {
+  if (VALID_VIEWS.includes(path as PageView)) {
     return path as PageView;
   }
 
   // 3. Query parameter check (e.g. ?view=review)
   const searchParams = new URLSearchParams(window.location.search);
   const queryView = searchParams.get('view')?.toLowerCase();
-  if (
-    queryView &&
-    ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
-      queryView
-    )
-  ) {
+  if (queryView && VALID_VIEWS.includes(queryView as PageView)) {
     return queryView as PageView;
   }
+
   return 'menu';
 };
 
 const MainContent: React.FC = () => {
   const { totalItemCount, grandTotal, setIsCartOpen } = useCart();
-  const [currentView, setCurrentView] = useState<PageView>(getInitialView());
+  const [currentView, setCurrentView] = useState<PageView>(parseViewFromUrl());
   const [activeCategory, setActiveCategory] = useState<CategoryId | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -216,24 +222,35 @@ const MainContent: React.FC = () => {
 
   // Sync hash and pathname routing and active orders
   useEffect(() => {
-    // Strip trailing '#' or '#menu' on initial load
-    if (typeof window !== 'undefined' && window.location.href.includes('#')) {
-      const initHash = window.location.hash.toLowerCase().replace('#', '');
-      if (!initHash || initHash === 'menu') {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+    // Clean up URL on initial load if hash is empty, '#', '#menu', or has stacked/corrupted hashes
+    if (typeof window !== 'undefined') {
+      const cleanPath = window.location.pathname || '/';
+      const cleanSearch = window.location.search || '';
+      const current = parseViewFromUrl();
+
+      if (current === 'menu') {
+        if (window.location.hash) {
+          history.replaceState(null, '', `${cleanPath}${cleanSearch}`);
+        }
+      } else if (window.location.hash !== `#${current}`) {
+        // Fix stacked or malformed hash like #review#story -> #story
+        history.replaceState(null, '', `${cleanPath}${cleanSearch}#${current}`);
       }
     }
 
     const handleHash = () => {
-      const hash = window.location.hash.toLowerCase().replace('#', '');
-      const path = window.location.pathname.toLowerCase().replace(/^\//, '').replace(/\/$/, '');
-      const target = hash || path;
-      if (
-        ['menu', 'story', 'team', 'kitchen', 'delivery', 'track', 'contact', 'review', 'admin'].includes(
-          target
-        )
-      ) {
-        setCurrentView(target as PageView);
+      const target = parseViewFromUrl();
+      setCurrentView(target);
+
+      // Keep address bar in sync and free of stacked hashes
+      if (typeof window !== 'undefined') {
+        const cleanPath = window.location.pathname || '/';
+        const cleanSearch = window.location.search || '';
+        if (target === 'menu' && window.location.hash) {
+          history.replaceState(null, '', `${cleanPath}${cleanSearch}`);
+        } else if (target !== 'menu' && window.location.hash !== `#${target}`) {
+          history.replaceState(null, '', `${cleanPath}${cleanSearch}#${target}`);
+        }
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -267,6 +284,7 @@ const MainContent: React.FC = () => {
 
     return () => {
       window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
       unsub();
     };
   }, [trackedOrderId]);
@@ -274,13 +292,10 @@ const MainContent: React.FC = () => {
   const handleNavigate = (view: PageView) => {
     setCurrentView(view);
     if (typeof window !== 'undefined') {
-      if (view === 'menu') {
-        if (window.location.hash) {
-          history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-      } else {
-        window.location.hash = view;
-      }
+      const cleanPath = window.location.pathname || '/';
+      const cleanSearch = window.location.search || '';
+      const newUrl = view === 'menu' ? `${cleanPath}${cleanSearch}` : `${cleanPath}${cleanSearch}#${view}`;
+      history.pushState(null, '', newUrl);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
