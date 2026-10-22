@@ -41,6 +41,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { isPayFastStaffTestMode, setPayFastStaffTestMode } from '../services/payment';
@@ -67,6 +68,7 @@ import {
 import {
   subscribeToReviewEntries,
   updateReviewEntryStatus,
+  deleteReviewEntry,
   exportEntriesToCsv
 } from '../services/reviewService';
 import {
@@ -1784,17 +1786,31 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
 
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            {e.status !== 'winner' ? (
+                            <div className="flex items-center justify-end gap-2">
+                              {e.status !== 'winner' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMarkAsWinner(e)}
+                                  className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-600 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
+                                >
+                                  Mark Winner
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-emerald-400 font-bold">Awarded</span>
+                              )}
                               <button
                                 type="button"
-                                onClick={() => handleMarkAsWinner(e)}
-                                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-600 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
+                                onClick={async () => {
+                                  if (window.confirm(`Delete review entry #${e.id} for "${e.fullName}"?`)) {
+                                    await deleteReviewEntry(e.id);
+                                  }
+                                }}
+                                className="p-1 rounded-lg bg-zinc-800 hover:bg-rose-600 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                                title="Delete entry"
                               >
-                                Mark Winner
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            ) : (
-                              <span className="text-[11px] text-emerald-400 font-bold">Awarded</span>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       ))}

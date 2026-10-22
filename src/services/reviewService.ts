@@ -1,6 +1,6 @@
 import { ReviewDrawEntry } from '../types';
 import { db } from './firebase';
-import { collection, doc, setDoc, onSnapshot, query, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs } from 'firebase/firestore';
 
 const STORAGE_KEY = 'wrap_wing_review_entries';
 const REVIEWS_COLLECTION = 'review_draw_entries';
@@ -177,6 +177,21 @@ export async function updateReviewEntryStatus(
       await setDoc(docRef, { status }, { merge: true });
     } catch (err) {
       console.warn('Error updating review status in Firestore:', err);
+    }
+  }
+}
+
+export async function deleteReviewEntry(id: string): Promise<void> {
+  const local = getLocalEntries();
+  const updated = local.filter((e) => e.id !== id);
+  saveLocalEntries(updated);
+
+  if (db) {
+    try {
+      const docRef = doc(db, REVIEWS_COLLECTION, id);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.warn('Error deleting review entry in Firestore:', err);
     }
   }
 }
