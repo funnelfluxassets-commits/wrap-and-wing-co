@@ -11,7 +11,7 @@ Wrap & Wing Co. is a fast-casual restaurant and takeaway based in Pinetown, Durb
 - **Phone / WhatsApp**: +27 68 886 3892 (068 886 3892)
 - **Email (General Inquiries)**: info@wrapandwings.co.za
 - **Email (Orders & Payments)**: orders@wrapandwings.co.za
-- **Trading Hours**: Monday – Sunday: 9:00 AM – 6:00 PM (Open 7 days a week)
+- **Trading Hours**: Monday – Saturday: 9:00 AM – 6:00 PM (Closed on Sundays)
 - **Service Options**: Dine-in, Takeaway collection, Local delivery
 - **Google Maps**: https://www.google.com/maps/place/Wrap+and+Wing+Co/@-29.8120098,30.8555607,17z/data=!4m6!3m5!1s0x1ef6ff609bbeefc7:0xb1b982704527f3d7!8m2!3d-29.8120098!4d30.8555607!16s%2Fg%2F11nvh9v3d5
 
@@ -41,6 +41,6 @@ Customers can order directly on the website:
 
 ## Frequently Asked Questions (FAQs)
 - **Where are you located?** Shop 1, Uniland Centre, Pinetown (behind Hollywoodbets), Durban, KZN.
-- **What time do you open and close?** Open 7 days a week, 9:00 AM to 6:00 PM every Monday through Sunday.
+- **What time do you open and close?** Open Monday through Saturday, 9:00 AM to 6:00 PM (Closed on Sundays).
 - **Do you deliver?** Yes, we offer local delivery across the Pinetown area as well as quick in-store collection.
 - **What payment methods do you accept?** Visa, Mastercard, American Express, and Instant EFT (via PayFast), as well as cash on collection.

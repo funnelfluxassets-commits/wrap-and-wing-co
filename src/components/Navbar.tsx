@@ -58,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
             </a>
             <span className="hidden md:flex items-center gap-1 text-white/80">
               <Clock className="w-3 h-3" />
-              <span>Mon-Sun 9am–6pm</span>
+              <span>Mon-Sat 9am–6pm (Sun Closed)</span>
             </span>
           </div>
         </div>

@@ -13,7 +13,7 @@ export const STORES: StoreLocation[] = [
     landmark: 'Behind Hollywoodbets',
     phone: '068 886 3892',
     whatsapp: ORDER_WHATSAPP_NUMBER,
-    hours: 'Monday – Sunday: 9:00 AM – 6:00 PM',
+    hours: 'Monday – Saturday: 9:00 AM – 6:00 PM (Sunday: Closed)',
     isOpen: true,
     mapQuery: 'Wrap+and+Wing+Co+Pinetown',
     mapEmbedUrl:

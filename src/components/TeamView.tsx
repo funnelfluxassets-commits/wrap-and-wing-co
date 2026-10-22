@@ -335,7 +335,7 @@ export const TeamView: React.FC<TeamViewProps> = ({ onNavigate, onOpenStoreModal
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-bold text-zinc-300 pt-2 border-t border-white/5">
               <div className="flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Mon – Sun: 9:00 AM – 6:00 PM</span>
+                <span>Mon – Sat: 9:00 AM – 6:00 PM (Sun: Closed)</span>
               </div>
               <a
                 href={SOCIAL_LINKS.phoneDirect}

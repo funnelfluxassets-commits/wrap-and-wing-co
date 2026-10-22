@@ -37,7 +37,7 @@ const INITIAL_FORM: FormState = {
 const FAQ_ITEMS = [
   {
     q: 'Where is your store located and what are your operating hours?',
-    a: 'We are located at Shop 1 Uniland Centre (behind Hollywoodbets), 8 Kings Road, Pinetown. We are open 7 days a week from 9:00 AM to 6:00 PM for walk-ins, collections, and doorstep delivery.',
+    a: 'We are located at Shop 1 Uniland Centre (behind Hollywoodbets), 8 Kings Road, Pinetown. We are open Monday to Saturday from 9:00 AM to 6:00 PM (Closed on Sundays) for walk-ins, collections, and doorstep delivery.',
   },
   {
     q: 'How does delivery work and what areas do you serve?',

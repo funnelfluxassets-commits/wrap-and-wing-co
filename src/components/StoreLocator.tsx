@@ -148,7 +148,7 @@ export const StoreLocatorSection: React.FC = () => {
                   <div>
                     <div className="font-extrabold text-white">Opening Times</div>
                     <div className="text-xs text-zinc-200 mt-0.5">{flagship.hours}</div>
-                    <div className="text-[11px] text-emerald-400 font-bold">Open Every Day of the Week</div>
+                    <div className="text-[11px] text-amber-400 font-bold">Monday – Saturday • Closed Sunday</div>
                   </div>
                 </div>
 

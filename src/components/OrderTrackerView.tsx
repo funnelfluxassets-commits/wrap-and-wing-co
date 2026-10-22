@@ -715,7 +715,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 <div className="text-zinc-200 mt-0.5">Behind Hollywoodbets • Durban, KZN</div>
               </div>
               <div className="text-[11px] text-emerald-400 font-bold">
-                ⏰ Open Monday – Sunday: 9:00 AM – 6:00 PM
+                ⏰ Open Monday – Saturday: 9:00 AM – 6:00 PM (Sunday: Closed)
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">

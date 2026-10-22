@@ -438,7 +438,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ isOpen, initialTab = 'pr
                   <div><strong>Order & Customer Care Line:</strong> 068 886 3892</div>
                   <div><strong>WhatsApp Support & Dispatch:</strong> +27 83 276 3273</div>
                   <div><strong>Customer Service Email:</strong> info@wrapandwings.co.za / orders@wrapandwings.co.za</div>
-                  <div><strong>Trading Hours:</strong> Monday – Sunday: 9:00 AM – 6:00 PM</div>
+                  <div><strong>Trading Hours:</strong> Monday – Saturday: 9:00 AM – 6:00 PM (Sunday: Closed)</div>
                 </div>
               </section>
             </div>
