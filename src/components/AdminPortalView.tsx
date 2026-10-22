@@ -242,6 +242,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     });
 
     const itemsMap: Record<string, number> = {};
+    const itemOrderIdsMap: Record<string, string[]> = {};
+    const orderIds: string[] = [];
     const flavourCounts: Record<string, number> = {
       lemony: 0,
       mild: 0,
@@ -254,6 +256,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     if (filtered.length > 0) {
       for (const ord of filtered) {
+        const rawId = ord.orderId ? String(ord.orderId).trim() : '';
+        const oId = rawId ? (rawId.startsWith('#') ? rawId : `#${rawId}`) : '';
+        if (oId && !orderIds.includes(oId)) {
+          orderIds.push(oId);
+        }
         revenue += ord.grandTotal || 0;
         if (ord.items && Array.isArray(ord.items)) {
           for (const it of ord.items) {
@@ -261,6 +268,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             const qty = it.quantity || 1;
             itemsMap[name] = (itemsMap[name] || 0) + qty;
             totalItemsCount += qty;
+
+            if (oId) {
+              if (!itemOrderIdsMap[name]) {
+                itemOrderIdsMap[name] = [];
+              }
+              if (!itemOrderIdsMap[name].includes(oId)) {
+                itemOrderIdsMap[name].push(oId);
+              }
+            }
 
             // Detect flavours from item customization
             if (it.customization?.flavour) {
@@ -294,8 +310,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     return {
       ordersCount,
+      orderIds,
       revenue,
       itemsMap,
+      itemOrderIdsMap,
       totalItemsCount,
       flavourCounts,
     };
@@ -316,7 +334,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       rangeLabel,
       trafficOrdersData.ordersCount,
       trafficOrdersData.revenue,
-      trafficOrdersData.itemsMap
+      trafficOrdersData.itemsMap,
+      trafficOrdersData.orderIds,
+      trafficOrdersData.itemOrderIdsMap
     );
 
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
@@ -407,13 +427,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     let deliveryRevenue = 0;
     let collectionsCount = 0;
     let collectionRevenue = 0;
-    const itemsMap: Record<string, { qty: number; revenue: number }> = {};
+    const itemsMap: Record<string, { qty: number; revenue: number; orderIds?: string[] }> = {};
+    const orderIds: string[] = [];
     let totalItemsCount = 0;
 
     const suburbsMap: Record<string, number> = {};
     const paymentMethodsMap: Record<string, { count: number; total: number }> = {};
 
     for (const ord of targetList) {
+      const rawId = ord.orderId ? String(ord.orderId).trim() : '';
+      const oId = rawId ? (rawId.startsWith('#') ? rawId : `#${rawId}`) : '';
+      if (oId && !orderIds.includes(oId)) {
+        orderIds.push(oId);
+      }
+
       const grand = ord.grandTotal || 0;
       const sub = ord.subtotal || grand;
       const fee = ord.deliveryFee || 0;
@@ -448,10 +475,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           const lineTotal = it.itemTotal || (it.menuItem?.price ? it.menuItem.price * qty : 0);
 
           if (!itemsMap[name]) {
-            itemsMap[name] = { qty: 0, revenue: 0 };
+            itemsMap[name] = { qty: 0, revenue: 0, orderIds: [] };
           }
           itemsMap[name].qty += qty;
           itemsMap[name].revenue += lineTotal;
+          if (oId && itemsMap[name].orderIds && !itemsMap[name].orderIds.includes(oId)) {
+            itemsMap[name].orderIds.push(oId);
+          }
           totalItemsCount += qty;
         }
       }
@@ -462,6 +492,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return {
       targetList,
       totalOrders,
+      orderIds,
       totalRevenue,
       subtotal,
       deliveryFees,
@@ -2027,20 +2058,45 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <p className="text-[11px] text-zinc-400 text-center">Active in the last 10 minutes</p>
               </div>
 
-              {/* Card 4: Items Ordered & Food Sold */}
+              {/* Card 4: Customer Orders & Items Sold */}
               <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-blue-500/30 space-y-2 relative overflow-hidden shadow-lg">
                 <div className="flex items-center justify-between text-blue-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">Food Items Ordered</span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Customer Orders</span>
                   <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                     <ShoppingBag className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
-                  {trafficOrdersData.totalItemsCount}
+                <div className="flex items-baseline justify-center gap-1.5 flex-wrap">
+                  <span className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">
+                    {trafficOrdersData.ordersCount}
+                  </span>
+                  <span className="text-xs font-bold text-blue-300 uppercase">
+                    {trafficOrdersData.ordersCount === 1 ? 'Order' : 'Orders'}
+                  </span>
+                  <span className="text-zinc-600 font-bold">•</span>
+                  <span className="text-xl sm:text-2xl font-black text-white font-mono">
+                    {trafficOrdersData.totalItemsCount}
+                  </span>
+                  <span className="text-xs text-zinc-400">
+                    Items
+                  </span>
                 </div>
-                <p className="text-[11px] text-zinc-400 text-center">
-                  {trafficOrdersData.ordersCount} orders • R{trafficOrdersData.revenue.toFixed(2)} sales
-                </p>
+                <div className="text-[11px] text-zinc-400 text-center space-y-1">
+                  <div>R{trafficOrdersData.revenue.toFixed(2)} sales</div>
+                  {trafficOrdersData.orderIds.length > 0 && (
+                    <div className="flex flex-wrap items-center justify-center gap-1 pt-0.5">
+                      <span className="text-[10px] text-zinc-500 font-semibold">Order:</span>
+                      {trafficOrdersData.orderIds.map((id) => (
+                        <span
+                          key={id}
+                          className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono font-bold text-[10px] border border-blue-500/30"
+                        >
+                          {id}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -2281,7 +2337,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </div>
                     </div>
                     <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-mono font-black text-xs">
-                      {trafficOrdersData.totalItemsCount} Total Units
+                      {trafficOrdersData.ordersCount} {trafficOrdersData.ordersCount === 1 ? 'Order' : 'Orders'} • {trafficOrdersData.totalItemsCount} Units
                     </span>
                   </div>
 
@@ -2312,11 +2368,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black flex items-center justify-center">
                                     #{idx + 1}
                                   </span>
-                                  <span className="font-bold text-white truncate max-w-[170px] sm:max-w-[220px]">
-                                    {name}
-                                  </span>
+                                  <div>
+                                    <span className="font-bold text-white block truncate max-w-[170px] sm:max-w-[220px]">
+                                      {name}
+                                    </span>
+                                    {trafficOrdersData.itemOrderIdsMap?.[name] && trafficOrdersData.itemOrderIdsMap[name].length > 0 && (
+                                      <span className="text-[10px] font-mono text-zinc-400 block">
+                                        Order {trafficOrdersData.itemOrderIdsMap[name].join(', ')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
-                                <span className="font-mono font-black text-blue-400 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs">
+                                <span className="font-mono font-black text-blue-400 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs shrink-0">
                                   {qty}x Ordered
                                 </span>
                               </div>
@@ -2820,7 +2883,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="text-xl font-mono font-black text-blue-400">
                   R{trafficOrdersData.revenue.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-zinc-500">{trafficOrdersData.ordersCount} orders</div>
+                <div className="text-[10px] text-zinc-500">
+                  {trafficOrdersData.ordersCount} {trafficOrdersData.ordersCount === 1 ? 'order' : 'orders'}
+                  {trafficOrdersData.orderIds.length > 0 && ` (${trafficOrdersData.orderIds.join(', ')})`}
+                </div>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
@@ -2860,6 +2926,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <tr>
                       <th className="py-2.5 px-3">Meal Item</th>
                       <th className="py-2.5 px-3 text-center">Quantity Sold</th>
+                      <th className="py-2.5 px-3 text-center">Order #</th>
                       <th className="py-2.5 px-3 text-right">Share of Meals</th>
                     </tr>
                   </thead>
@@ -2871,7 +2938,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       if (list.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={3} className="py-4 text-center text-zinc-500 text-xs font-sans">
+                            <td colSpan={4} className="py-4 text-center text-zinc-500 text-xs font-sans">
                               No meal orders logged for this period yet.
                             </td>
                           </tr>
@@ -2886,6 +2953,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-2 px-3 text-center text-blue-400 font-black">
                             {qty}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono text-[11px] text-blue-300">
+                            {trafficOrdersData.itemOrderIdsMap?.[name]?.join(', ') || '—'}
                           </td>
                           <td className="py-2 px-3 text-right text-zinc-400 text-[11px]">
                             {Math.round((qty / totalQty) * 100)}%
@@ -3148,8 +3218,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   {dayOrdersData.totalOrders}
                 </div>
                 <div className="text-[10px] text-zinc-500">
-                  Avg Ticket: R{dayOrdersData.avgOrderValue.toFixed(2)}
+                  {dayOrdersData.totalItemsCount} portions • Avg: R{dayOrdersData.avgOrderValue.toFixed(2)}
                 </div>
+                {dayOrdersData.orderIds && dayOrdersData.orderIds.length > 0 && (
+                  <div className="text-[10px] text-blue-300 font-mono font-bold truncate">
+                    {dayOrdersData.orderIds.join(', ')}
+                  </div>
+                )}
               </div>
 
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/5 space-y-1">
@@ -3228,6 +3303,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <tr>
                       <th className="py-2.5 px-3">Meal Item</th>
                       <th className="py-2.5 px-3 text-center">Quantity Sold</th>
+                      <th className="py-2.5 px-3 text-center">Order #</th>
                       <th className="py-2.5 px-3 text-right">Item Revenue</th>
                       <th className="py-2.5 px-3 text-right">Share of Meals</th>
                     </tr>
@@ -3240,7 +3316,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       if (list.length === 0) {
                         return (
                           <tr>
-                            <td colSpan={4} className="py-6 text-center text-zinc-500 text-xs font-sans">
+                            <td colSpan={5} className="py-6 text-center text-zinc-500 text-xs font-sans">
                               No meal orders recorded for {formatReportDateLabel(selectedOrderDate)}.
                             </td>
                           </tr>
@@ -3255,6 +3331,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           </td>
                           <td className="py-2 px-3 text-center text-blue-400 font-black">
                             {data.qty}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono text-[11px] text-blue-300">
+                            {data.orderIds?.join(', ') || '—'}
                           </td>
                           <td className="py-2 px-3 text-right text-blue-400">
                             R{data.revenue.toFixed(2)}

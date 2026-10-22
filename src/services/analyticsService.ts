@@ -1309,7 +1309,9 @@ export function generateWhatsAppDailyReportText(
   rangeLabel: string,
   ordersCount: number,
   revenue: number,
-  orderedItemsMap: Record<string, number>
+  orderedItemsMap: Record<string, number>,
+  orderIds: string[] = [],
+  itemOrderIdsMap?: Record<string, string[]>
 ): string {
   const sortedOrdered = Object.entries(orderedItemsMap).sort((a, b) => b[1] - a[1]);
   const totalFoodItems = Object.values(orderedItemsMap).reduce((sum, q) => sum + q, 0);
@@ -1323,7 +1325,8 @@ export function generateWhatsAppDailyReportText(
   text += `• Active Diners (Online Now): *${getLiveVisitorsCount()}*\n\n`;
 
   text += `💰 *SALES & ORDERS SUMMARY*\n`;
-  text += `• Completed Orders: *${ordersCount}*\n`;
+  const orderNumbersList = orderIds.length > 0 ? ` (${orderIds.join(', ')})` : '';
+  text += `• Total Orders Placed: *${ordersCount}*${orderNumbersList}\n`;
   text += `• Total Order Revenue: *R${revenue.toFixed(2)}*\n`;
   text += `• Total Food Units Sold: *${totalFoodItems} items*\n`;
   text += `• Cart Additions: *${summary.funnel.cartAdds}*\n\n`;
@@ -1331,7 +1334,9 @@ export function generateWhatsAppDailyReportText(
   text += `🔥 *TOP ITEMS ORDERED (QUANTITIES)*\n`;
   if (sortedOrdered.length > 0) {
     sortedOrdered.slice(0, 8).forEach(([name, qty], idx) => {
-      text += `${idx + 1}. *${name}* — ${qty} ordered\n`;
+      const itemOrders = itemOrderIdsMap?.[name];
+      const orderRef = itemOrders && itemOrders.length > 0 ? ` [${itemOrders.join(', ')}]` : '';
+      text += `${idx + 1}. *${name}* — ${qty} ordered${orderRef}\n`;
     });
   } else {
     text += `(No meal orders recorded yet)\n`;

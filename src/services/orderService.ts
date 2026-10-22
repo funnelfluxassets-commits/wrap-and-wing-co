@@ -1638,7 +1638,8 @@ export function generateWhatsAppDailyOrdersReportText(
     collectionRevenue: number;
     driverTips: number;
     totalItemsCount: number;
-    itemsMap: Record<string, { qty: number; revenue: number }>;
+    itemsMap: Record<string, { qty: number; revenue: number; orderIds?: string[] }>;
+    orderIds?: string[];
   }
 ): string {
   const topItems = Object.entries(totals.itemsMap)
@@ -1647,8 +1648,13 @@ export function generateWhatsAppDailyOrdersReportText(
 
   const itemsListText =
     topItems.length > 0
-      ? topItems.map(([name, data]) => `• ${data.qty}x ${name} (R${data.revenue.toFixed(2)})`).join('\n')
+      ? topItems.map(([name, data]) => {
+          const ordRef = data.orderIds && data.orderIds.length > 0 ? ` [${data.orderIds.join(', ')}]` : '';
+          return `• ${data.qty}x ${name} (R${data.revenue.toFixed(2)})${ordRef}`;
+        }).join('\n')
       : '• No meals recorded for this shift.';
+
+  const ordersRefText = totals.orderIds && totals.orderIds.length > 0 ? ` (${totals.orderIds.join(', ')})` : '';
 
   return `🍗 *WRAP & WINGS CO. — DAILY ORDERS & SALES REPORT*
 📅 *Shift Date:* ${dateLabel}
@@ -1659,7 +1665,7 @@ export function generateWhatsAppDailyOrdersReportText(
 • *Food Sales (Subtotal):* R${totals.subtotal.toFixed(2)}
 • *Delivery Fees:* R${totals.deliveryFees.toFixed(2)}
 • *Driver Tips:* R${totals.driverTips.toFixed(2)}
-• *Total Orders Placed:* ${totals.totalOrders} orders
+• *Total Orders Placed:* ${totals.totalOrders} orders${ordersRefText}
 • *Avg Basket Size:* R${totals.avgOrderValue.toFixed(2)}
 
 🛵 *COLLECT vs DELIVERY SPLIT:*

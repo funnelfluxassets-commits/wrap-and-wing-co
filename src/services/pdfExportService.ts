@@ -278,6 +278,8 @@ export function exportTrafficToPdf(
     itemsMap: Record<string, number>;
     totalItemsCount: number;
     flavourCounts?: Record<string, number>;
+    orderIds?: string[];
+    itemOrderIdsMap?: Record<string, string[]>;
   }
 ) {
   const doc = new jsPDF({
@@ -350,12 +352,17 @@ export function exportTrafficToPdf(
   const cardWidth = (pageWidth - margin * 2 - 6) / 3;
   const cardHeight = 15;
 
+  const ordersKpiVal =
+    ordersData.ordersCount === 1
+      ? `1 Order (${totalOrderedUnits} Items)`
+      : `${ordersData.ordersCount || 0} Orders (${totalOrderedUnits} Items)`;
+
   // All results recorded use the single blue color from Total Page Views
   const kpis = [
     { label: 'TOTAL PAGE VIEWS', val: String(trafficSummary.totalPageViews || 0), color: RESULT_BLUE },
     { label: 'UNIQUE DINERS', val: String(trafficSummary.uniqueVisitorIds?.length || 0), color: RESULT_BLUE },
     { label: 'ONLINE RIGHT NOW', val: '1', color: RESULT_BLUE },
-    { label: 'ITEMS ORDERED', val: String(totalOrderedUnits), color: RESULT_BLUE },
+    { label: 'ORDERS & ITEMS SOLD', val: ordersKpiVal, color: RESULT_BLUE },
     { label: 'MOST CRAVED ITEMS VIEWED', val: String(totalCravedViews), color: RESULT_BLUE },
     { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: RESULT_BLUE },
   ];
@@ -493,9 +500,9 @@ export function exportTrafficToPdf(
 
   // ── Two Tables: Items Ordered vs Most Craved Menu Items ──
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9.5);
-  doc.setTextColor(24, 24, 27);
-  doc.text(`Items Actually Ordered (${totalOrderedUnits} Units)`, margin, y);
+  const orderSubtitle =
+    ordersData.ordersCount === 1 ? '1 Order' : `${ordersData.ordersCount || 0} Orders`;
+  doc.text(`Items Actually Ordered (${orderSubtitle} • ${totalOrderedUnits} Units)`, margin, y);
   doc.text(`Most Craved Menu Items (${totalCravedViews} Views)`, margin + colWidth + 6, y);
   y += 4.5;
 
