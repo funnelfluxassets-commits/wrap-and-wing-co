@@ -1,14 +1,15 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
+  initializeFirestore,
   getFirestore,
   collection,
   doc,
   setDoc,
-  updateDoc,
+  getDoc,
+  getDocs,
   deleteDoc,
   onSnapshot,
   query,
-  orderBy,
   arrayUnion,
   Firestore
 } from 'firebase/firestore';
@@ -34,7 +35,13 @@ export let db: Firestore | null = null;
 if (isFirebaseConfigured) {
   try {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    db = getFirestore(app);
+    try {
+      db = initializeFirestore(app, {
+        ignoreUndefinedProperties: true,
+      });
+    } catch {
+      db = getFirestore(app);
+    }
   } catch (err) {
     console.warn('Firebase initialization warning:', err);
   }
@@ -43,13 +50,43 @@ if (isFirebaseConfigured) {
 const ORDERS_COLLECTION = 'orders';
 
 /**
+ * Normalizes an order ID by stripping any leading hash (#) and whitespace
+ */
+export function normalizeOrderId(id: string): string {
+  return String(id || '').replace('#', '').trim();
+}
+
+/**
+ * Deep sanitization to guarantee no `undefined` values reach Firestore
+ */
+export function cleanDocData<T>(obj: T): T {
+  if (obj === null || obj === undefined) return null as unknown as T;
+  if (typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(cleanDocData).filter((x) => x !== undefined) as unknown as T;
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj as Record<string, any>)) {
+    if (val !== undefined) {
+      cleaned[key] = cleanDocData(val);
+    }
+  }
+  return cleaned as T;
+}
+
+/**
  * Save or create an order in Firestore
  */
 export async function saveOrderToFirestore(order: LiveOrder): Promise<void> {
   if (!db || !order || !order.orderId) return;
   try {
-    const docRef = doc(db, ORDERS_COLLECTION, order.orderId);
-    await setDoc(docRef, order, { merge: true });
+    const cleanId = normalizeOrderId(order.orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
+    const sanitized = cleanDocData({
+      ...order,
+      orderId: order.orderId,
+    });
+    await setDoc(docRef, sanitized, { merge: true });
   } catch (err) {
     console.error('Error saving order to Firestore:', err);
   }
@@ -67,20 +104,62 @@ export async function updateOrderStatusInFirestore(
 ): Promise<void> {
   if (!db || !orderId) return;
   try {
-    const docRef = doc(db, ORDERS_COLLECTION, orderId);
+    const cleanId = normalizeOrderId(orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
     const updateData: Record<string, any> = { status: newStatus };
     if (timelineEvent) {
-      updateData.timeline = arrayUnion(timelineEvent);
+      updateData.timeline = arrayUnion(cleanDocData(timelineEvent));
     }
-    if (cookingStartedAt) {
+    if (typeof cookingStartedAt === 'number') {
       updateData.cookingStartedAt = cookingStartedAt;
     }
-    if (completedAt) {
+    if (typeof completedAt === 'number') {
       updateData.completedAt = completedAt;
     }
-    await setDoc(docRef, updateData, { merge: true });
+    await setDoc(docRef, cleanDocData(updateData), { merge: true });
   } catch (err) {
     console.error('Error updating order status in Firestore:', err);
+  }
+}
+
+/**
+ * Fetch all active orders directly from Firestore
+ */
+export async function fetchOrdersFromFirestore(): Promise<LiveOrder[]> {
+  if (!db) return [];
+  try {
+    const ordersRef = collection(db, ORDERS_COLLECTION);
+    const snapshot = await getDocs(ordersRef);
+    const orders: LiveOrder[] = [];
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data() as LiveOrder;
+      if (data && data.orderId) {
+        orders.push(data);
+      }
+    });
+    return orders;
+  } catch (err) {
+    console.warn('Error fetching orders from Firestore:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch a single order directly from Firestore
+ */
+export async function fetchSingleOrderFromFirestore(orderId: string): Promise<LiveOrder | null> {
+  if (!db || !orderId) return null;
+  try {
+    const cleanId = normalizeOrderId(orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as LiveOrder;
+    }
+    return null;
+  } catch (err) {
+    console.warn(`Error fetching single order ${orderId} from Firestore:`, err);
+    return null;
   }
 }
 
@@ -132,7 +211,8 @@ export function subscribeToSingleFirestoreOrder(
   if (!db || !orderId) return () => {};
 
   try {
-    const docRef = doc(db, ORDERS_COLLECTION, orderId);
+    const cleanId = normalizeOrderId(orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
     const unsubscribe = onSnapshot(
       docRef,
       (docSnap) => {
@@ -160,7 +240,8 @@ export function subscribeToSingleFirestoreOrder(
 export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
   if (!db || !orderId) return;
   try {
-    const docRef = doc(db, ORDERS_COLLECTION, orderId);
+    const cleanId = normalizeOrderId(orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
     await deleteDoc(docRef);
   } catch (err) {
     console.error('Error deleting order from Firestore:', err);

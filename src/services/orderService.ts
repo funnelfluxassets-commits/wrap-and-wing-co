@@ -8,6 +8,9 @@ import {
   deleteOrderFromFirestore,
   subscribeToFirestoreOrders,
   subscribeToSingleFirestoreOrder,
+  fetchOrdersFromFirestore,
+  fetchSingleOrderFromFirestore,
+  normalizeOrderId,
 } from './firebase';
 
 const STORAGE_KEY = 'wrap_wing_live_orders';
@@ -748,30 +751,57 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
   }
 }
 
-// Pull orders from same-domain /api/orders and persistent GitHub Issue #1 Master Store
+// Pull orders from Firestore cloud database and fallback same-domain API
 export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
   try {
-    let cloudOrders: LiveOrder[] | null = null;
+    let cloudOrders: LiveOrder[] = [];
 
-    // 1. Primary: Check same-domain /api/orders
+    // 1. Primary: Fetch directly from Firebase Firestore (live production database)
+    if (isFirebaseConfigured) {
+      try {
+        const firestoreList = await fetchOrdersFromFirestore();
+        if (Array.isArray(firestoreList) && firestoreList.length > 0) {
+          cloudOrders = firestoreList.filter((raw: any) => {
+            if (!raw || !raw.orderId) return false;
+            if (isTestOrder(raw)) return false;
+            return true;
+          });
+        }
+      } catch (err) {
+        console.warn('Firestore cloud fetch warning:', err);
+      }
+    }
+
+    // 2. Secondary fallback: check same-domain /api/orders (if JSON serverless exists)
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const apiResp = await fetch(`/api/orders?t=${Date.now()}`, {
         cache: 'no-store',
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      if (apiResp.ok) {
+      const contentType = apiResp.headers.get('content-type') || '';
+      if (apiResp.ok && contentType.includes('application/json')) {
         const data = await apiResp.json();
         if (Array.isArray(data)) {
-          cloudOrders = data.filter((raw: any) => {
-            const name = (raw?.customer?.customerName || '').trim().toLowerCase();
-            const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(raw.orderId).includes(id));
-            if (isLegacyDemo) return false;
-            if (isTestOrder(raw)) return false;
-            return true;
-          });
+          for (const raw of data) {
+            if (raw && raw.orderId && !isTestOrder(raw)) {
+              const clean = normalizeOrderId(raw.orderId);
+              const existingIdx = cloudOrders.findIndex(
+                (c) => c.orderId === raw.orderId || normalizeOrderId(c.orderId) === clean
+              );
+              if (existingIdx === -1) {
+                cloudOrders.push(raw);
+              } else {
+                const cloudRank = STATUS_RANK[cloudOrders[existingIdx].status] || 0;
+                const apiRank = STATUS_RANK[raw.status] || 0;
+                if (apiRank > cloudRank) {
+                  cloudOrders[existingIdx] = { ...cloudOrders[existingIdx], ...raw };
+                }
+              }
+            }
+          }
         }
       }
     } catch {}
@@ -1320,8 +1350,10 @@ export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () =
 export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOrder | null) => void): () => void {
   if (typeof window === 'undefined') return () => {};
 
+  const cleanId = normalizeOrderId(orderId);
+
   const handleUpdate = () => {
-    callback(getOrderById(orderId));
+    callback(getOrderById(orderId) || getOrderById(cleanId));
   };
 
   window.addEventListener('wrap_wing_orders_change', handleUpdate);
@@ -1332,25 +1364,49 @@ export function subscribeToSingleOrder(orderId: string, callback: (order: LiveOr
   }
 
   // Initial emit
-  callback(getOrderById(orderId));
+  callback(getOrderById(orderId) || getOrderById(cleanId));
 
   // Real-time instant single-order stream via Firestore if configured
   let unsubFirestore: (() => void) | null = null;
   if (isFirebaseConfigured) {
-    unsubFirestore = subscribeToSingleFirestoreOrder(orderId, (liveOrder) => {
+    unsubFirestore = subscribeToSingleFirestoreOrder(cleanId, (liveOrder) => {
       if (liveOrder) {
-        const local = getOrderById(orderId);
+        const local = getOrderById(orderId) || getOrderById(cleanId);
+        const localRank = local ? STATUS_RANK[local.status] || 0 : 0;
+        const cloudRank = STATUS_RANK[liveOrder.status] || 0;
+        const resolved = cloudRank >= localRank ? liveOrder : (local || liveOrder);
+        
+        // Save merged state into local storage so all components immediately see the new status
+        const orders = getAllOrders();
+        const idx = orders.findIndex(
+          (o) => o.orderId === orderId || normalizeOrderId(o.orderId) === cleanId
+        );
+        if (idx !== -1) {
+          orders[idx] = { ...orders[idx], ...resolved };
+          saveOrders(orders, false);
+        } else {
+          saveOrders([resolved, ...orders], false);
+        }
+
+        callback(resolved);
+      }
+    });
+
+    // Proactively fetch single order from Firestore immediately
+    fetchSingleOrderFromFirestore(cleanId).then((liveOrder) => {
+      if (liveOrder) {
+        const local = getOrderById(orderId) || getOrderById(cleanId);
         const localRank = local ? STATUS_RANK[local.status] || 0 : 0;
         const cloudRank = STATUS_RANK[liveOrder.status] || 0;
         const resolved = cloudRank >= localRank ? liveOrder : (local || liveOrder);
         callback(resolved);
       }
-    });
+    }).catch(() => {});
   }
 
   // Also trigger cloud sync to check if this order is in the cloud
   syncOrdersFromCloud().then(() => {
-    callback(getOrderById(orderId));
+    callback(getOrderById(orderId) || getOrderById(cleanId));
   });
 
   return () => {

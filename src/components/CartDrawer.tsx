@@ -91,7 +91,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <span>🛍️ Collect</span>
+              <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+              <span>Collect</span>
             </button>
 
             {/* 3. Delivery (Coming Soon) */}

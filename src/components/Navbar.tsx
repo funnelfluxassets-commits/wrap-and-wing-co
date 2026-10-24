@@ -227,9 +227,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
 
         {/* (5) Subheader Bar: Dine-In / Collection / Delivery toggle - Hidden on Contact, Story, Team pages */}
         {!['contact', 'story', 'team'].includes(currentView) && (
-          <div className="px-2 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5 overflow-x-auto no-scrollbar">
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5 whitespace-nowrap shrink-0">
+          <div className="px-2.5 sm:px-6 py-1.5 sm:py-2 bg-zinc-900/90 border-t border-white/5">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-1.5 md:gap-2">
+              <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5 whitespace-nowrap overflow-x-auto no-scrollbar shrink-0 self-start md:self-auto max-w-full">
                 
                 {/* 1. Dine-In Button */}
                 <button
@@ -250,7 +250,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   {orderMode === 'dine-in' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
                 </button>
 
-                {/* 2. Collection Button */}
+                {/* 2. Collection Button (Outline Icon) */}
                 <button
                   type="button"
                   onClick={() => setOrderMode('collection')}
@@ -260,7 +260,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                       : 'text-zinc-400 hover:text-white'
                   }`}
                 >
-                  <span>🛍️ Collection</span>
+                  <ShoppingBag className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span>Collection</span>
                   {orderMode === 'collection' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
                 </button>
 
@@ -277,15 +278,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 </div>
               </div>
 
-              {/* Dine-In Table Pill (Tablet/Desktop) */}
+              {/* Dine-In Table Pill (Visible and interactive on BOTH Mobile & Desktop) */}
               {orderMode === 'dine-in' && (
                 <button
                   type="button"
                   onClick={() => setIsTableModalOpen(true)}
-                  className="hidden md:flex items-center gap-1.5 text-xs text-amber-300 font-extrabold px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shrink-0"
+                  className="flex items-center justify-between md:justify-start gap-1.5 text-xs text-amber-300 font-extrabold px-3 py-1.5 md:py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 active:scale-[0.98] transition-all cursor-pointer shrink-0 animate-fadeIn"
                 >
-                  <span>🪑 {tableNumber ? `Seated at Table ${tableNumber}` : 'Tap to Select Table'}</span>
-                  <span className="text-[10px] uppercase font-black underline text-amber-400 ml-1">Change</span>
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span>🪑</span>
+                    <span className="truncate">
+                      {tableNumber ? `Seated at Table ${tableNumber}` : 'Tap to Select Table Number'}
+                    </span>
+                  </span>
+                  <span className="text-[10px] uppercase font-black px-2 py-0.5 rounded bg-amber-400 text-black shrink-0 shadow-sm ml-1">
+                    {tableNumber ? 'Change' : 'Select'}
+                  </span>
                 </button>
               )}
             </div>

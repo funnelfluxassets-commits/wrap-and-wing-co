@@ -11,6 +11,7 @@ import {
   triggerHapticFeedback
 } from '../services/orderService';
 import { getWhatsAppOrderUrl, generateGoogleMapsUrl } from '../services/payment';
+import { isFirebaseConfigured, fetchSingleOrderFromFirestore } from '../services/firebase';
 import {
   CheckCircle,
   Flame,
@@ -166,6 +167,21 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
     // Active 1.2-second tracker radar to check for kitchen status progression
     const trackerRadar = setInterval(async () => {
+      // 1. Check directly from Firestore for sub-second status transitions
+      if (isFirebaseConfigured) {
+        try {
+          const direct = await fetchSingleOrderFromFirestore(cleanTarget);
+          if (direct && direct.status) {
+            if (lastStatusRef.current && direct.status !== lastStatusRef.current) {
+              triggerStatusAlert(direct.status, direct);
+            }
+            lastStatusRef.current = direct.status;
+            setOrder((prev) => (prev ? { ...prev, ...direct } : direct));
+          }
+        } catch {}
+      }
+
+      // 2. Comprehensive cloud sync
       const freshOrders = await syncOrdersFromCloud();
       const current = freshOrders.find(
         (o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === cleanTarget

@@ -39,8 +39,10 @@ import {
   LogOut,
   Bell,
   PackageX,
+  Utensils,
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
+import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
 import { StockManagementModal } from './StockManagementModal';
 import { getOutOfStockItemIds, subscribeToStockStatus } from '../services/stockService';
@@ -557,7 +559,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <button
             type="button"
             onClick={() => setFilter('active')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               filter === 'active'
                 ? 'bg-rose-600 text-white shadow-md'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
@@ -572,7 +574,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <button
             type="button"
             onClick={() => setFilter('cooking')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               filter === 'cooking'
                 ? 'bg-amber-500 text-zinc-950 shadow-md font-black'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
@@ -587,13 +589,14 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <button
             type="button"
             onClick={() => setFilter('ready')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
               filter === 'ready'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
             }`}
           >
-            <span>🛍️ Ready / Dispatched</span>
+            <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+            <span>Ready / Dispatched</span>
             <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
               {readyOrders.length}
             </span>
@@ -770,14 +773,14 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   className="rounded-3xl border border-orange-500/25 bg-[#171720] flex flex-col overflow-hidden shadow-2xl transition-all hover:border-orange-500/40"
                 >
                   {/* Card Header */}
-                  <div className="p-4 flex items-center justify-between border-b border-orange-500/20 bg-zinc-950/90 text-zinc-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-black text-white tracking-tight">
+                  <div className="p-3 sm:p-4 flex items-center justify-between gap-2 border-b border-orange-500/20 bg-zinc-950/90 text-zinc-100">
+                    <div className="min-w-0 pr-1 shrink">
+                      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
                           #{order.orderId}
                         </h3>
                         <span
-                          className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-black uppercase shrink-0 whitespace-nowrap ${
                             order.orderMode === 'dine-in'
                               ? 'bg-emerald-500 text-zinc-950 font-black'
                               : isDelivery
@@ -785,60 +788,53 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                               : 'bg-amber-400 text-zinc-950'
                           }`}
                         >
-                          {order.orderMode === 'dine-in'
-                            ? `🍽️ TABLE ${order.tableNumber || order.customer?.tableNumber || ''}`
-                            : isDelivery
-                            ? '🏍️ DELIVERY'
-                            : '🛍️ COLLECTION'}
+                          {order.orderMode === 'dine-in' ? (
+                            <>
+                              <Utensils className="w-2.5 h-2.5 shrink-0" />
+                              <span>TABLE {order.tableNumber || order.customer?.tableNumber || ''}</span>
+                            </>
+                          ) : isDelivery ? (
+                            <>
+                              <DeliveryMotorbikeIcon className="w-2.5 h-2.5 shrink-0" />
+                              <span>DELIVERY</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingBag className="w-2.5 h-2.5 shrink-0" />
+                              <span>COLLECTION</span>
+                            </>
+                          )}
                         </span>
                       </div>
-                      <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                        <Clock className="w-3 h-3 text-amber-400" />
+                      <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5 whitespace-nowrap">
+                        <Clock className="w-3 h-3 text-amber-400 shrink-0" />
                         <span>Placed: {createdAt}</span>
                         <span>•</span>
                         <span className="text-amber-300 font-bold">{preferredTime}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      {/* Incoming Order Ringing Badge & Silence Toggle */}
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 whitespace-nowrap">
+                      {/* Incoming Order Ringing Badge & Silence Toggle (Single-line interactive pill) */}
                       {order.status === 'received' && (() => {
                         const isSilenced = silencedAlarms.has(order.orderId);
                         return (
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/25 border-2 border-amber-400 text-amber-300 font-mono font-black shadow-lg shadow-amber-500/30 animate-pulse"
-                              title="Incoming order awaiting acceptance to start grilling"
-                            >
-                              <Bell className="w-4 h-4 text-amber-400 animate-bounce shrink-0" />
-                              <div className="text-right leading-none">
-                                <div className="text-xs sm:text-sm tracking-tight font-black uppercase text-amber-300">
-                                  NEW ORDER
-                                </div>
-                                <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-amber-200/80 font-sans font-extrabold mt-0.5">
-                                  {isSilenced ? 'Muted' : 'Ringing'}
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => toggleSilenceAlarm(order.orderId)}
-                              className={`px-2.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1 shadow-md ${
-                                isSilenced
-                                  ? 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-                                  : 'bg-amber-400 hover:bg-amber-300 text-zinc-950 border-amber-300 animate-bounce'
-                              }`}
-                              title={isSilenced ? 'Unmute ringtone for this ticket' : 'Silence ringtone for this ticket'}
-                            >
-                              {isSilenced ? (
-                                <VolumeX className="w-3.5 h-3.5" />
-                              ) : (
-                                <Volume2 className="w-3.5 h-3.5" />
-                              )}
-                              <span>{isSilenced ? 'Muted' : 'Silence'}</span>
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleSilenceAlarm(order.orderId)}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1.5 shadow-md shrink-0 whitespace-nowrap ${
+                              isSilenced
+                                ? 'bg-zinc-800/90 text-zinc-400 border-white/10 hover:bg-zinc-700'
+                                : 'bg-amber-500/20 text-amber-300 border-amber-400/50 hover:bg-amber-500/30 animate-pulse'
+                            }`}
+                            title={isSilenced ? 'Ticket ringtone muted. Tap to unmute.' : 'Incoming new order! Tap to silence ringtone.'}
+                          >
+                            <Bell className={`w-3.5 h-3.5 shrink-0 ${isSilenced ? 'text-zinc-400' : 'text-amber-400 animate-bounce'}`} />
+                            <span>NEW</span>
+                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${isSilenced ? 'bg-zinc-900 text-zinc-400' : 'bg-amber-400 text-black'}`}>
+                              {isSilenced ? 'MUTED' : 'RINGING'}
+                            </span>
+                          </button>
                         );
                       })()}
 
@@ -858,26 +854,15 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
                           return (
                             <div
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border font-mono font-black shadow-lg transition-all ${
+                              className={`px-2.5 py-1.5 rounded-xl border font-mono text-xs font-black flex items-center gap-1.5 shadow-md shrink-0 whitespace-nowrap ${
                                 isWarning
-                                  ? 'bg-amber-500/25 border-amber-500/70 text-amber-300 animate-pulse'
-                                  : 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                                  ? 'bg-red-500/20 border-red-500/50 text-red-300 animate-pulse'
+                                  : 'bg-zinc-900 border-amber-500/30 text-amber-300'
                               }`}
-                              title="Target grill & pack timer: 10 minutes"
+                              title="10-minute cooking countdown"
                             >
-                              <Flame
-                                className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${
-                                  isWarning ? 'text-amber-400 animate-bounce' : 'text-orange-400'
-                                }`}
-                              />
-                              <div className="text-right leading-none">
-                                <div className="text-base sm:text-xl tracking-tight font-black">
-                                  {formattedTime}
-                                </div>
-                                <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-zinc-400 font-sans font-extrabold mt-0.5">
-                                  Cook Timer
-                                </div>
-                              </div>
+                              <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                              <span>{formattedTime}</span>
                             </div>
                           );
                         } else {
@@ -887,40 +872,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                           const formattedOverdue = `${String(oMins).padStart(2, '0')}:${String(oSecs).padStart(2, '0')}`;
 
                           return (
-                            <div className="flex items-center gap-1.5">
-                              <div
-                                className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-red-600 border-2 border-red-400 text-white font-mono font-black shadow-xl shadow-red-600/50 animate-pulse"
-                                title="Cooking time exceeded 10 minutes! Order is overdue."
-                              >
-                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white animate-spin shrink-0" />
-                                <div className="text-right leading-none">
-                                  <div className="text-sm sm:text-base tracking-tight font-black">
-                                    -{formattedOverdue}
-                                  </div>
-                                  <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-red-200 font-sans font-black mt-0.5">
-                                    OVERDUE
-                                  </div>
-                                </div>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => toggleSilenceAlarm(order.orderId)}
-                                className={`px-2.5 py-2 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider border cursor-pointer transition-all flex items-center gap-1 shadow-md ${
-                                  isSilenced
-                                    ? 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-                                    : 'bg-amber-400 hover:bg-amber-300 text-zinc-950 border-amber-300 animate-bounce'
-                                }`}
-                                title={isSilenced ? 'Alarm muted for this ticket' : 'Silence alarm for this ticket'}
-                              >
-                                {isSilenced ? (
-                                  <VolumeX className="w-3.5 h-3.5" />
-                                ) : (
-                                  <Volume2 className="w-3.5 h-3.5" />
-                                )}
-                                <span>{isSilenced ? 'Muted' : 'Silence'}</span>
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleSilenceAlarm(order.orderId)}
+                              className="px-2.5 py-1.5 rounded-xl bg-red-600 border border-red-400 text-white font-mono text-xs font-black flex items-center gap-1.5 shadow-lg shadow-red-600/40 animate-pulse shrink-0 whitespace-nowrap cursor-pointer"
+                              title={isSilenced ? 'Overdue alarm muted' : 'Overdue! Tap to silence alarm'}
+                            >
+                              <AlertCircle className="w-3.5 h-3.5 text-white shrink-0" />
+                              <span>-{formattedOverdue}</span>
+                              <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-black/40 text-red-200">
+                                {isSilenced ? 'MUTED' : 'OVERDUE'}
+                              </span>
+                            </button>
                           );
                         }
                       })()}
@@ -928,10 +891,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handlePrintSlip(order)}
-                        className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
+                        className="p-1.5 sm:p-2 rounded-xl bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer shrink-0"
                         title="Print kitchen docket"
                       >
-                        <Printer className="w-4 h-4" />
+                        <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
 
                       <button
@@ -942,10 +905,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                             setOrders((prev) => prev.filter((o) => o.orderId !== order.orderId));
                           }
                         }}
-                        className="p-2 rounded-xl bg-black/40 hover:bg-red-600/30 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer"
+                        className="p-1.5 sm:p-2 rounded-xl bg-black/40 hover:bg-red-600/30 text-zinc-400 hover:text-red-400 transition-colors cursor-pointer shrink-0"
                         title="Delete order"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </button>
                     </div>
                   </div>
@@ -1159,6 +1122,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                             <Truck className="w-4 h-4 text-white" />
                             <span>3. HAND TO DRIVER (OUT FOR DELIVERY)</span>
                           </>
+                        ) : order.orderMode === 'dine-in' ? (
+                          <>
+                            <Utensils className="w-4 h-4 text-zinc-950" />
+                            <span>3. SERVE TO TABLE {order.tableNumber || order.customer?.tableNumber || ''} (COMPLETE)</span>
+                          </>
                         ) : (
                           <>
                             <CheckCircle className="w-4 h-4 text-zinc-950" />
@@ -1187,7 +1155,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       <div className="flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs">
                         <div className="flex items-center gap-2 text-emerald-400 font-extrabold">
                           <CheckCircle className="w-4 h-4 shrink-0" />
-                          <span>{isDelivery ? 'Delivered & Completed' : 'Collected & Completed'}</span>
+                          <span>
+                            {order.orderMode === 'dine-in'
+                              ? `Served to Table ${order.tableNumber || order.customer?.tableNumber || ''} & Completed`
+                              : isDelivery
+                              ? 'Delivered & Completed'
+                              : 'Collected & Completed'}
+                          </span>
                         </div>
                         <button
                           type="button"
