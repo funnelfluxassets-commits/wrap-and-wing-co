@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { isItemOutOfStock } from '../services/stockService';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle, Utensils } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { getCdnThumbnailUrl } from '../utils/cdn';
@@ -24,6 +24,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
     grandTotal,
     orderMode,
     setOrderMode,
+    tableNumber,
+    setTableNumber,
     selectedStore,
     clearCart,
   } = useCart();
@@ -62,30 +64,77 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
           </button>
         </div>
 
-        {/* Order Mode Toggle (Collection vs Delivery) */}
-        <div className="p-3 bg-zinc-900/90 border-b border-white/5">
-          <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5 text-xs font-bold">
+        {/* Order Mode Toggle (Dine-In vs Collection vs Delivery) */}
+        <div className="p-3 bg-zinc-900/90 border-b border-white/5 space-y-2.5">
+          <div className="grid grid-cols-3 gap-1 p-1 bg-black/40 rounded-xl border border-white/5 text-[11px] font-bold">
+            {/* 1. Dine-In Button */}
+            <button
+              type="button"
+              onClick={() => setOrderMode('dine-in')}
+              className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer font-black ${
+                orderMode === 'dine-in'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Utensils className="w-3 h-3 shrink-0" />
+              <span>Dine-In</span>
+            </button>
+
+            {/* 2. Collection Button */}
             <button
               type="button"
               onClick={() => setOrderMode('collection')}
-              className="py-2.5 rounded-lg bg-rose-600 text-white shadow-md flex items-center justify-center gap-1.5 cursor-pointer font-bold text-xs"
+              className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer font-black ${
+                orderMode === 'collection'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
             >
-              <span>🛍️ Store Collection</span>
-              <Check className="w-3.5 h-3.5 stroke-[3]" />
+              <span>🛍️ Collect</span>
             </button>
+
+            {/* 3. Delivery (Coming Soon) */}
             <div
-              className="py-2 rounded-lg flex flex-col items-center justify-center gap-0.5 text-zinc-500 bg-zinc-900/60 border border-white/5 cursor-not-allowed select-none opacity-60"
+              className="py-1.5 rounded-lg flex flex-col items-center justify-center text-zinc-500 bg-zinc-900/60 border border-white/5 cursor-not-allowed select-none opacity-60"
               title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
             >
-              <div className="flex items-center gap-1">
-                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
-                <span className="text-zinc-400 font-bold text-xs">Delivery</span>
-              </div>
-              <span className="text-[9px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded tracking-wider">
-                Coming Soon
+              <span className="text-zinc-400 font-bold text-[10px]">Delivery</span>
+              <span className="text-[8px] font-black uppercase text-amber-400 tracking-wider">
+                Soon
               </span>
             </div>
           </div>
+
+          {/* Table Picker inside Cart when Dine-In is active */}
+          {orderMode === 'dine-in' && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-extrabold text-amber-300 flex items-center gap-1">
+                  <span>🪑 Seated Table Number:</span>
+                </span>
+                <span className="text-amber-400 font-black text-xs">
+                  {tableNumber ? `Table ${tableNumber}` : 'Tap table below'}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {(['6', '48', '7', '3', '47'] as const).map((tbl) => (
+                  <button
+                    key={tbl}
+                    type="button"
+                    onClick={() => setTableNumber(tbl)}
+                    className={`py-1.5 rounded-lg border text-xs font-black transition-all cursor-pointer ${
+                      tableNumber === tbl
+                        ? 'bg-rose-600 border-rose-500 text-white shadow-md ring-1 ring-rose-400 scale-[1.05]'
+                        : 'bg-zinc-800 text-zinc-300 border-white/5 hover:text-white hover:bg-zinc-700'
+                    }`}
+                  >
+                    {tbl}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Items List */}

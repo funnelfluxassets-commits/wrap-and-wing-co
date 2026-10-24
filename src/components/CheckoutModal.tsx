@@ -11,7 +11,7 @@ import {
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
 import { isItemOutOfStock } from '../services/stockService';
 import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
-import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle, Utensils } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
 interface SavedCustomerProfile {
@@ -49,7 +49,7 @@ interface CheckoutModalProps {
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onOrderSuccess }) => {
-  const { items, orderMode, subtotal, deliveryFee, tip, setTip, grandTotal, selectedStore, clearCart } = useCart();
+  const { items, orderMode, subtotal, deliveryFee, tip, setTip, grandTotal, selectedStore, clearCart, tableNumber, setTableNumber } = useCart();
 
   const savedProfile = loadSavedProfile();
   const [hasAutofilled, setHasAutofilled] = useState(() => Boolean(savedProfile.customerName || savedProfile.phone));
@@ -99,6 +99,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       return;
     }
 
+    if (orderMode === 'dine-in' && !tableNumber) {
+      alert('Please select your table number (6, 48, 7, 3, or 47) where you are seated.');
+      return;
+    }
+
     setIsProcessing(true);
 
     // Save customer details to localStorage for instant autofill on future orders
@@ -112,9 +117,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       notes: notes.trim() || undefined,
     });
 
-    // Enforce that only collection orders can be processed
-    const activeOrderMode: OrderMode = 'collection';
-    const orderId = generateNextOrderId('collection');
+    const activeOrderMode: OrderMode = orderMode === 'dine-in' ? 'dine-in' : 'collection';
+    const orderId = generateNextOrderId(activeOrderMode);
 
     const customerDetails: DeliveryDetails = {
       customerName,
@@ -125,9 +129,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       gateCode: undefined,
       notes: notes.trim() || undefined,
       preferredTime: preferredTime === 'ASAP'
-        ? 'ASAP (15–20 mins)'
+        ? (activeOrderMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)')
         : preferredTime,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      tableNumber: activeOrderMode === 'dine-in' ? tableNumber : undefined,
     };
 
     const payload: CheckoutPayload = {
@@ -143,6 +148,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       paymentMethod,
       preferredTime: customerDetails.preferredTime,
       createdAt: customerDetails.createdAt || 'Just now',
+      tableNumber: activeOrderMode === 'dine-in' ? tableNumber : undefined,
     };
 
     // If customer selected PayFast, store pending order in browser memory and forward to PayFast.
@@ -195,7 +201,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
         <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-zinc-950">
           <div>
             <h2 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-              {orderMode === 'delivery' ? (
+              {orderMode === 'dine-in' ? (
+                <>
+                  <Utensils className="w-5 h-5 text-amber-400 shrink-0" />
+                  <span>Dine-In Table Checkout</span>
+                </>
+              ) : orderMode === 'delivery' ? (
                 <>
                   <DeliveryMotorbikeIcon className="w-5 h-5 text-yellow-400 shrink-0" />
                   <span>Delivery Checkout</span>
@@ -207,8 +218,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                 </>
               )}
             </h2>
-            <p className="text-xs text-zinc-200">
-              Wrap &amp; Wings Co
+            <p className="text-xs text-zinc-300">
+              {orderMode === 'dine-in'
+                ? (tableNumber ? `Seated at Table ${tableNumber} • Delivered to table` : 'Select your seated table number below')
+                : 'Wrap & Wings Co • Pinetown Flagship'}
             </p>
           </div>
           <button
@@ -223,6 +236,41 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
         {/* Form Body */}
         <form onSubmit={handleSubmitOrder} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
           
+          {/* Seated Table Selection (If dine-in mode) */}
+          {orderMode === 'dine-in' && (
+            <div className="space-y-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <Utensils className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Seated Table Number *</span>
+                </h3>
+                <span className="text-[11px] font-black text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-md">
+                  {tableNumber ? `Table ${tableNumber} Selected` : 'Tap Table Below'}
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-300">
+                Tap your table number below so our staff will bring your meal piping hot directly to your table:
+              </p>
+              <div className="grid grid-cols-5 gap-2 pt-1">
+                {(['6', '48', '7', '3', '47'] as const).map((tbl) => (
+                  <button
+                    key={tbl}
+                    type="button"
+                    onClick={() => setTableNumber(tbl)}
+                    className={`py-2.5 rounded-xl border text-center transition-all cursor-pointer font-black ${
+                      tableNumber === tbl
+                        ? 'bg-rose-600 border-rose-500 text-white shadow-lg ring-2 ring-rose-400/50 scale-[1.03]'
+                        : 'bg-zinc-900 border-white/10 text-zinc-300 hover:text-white hover:border-white/20'
+                    }`}
+                  >
+                    <div className="text-[9px] text-zinc-400 uppercase tracking-tight">Table</div>
+                    <div className="text-base sm:text-lg font-black leading-none mt-0.5">{tbl}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Saved Profile Autofill Notice */}
           {hasAutofilled && (
             <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-500/10 border border-amber-500/30 text-amber-300 text-xs">
@@ -243,7 +291,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           {/* Customer Details */}
           <div className="space-y-3">
             <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-              <span>1. Contact Details</span>
+              <span>{orderMode === 'dine-in' ? '1. Customer Details' : '1. Contact Details'}</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>

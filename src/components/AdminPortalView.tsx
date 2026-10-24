@@ -109,7 +109,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // --- Orders State ---
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
-  const [orderModeFilter, setOrderModeFilter] = useState<'all' | 'delivery' | 'collection'>('all');
+  const [orderModeFilter, setOrderModeFilter] = useState<'all' | 'delivery' | 'collection' | 'dine-in'>('all');
   const [selectedOrderDate, setSelectedOrderDate] = useState<string>(() => getLocalTodayDateString());
   const [dailyOrdersReportModalOpen, setDailyOrdersReportModalOpen] = useState(false);
   const [copiedOrdersReportFeedback, setCopiedOrdersReportFeedback] = useState(false);
@@ -1145,6 +1145,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   >
                     Collections ({dayOrdersData.collectionsCount})
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderModeFilter('dine-in')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      orderModeFilter === 'dine-in'
+                        ? 'bg-emerald-500 text-zinc-950'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Dine-In ({orders.filter((o) => o.orderMode === 'dine-in').length})
+                  </button>
                 </div>
 
                 {/* Cloud Sync Button */}
@@ -1233,10 +1244,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               </span>
                               <span
                                 className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                  isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
+                                  o.orderMode === 'dine-in'
+                                    ? 'bg-emerald-500 text-zinc-950 font-black'
+                                    : isDelivery
+                                    ? 'bg-orange-500 text-zinc-950'
+                                    : 'bg-amber-400 text-zinc-950'
                                 }`}
                               >
-                                {isDelivery ? '🏍️ Delivery' : '🛍️ Pick'}
+                                {o.orderMode === 'dine-in'
+                                  ? `🍽️ Table ${o.tableNumber || o.customer?.tableNumber || ''}`
+                                  : isDelivery
+                                  ? '🏍️ Delivery'
+                                  : '🛍️ Pick'}
                               </span>
                             </div>
 
@@ -1415,12 +1434,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <td className="py-3.5 px-4 max-w-xs">
                               <span
                                 className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase mb-1 ${
-                                  isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
+                                  o.orderMode === 'dine-in'
+                                    ? 'bg-emerald-500 text-zinc-950 font-black'
+                                    : isDelivery
+                                    ? 'bg-orange-500 text-zinc-950'
+                                    : 'bg-amber-400 text-zinc-950'
                                 }`}
                               >
-                                {isDelivery ? '🏍️ Delivery' : '🛍️ Collection'}
+                                {o.orderMode === 'dine-in'
+                                  ? `🍽️ Table ${o.tableNumber || o.customer?.tableNumber || ''}`
+                                  : isDelivery
+                                  ? '🏍️ Delivery'
+                                  : '🛍️ Collection'}
                               </span>
-                              {isDelivery ? (
+                              {o.orderMode === 'dine-in' ? (
+                                <div className="text-[11px] text-emerald-300 font-semibold">
+                                  Serve to Table {o.tableNumber || o.customer?.tableNumber || ''}
+                                </div>
+                              ) : isDelivery ? (
                                 <div className="text-[11px] text-zinc-300 line-clamp-2">
                                   {o.customer?.address}, {o.customer?.suburb || 'Pinetown'}
                                   {o.customer?.complexOrUnit ? ` (Unit ${o.customer.complexOrUnit})` : ''}

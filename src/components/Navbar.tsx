@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Phone, Clock, Check, Menu, X, BookOpen, Users, Mail, Package } from 'lucide-react';
+import { ShoppingBag, Phone, Clock, Check, Menu, X, BookOpen, Users, Mail, Package, Utensils } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
@@ -13,8 +13,9 @@ export interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
-  const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode } = useCart();
+  const { totalItemCount, grandTotal, setIsCartOpen, orderMode, setOrderMode, tableNumber, setTableNumber } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(getCurrentOrderId());
 
   useEffect(() => {
@@ -224,30 +225,139 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
           </div>
         )}
 
-        {/* (5) Subheader Bar: Collect / Delivery toggle only - Hidden on Contact, Story, Team pages */}
+        {/* (5) Subheader Bar: Dine-In / Collection / Delivery toggle - Hidden on Contact, Story, Team pages */}
         {!['contact', 'story', 'team'].includes(currentView) && (
-          <div className="px-4 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5">
-            <div className="max-w-7xl mx-auto flex items-center justify-start text-xs">
-              <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-lg border border-white/5">
+          <div className="px-2 sm:px-6 py-2 bg-zinc-900/90 border-t border-white/5 overflow-x-auto no-scrollbar">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1 sm:gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5 whitespace-nowrap shrink-0">
+                
+                {/* 1. Dine-In Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrderMode('dine-in');
+                    if (!tableNumber) setIsTableModalOpen(true);
+                  }}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 ${
+                    orderMode === 'dine-in'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title={tableNumber ? `Dine-In seated at Table ${tableNumber} (Tap to change)` : 'Dine-in at our tables'}
+                >
+                  <Utensils className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span>Dine-In{tableNumber ? ` (T${tableNumber})` : ''}</span>
+                  {orderMode === 'dine-in' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
+                </button>
+
+                {/* 2. Collection Button */}
                 <button
                   type="button"
                   onClick={() => setOrderMode('collection')}
-                  className="px-3 py-1 rounded-lg text-xs font-black uppercase bg-rose-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 ${
+                    orderMode === 'collection'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
                 >
-                  <span>🛍️ Collect</span>
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>🛍️ Collection</span>
+                  {orderMode === 'collection' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
                 </button>
+
+                {/* 3. Delivery (Coming Soon) */}
                 <div
                   title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
-                  className="px-2.5 py-1 rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 bg-zinc-900/60 text-zinc-500 border border-white/5 select-none cursor-not-allowed opacity-60"
+                  className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold uppercase flex items-center gap-1 sm:gap-1.5 bg-zinc-900/60 text-zinc-500 border border-white/5 select-none cursor-not-allowed opacity-60 shrink-0"
                 >
-                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
+                  <DeliveryMotorbikeIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-zinc-500" />
                   <span className="text-zinc-400">Delivery</span>
-                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 tracking-wider ml-0.5">
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 tracking-wider">
                     Coming Soon
                   </span>
                 </div>
               </div>
+
+              {/* Dine-In Table Pill (Tablet/Desktop) */}
+              {orderMode === 'dine-in' && (
+                <button
+                  type="button"
+                  onClick={() => setIsTableModalOpen(true)}
+                  className="hidden md:flex items-center gap-1.5 text-xs text-amber-300 font-extrabold px-3 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 transition-all cursor-pointer shrink-0"
+                >
+                  <span>🪑 {tableNumber ? `Seated at Table ${tableNumber}` : 'Tap to Select Table'}</span>
+                  <span className="text-[10px] uppercase font-black underline text-amber-400 ml-1">Change</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Table Selection Modal for Dine-In */}
+        {isTableModalOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn"
+            onClick={() => setIsTableModalOpen(false)}
+          >
+            <div
+              className="relative w-full max-w-sm rounded-3xl bg-[#141419] border border-white/10 p-5 sm:p-6 text-white shadow-2xl space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-rose-600/20 border border-rose-500/30 flex items-center justify-center text-xl">
+                    🍽️
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white">Select Your Table</h3>
+                    <p className="text-xs text-zinc-400">Staff will deliver to your table</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsTableModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-zinc-300">
+                Please tap the table number where you are seated:
+              </p>
+
+              <div className="grid grid-cols-5 gap-2 pt-1">
+                {(['6', '48', '7', '3', '47'] as const).map((tbl) => (
+                  <button
+                    key={tbl}
+                    type="button"
+                    onClick={() => {
+                      setTableNumber(tbl);
+                      setOrderMode('dine-in');
+                      setIsTableModalOpen(false);
+                    }}
+                    className={`py-3 px-1.5 rounded-2xl border text-center transition-all cursor-pointer font-black flex flex-col items-center justify-center gap-1 ${
+                      tableNumber === tbl
+                        ? 'bg-rose-600 border-rose-500 text-white shadow-lg ring-2 ring-rose-400/50 scale-[1.05]'
+                        : 'bg-zinc-900 border-white/10 text-zinc-300 hover:text-white hover:border-white/20 hover:scale-[1.02]'
+                    }`}
+                  >
+                    <span className="text-[9px] uppercase tracking-wider text-zinc-400 font-extrabold">Table</span>
+                    <span className="text-lg font-black text-white leading-none">{tbl}</span>
+                  </button>
+                ))}
+              </div>
+
+              {tableNumber && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsTableModalOpen(false)}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:brightness-110 cursor-pointer"
+                  >
+                    Confirm Table {tableNumber}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

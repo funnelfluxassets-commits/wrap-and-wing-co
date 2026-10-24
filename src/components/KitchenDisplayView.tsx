@@ -277,6 +277,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
   const handlePrintSlip = (order: LiveOrder) => {
     const isDelivery = order.orderMode === 'delivery';
+    const isDineIn = order.orderMode === 'dine-in';
+    const tbl = order.tableNumber || order.customer?.tableNumber || '';
     const printWindow = window.open('', '_blank', 'width=380,height=600');
     if (!printWindow) return;
 
@@ -298,7 +300,9 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           <div class="center">Shop 1, Uniland Centre, Pinetown</div>
           <div class="line"></div>
           <div class="bold" style="font-size: 18px;">ORDER #${order.orderId}</div>
-          <div class="badge">${isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}</div>
+          <div class="badge" style="${isDineIn ? 'background: #10b981; color: #fff;' : ''}">
+            ${isDineIn ? `🍽️ DINE-IN (TABLE ${tbl})` : isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}
+          </div>
           <div>Time: ${order.createdAt} (${order.preferredTime})</div>
           <div class="line"></div>
           <div><span class="bold">Customer:</span> ${order.customer?.customerName || 'Customer'}</div>
@@ -774,10 +778,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         </h3>
                         <span
                           className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
-                            isDelivery ? 'bg-orange-500 text-zinc-950' : 'bg-amber-400 text-zinc-950'
+                            order.orderMode === 'dine-in'
+                              ? 'bg-emerald-500 text-zinc-950 font-black'
+                              : isDelivery
+                              ? 'bg-orange-500 text-zinc-950'
+                              : 'bg-amber-400 text-zinc-950'
                           }`}
                         >
-                          {isDelivery ? '🏍️ DELIVERY' : '🛍️ COLLECTION'}
+                          {order.orderMode === 'dine-in'
+                            ? `🍽️ TABLE ${order.tableNumber || order.customer?.tableNumber || ''}`
+                            : isDelivery
+                            ? '🏍️ DELIVERY'
+                            : '🛍️ COLLECTION'}
                         </span>
                       </div>
                       <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">

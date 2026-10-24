@@ -68,21 +68,33 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     try {
       playCustomerUpdateChime();
       triggerHapticFeedback();
-      const isDeliv = (currentOrder?.orderMode || order?.orderMode || 'collection') === 'delivery';
+      const targetOrder = currentOrder || order;
+      const mode = targetOrder?.orderMode || 'collection';
+      const tbl = targetOrder?.tableNumber || targetOrder?.customer?.tableNumber || '';
+      const isDeliv = mode === 'delivery';
+      const isDineIn = mode === 'dine-in';
 
       if (status === 'cooking') {
         setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');
       } else if (status === 'ready') {
         setToastMessage(
-          isDeliv
+          isDineIn
+            ? `🍽️ Kitchen Update: Fresh off the grill! Our staff is bringing your food to Table ${tbl} right now.`
+            : isDeliv
             ? '📦 Kitchen Update: Food ready & packed in thermal bag! Assigned to your driver.'
             : '🛍️ Kitchen Update: Fresh off the grill & packed! Ready for collection at counter.'
         );
       } else if (status === 'dispatched') {
-        setToastMessage('🏍️ Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.');
+        setToastMessage(
+          isDineIn
+            ? `🍽️ Staff Update: Food on the way to Table ${tbl}!`
+            : '🏍️ Driver Update: Hot meal handed to delivery driver! Live Driver GPS Map activated.'
+        );
       } else if (status === 'completed') {
         setToastMessage(
-          isDeliv
+          isDineIn
+            ? `🎉 Order Served: Handed over at Table ${tbl}! Thank you for dining with Wrap & Wings Co.`
+            : isDeliv
             ? '🎉 Order Delivered: Handed over successfully! Thank you for ordering with Wrap & Wings Co.'
             : '🎉 Order Collected: Handed over at counter! Thank you for ordering with Wrap & Wings Co.'
         );
@@ -437,31 +449,37 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         )}
 
         {/* Order Completed Celebratory Banner */}
-        {order.status === 'completed' && (
-          <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white shadow-2xl border border-emerald-300/40 text-center space-y-2.5 animate-slideDown">
-            <div className="text-3xl sm:text-4xl">🎉 🛍️ 😋</div>
-            <h3 className="text-lg sm:text-2xl font-black">
-              {isDelivery ? 'Order Delivered & Completed!' : 'Order Collected & Handed Over!'}
-            </h3>
-            <p className="text-xs sm:text-sm text-emerald-100 max-w-md mx-auto leading-relaxed">
-              {isDelivery
-                ? 'Your meal was delivered by our driver. Thank you for choosing Wrap & Wings Co.! Enjoy your food!'
-                : 'Your flame-grilled meal was handed over at Shop 1, Uniland Centre! Thank you for ordering with Wrap & Wings Co.! Enjoy every bite.'}
-            </p>
-            <div className="pt-2 flex justify-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  clearCurrentOrder();
-                  onBackToMenu();
-                }}
-                className="px-6 py-2.5 rounded-xl bg-white text-zinc-950 font-black text-xs hover:bg-zinc-100 transition-colors shadow-lg cursor-pointer"
-              >
-                Return to Food Menu
-              </button>
+        {order.status === 'completed' && (() => {
+          const isDineIn = order.orderMode === 'dine-in';
+          const tbl = order.tableNumber || order.customer?.tableNumber || '';
+          return (
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white shadow-2xl border border-emerald-300/40 text-center space-y-2.5 animate-slideDown">
+              <div className="text-3xl sm:text-4xl">🎉 🍽️ 😋</div>
+              <h3 className="text-lg sm:text-2xl font-black">
+                {isDineIn ? `Order Served to Table ${tbl}!` : isDelivery ? 'Order Delivered & Completed!' : 'Order Collected & Handed Over!'}
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-100 max-w-md mx-auto leading-relaxed">
+                {isDineIn
+                  ? `Your flame-grilled feast was delivered directly to Table ${tbl}! Thank you for dining with Wrap & Wings Co.! Enjoy every bite.`
+                  : isDelivery
+                  ? 'Your meal was delivered by our driver. Thank you for choosing Wrap & Wings Co.! Enjoy your food!'
+                  : 'Your flame-grilled meal was handed over at Shop 1, Uniland Centre! Thank you for ordering with Wrap & Wings Co.! Enjoy every bite.'}
+              </p>
+              <div className="pt-2 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearCurrentOrder();
+                    onBackToMenu();
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-white text-zinc-950 font-black text-xs hover:bg-zinc-100 transition-colors shadow-lg cursor-pointer"
+                >
+                  Return to Food Menu
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Dynamic Status Highlight Card */}
         <div

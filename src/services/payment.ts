@@ -14,6 +14,7 @@ export interface CheckoutPayload {
   paymentMethod: 'payfast' | 'yoco' | 'whatsapp' | 'cod';
   preferredTime?: string;
   createdAt: string;
+  tableNumber?: string;
 }
 
 // ── Google Maps & Waze Deep-link Generators ──────────────────────────────────
@@ -45,12 +46,17 @@ export function generateWazeUrl(address: string, suburb: string): string {
 
 // ── WhatsApp Order Message Formatter ─────────────────────────────────────────
 export function buildWhatsAppOrderMessage(payload: CheckoutPayload): string {
-  const { orderId, orderMode, items, subtotal, deliveryFee, grandTotal, customer, store, paymentMethod, preferredTime } = payload;
+  const { orderId, orderMode, items, subtotal, deliveryFee, grandTotal, customer, store, paymentMethod, preferredTime, tableNumber } = payload;
   const isDelivery = orderMode === 'delivery';
+  const isDineIn = orderMode === 'dine-in';
+  const table = customer.tableNumber || tableNumber || '';
 
   let msg = `🔥 *NEW ORDER - WRAP & WINGS CO.*\n`;
   msg += `*Order Ref:* #${orderId}\n`;
-  msg += `*Type:* ${isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
+  msg += `*Type:* ${isDineIn ? `🍽️ DINE-IN (TABLE ${table})` : isDelivery ? '🏍️ HOME DELIVERY' : '🛍️ STORE COLLECTION'}\n`;
+  if (isDineIn && table) {
+    msg += `*Seated Table:* 🪑 Table ${table}\n`;
+  }
   msg += `*Store:* ${store.name} (${store.mall})\n`;
   if (preferredTime) {
     msg += `*Requested Time:* ⏰ ${preferredTime}\n`;

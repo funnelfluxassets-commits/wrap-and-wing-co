@@ -235,8 +235,8 @@ const todayDay = typeof window !== 'undefined'
   ? String(new Date().getDate()).padStart(2, '0')
   : '06';
 
-export function generateNextOrderId(orderMode: 'delivery' | 'collection' = 'collection'): string {
-  const prefix = orderMode === 'delivery' ? 'D' : 'C';
+export function generateNextOrderId(orderMode: 'delivery' | 'collection' | 'dine-in' = 'dine-in'): string {
+  const prefix = orderMode === 'delivery' ? 'D' : (orderMode === 'dine-in' ? 'T' : 'C');
   const dayStr = String(new Date().getDate()).padStart(2, '0');
   const targetPrefix = `${prefix}-${dayStr}`;
 
@@ -1001,8 +1001,8 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   const now = new Date();
   const dateStr = formatToLocalDateString(now);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  // Currently, only collection orders are accepted and processed
-  const activeMode: OrderMode = 'collection';
+  const activeMode: OrderMode = payload.orderMode === 'dine-in' ? 'dine-in' : 'collection';
+  const table = payload.customer?.tableNumber || payload.tableNumber;
   const isDelivery = false;
 
   const initialTimeline: OrderTimelineEvent[] = [
@@ -1010,7 +1010,9 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
       status: 'received',
       timestamp: timeStr,
       label: 'Order Placed & Received',
-      note: `Ticket sent to ${payload.store.name}`,
+      note: activeMode === 'dine-in'
+        ? `Order sent to kitchen for Table ${table || ''}`
+        : `Ticket sent to ${payload.store.name}`,
       epochTime: Date.now(),
     },
   ];
@@ -1018,6 +1020,7 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   const newOrder: LiveOrder = {
     orderId: payload.orderId,
     orderMode: activeMode,
+    tableNumber: table,
     status: 'received',
     items: payload.items,
     subtotal: payload.subtotal,
@@ -1028,9 +1031,9 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     store: payload.store,
     paymentMethod: payload.paymentMethod,
     paymentStatus: 'paid',
-    preferredTime: payload.preferredTime || 'ASAP (15–20 mins)',
+    preferredTime: payload.preferredTime || (activeMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)'),
     createdAt: `${dateStr} ${timeStr}`,
-    estimatedMinutes: 20,
+    estimatedMinutes: activeMode === 'dine-in' ? 15 : 20,
     timeline: initialTimeline,
   };
 
@@ -1140,7 +1143,11 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
   const statusLabels: Record<OrderStatus, string> = {
     received: 'Order Received',
     cooking: 'On The Flame Grill',
-    ready: current.orderMode === 'delivery' ? 'Packed for Driver' : 'Hot & Ready for Collection',
+    ready: current.orderMode === 'dine-in'
+      ? `Fresh off Grill • Delivering to Table ${current.tableNumber || current.customer?.tableNumber || ''}`
+      : current.orderMode === 'delivery'
+      ? 'Packed for Driver'
+      : 'Hot & Ready for Collection',
     dispatched: 'Out for Delivery with Driver',
     completed: 'Order Completed & Handed Over',
     cancelled: 'Order Cancelled',

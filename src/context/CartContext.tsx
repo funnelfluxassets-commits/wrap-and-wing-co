@@ -3,10 +3,15 @@ import { CartCustomization, CartItem, MenuItem, OrderMode, StoreLocation } from 
 import { STORES } from '../data/stores';
 import { logAddToCart, logFlavourSelect } from '../services/analyticsService';
 
+export const DINE_IN_TABLES = ['6', '48', '7', '3', '47'] as const;
+export type TableNumber = typeof DINE_IN_TABLES[number];
+
 interface CartContextType {
   items: CartItem[];
   orderMode: OrderMode;
   setOrderMode: (mode: OrderMode) => void;
+  tableNumber: string;
+  setTableNumber: (table: string) => void;
   selectedStore: StoreLocation;
   setSelectedStore: (store: StoreLocation) => void;
   addItem: (menuItem: MenuItem, quantity: number, customization?: CartCustomization) => void;
@@ -35,12 +40,61 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Strictly locked to 'collection' while delivery is deactivated / coming soon
-  const [orderMode, setOrderModeState] = useState<OrderMode>('collection');
+  const [tableNumber, setTableNumberState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlTable = params.get('table') || params.get('tbl') || params.get('t');
+        if (urlTable && DINE_IN_TABLES.includes(urlTable as any)) {
+          return urlTable;
+        }
+        const hashMatch = window.location.hash.match(/table[=-](\d+)/i);
+        if (hashMatch && DINE_IN_TABLES.includes(hashMatch[1] as any)) {
+          return hashMatch[1];
+        }
+        const saved = localStorage.getItem('wrap_wing_table');
+        if (saved && DINE_IN_TABLES.includes(saved as any)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return '';
+  });
 
-  const setOrderMode = (_mode: OrderMode) => {
-    // Delivery is coming soon; orders are strictly collection only
-    setOrderModeState('collection');
+  // Support Dine-In and Collection ('delivery' is temporarily coming soon)
+  const [orderMode, setOrderModeState] = useState<OrderMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const urlMode = params.get('mode');
+        const urlTable = params.get('table') || params.get('tbl') || params.get('t');
+        if (urlTable || urlMode === 'dine-in') {
+          return 'dine-in';
+        }
+        const saved = localStorage.getItem('wrap_wing_mode') as OrderMode;
+        if (saved === 'dine-in' || saved === 'collection') {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'dine-in';
+  });
+
+  const setTableNumber = (t: string) => {
+    setTableNumberState(t);
+    try {
+      if (t) localStorage.setItem('wrap_wing_table', t);
+      else localStorage.removeItem('wrap_wing_table');
+    } catch {}
+  };
+
+  const setOrderMode = (mode: OrderMode) => {
+    // Delivery is coming soon; customer can select Dine-In or Collection
+    if (mode === 'delivery') return;
+    setOrderModeState(mode);
+    try {
+      localStorage.setItem('wrap_wing_mode', mode);
+    } catch {}
   };
 
   const [selectedStore, setSelectedStore] = useState<StoreLocation>(STORES[0]);
@@ -54,7 +108,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wrap_wing_mode', 'collection');
+      localStorage.setItem('wrap_wing_mode', orderMode);
     } catch {}
   }, [orderMode]);
 
@@ -151,6 +205,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         items,
         orderMode,
         setOrderMode,
+        tableNumber,
+        setTableNumber,
         selectedStore,
         setSelectedStore,
         addItem,

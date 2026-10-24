@@ -60,7 +60,7 @@ export interface CartItem {
   itemTotal: number;
 }
 
-export type OrderMode = 'collection' | 'delivery';
+export type OrderMode = 'collection' | 'delivery' | 'dine-in';
 
 export interface StoreLocation {
   id: string;
@@ -89,6 +89,7 @@ export interface DeliveryDetails {
   notes?: string;
   preferredTime?: string;
   createdAt?: string;
+  tableNumber?: string;
 }
 
 export type PaymentGatewayType = 'payfast' | 'yoco' | 'whatsapp' | 'cod';
@@ -106,6 +107,7 @@ export interface OrderTimelineEvent {
 export interface LiveOrder {
   orderId: string;
   orderMode: OrderMode;
+  tableNumber?: string;
   status: OrderStatus;
   items: CartItem[];
   subtotal: number;
