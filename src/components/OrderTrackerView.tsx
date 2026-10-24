@@ -100,10 +100,10 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       } else if (status === 'completed') {
         setToastMessage(
           isDineIn
-            ? `🎉 Order Served: Handed over at Table ${tbl}! Thank you for dining with Wrap & Wings Co.`
+            ? `Order Served: Handed over at Table ${tbl}! Thank you for dining with Wrap & Wings Co.`
             : isDeliv
-            ? '🎉 Order Delivered: Handed over successfully! Thank you for ordering with Wrap & Wings Co.'
-            : '🎉 Order Collected: Handed over at counter! Thank you for ordering with Wrap & Wings Co.'
+            ? 'Order Delivered: Handed over successfully! Thank you for ordering with Wrap & Wings Co.'
+            : 'Order Collected: Handed over at counter! Thank you for ordering with Wrap & Wings Co.'
         );
       }
     } catch (err) {
@@ -162,9 +162,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     };
     window.addEventListener('wrap_wing_order_status_updated', handleCustomStatusEvent);
 
-    // Active 1.2-second tracker radar to check for kitchen status progression
+    // Active lightweight 1-second tracker radar to check for kitchen status progression
     const trackerRadar = setInterval(async () => {
-      // 1. Check directly from Firestore for sub-second status transitions
+      // 1. Direct Firestore check for instant sub-second status transitions
       if (isFirebaseConfigured) {
         try {
           const direct = await fetchSingleOrderFromFirestore(cleanTarget);
@@ -174,23 +174,21 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
             }
             lastStatusRef.current = direct.status;
             setOrder((prev) => (prev ? { ...prev, ...direct } : direct));
+            return;
           }
         } catch {}
       }
 
-      // 2. Comprehensive cloud sync
-      const freshOrders = await syncOrdersFromCloud();
-      const current = freshOrders.find(
-        (o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === cleanTarget
-      );
-      if (current) {
-        if (lastStatusRef.current && current.status !== lastStatusRef.current) {
-          triggerStatusAlert(current.status, current);
+      // 2. Local memory/storage check
+      const local = getOrderById(effectiveOrderId) || getOrderById(cleanTarget);
+      if (local && local.status) {
+        if (lastStatusRef.current && local.status !== lastStatusRef.current) {
+          triggerStatusAlert(local.status, local);
         }
-        lastStatusRef.current = current.status;
-        setOrder(current);
+        lastStatusRef.current = local.status;
+        setOrder(local);
       }
-    }, 1200);
+    }, 1000);
 
     return () => {
       unsubscribe();
@@ -544,7 +542,17 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           const tbl = order.tableNumber || order.customer?.tableNumber || '';
           return (
             <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-green-600 text-white shadow-2xl border border-emerald-300/40 text-center space-y-2.5 animate-slideDown">
-              <div className="text-3xl sm:text-4xl">🎉 🍽️ 😋</div>
+              <div className="flex justify-center mb-1">
+                <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-inner">
+                  {isDineIn ? (
+                    <Utensils className="w-7 h-7 text-white" strokeWidth={1.8} />
+                  ) : isDelivery ? (
+                    <DeliveryMotorbikeIcon className="w-7 h-7 text-white" />
+                  ) : (
+                    <ShoppingBag className="w-7 h-7 text-white" strokeWidth={1.8} />
+                  )}
+                </div>
+              </div>
               <h3 className="text-lg sm:text-2xl font-black">
                 {isDineIn ? `Order Served to Table ${tbl}!` : isDelivery ? 'Order Delivered & Completed!' : 'Order Collected & Handed Over!'}
               </h3>

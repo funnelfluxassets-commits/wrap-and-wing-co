@@ -635,54 +635,12 @@ let isCloudSyncing = false;
 let cloudEventSource: EventSource | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-// Publish an event to same-domain Vercel API (/api/orders) as fallback
+// Publish an event across devices instantaneously (via ntfy SSE) and secondary fallback
 async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
   event.senderDeviceId = DEVICE_ID;
   const bodyText = JSON.stringify(event);
 
-  try {
-    const res = await fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: bodyText,
-      keepalive: true,
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data && Array.isArray(data.orders)) {
-        const currentOrders = getAllOrders();
-        const orderMap = new Map<string, LiveOrder>();
-        for (const o of currentOrders) {
-          if (o && o.orderId) orderMap.set(o.orderId, o);
-        }
-        for (const o of data.orders) {
-          if (o && o.orderId) {
-            const existing = orderMap.get(o.orderId);
-            if (!existing) {
-              orderMap.set(o.orderId, o);
-            } else {
-              const existingRank = STATUS_RANK[existing.status] || 0;
-              const cloudRank = STATUS_RANK[o.status] || 0;
-              const resolvedStatus = existingRank >= cloudRank ? existing.status : o.status;
-              orderMap.set(o.orderId, {
-                ...existing,
-                ...o,
-                completedAt: o.completedAt || existing.completedAt,
-                cookingStartedAt: o.cookingStartedAt || existing.cookingStartedAt,
-                status: resolvedStatus,
-                timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
-              });
-            }
-          }
-        }
-        saveOrders(Array.from(orderMap.values()), true);
-      }
-    }
-  } catch (err) {
-    console.warn('Could not post to /api/orders:', err);
-  }
-
-  // Also broadcast to public ntfy SSE topic for instantaneous cross-device push
+  // 1. Instantaneous cross-device push via public ntfy SSE topic - fire IMMEDIATELY with 0 delay!
   try {
     fetch(`${NTFY_BASE_URL}/${CLOUD_TOPIC}`, {
       method: 'POST',
@@ -690,6 +648,59 @@ async function publishCloudEvent(event: CloudOrderEvent): Promise<void> {
       headers: { 'Content-Type': 'application/json' },
     }).catch(() => {});
   } catch {}
+
+  // 2. Also notify same-domain /api/orders in the background with a strict 1s timeout (non-blocking)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000);
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: bodyText,
+      signal: controller.signal,
+      keepalive: true,
+    })
+      .then(async (res) => {
+        clearTimeout(timeoutId);
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            if (data && Array.isArray(data.orders)) {
+              const currentOrders = getAllOrders();
+              const orderMap = new Map<string, LiveOrder>();
+              for (const o of currentOrders) {
+                if (o && o.orderId) orderMap.set(o.orderId, o);
+              }
+              for (const o of data.orders) {
+                if (o && o.orderId) {
+                  const existing = orderMap.get(o.orderId);
+                  if (!existing) {
+                    orderMap.set(o.orderId, o);
+                  } else {
+                    const existingRank = STATUS_RANK[existing.status] || 0;
+                    const cloudRank = STATUS_RANK[o.status] || 0;
+                    const resolvedStatus = existingRank >= cloudRank ? existing.status : o.status;
+                    orderMap.set(o.orderId, {
+                      ...existing,
+                      ...o,
+                      completedAt: o.completedAt || existing.completedAt,
+                      cookingStartedAt: o.cookingStartedAt || existing.cookingStartedAt,
+                      status: resolvedStatus,
+                      timeline: (o.timeline?.length || 0) >= (existing.timeline?.length || 0) ? o.timeline : existing.timeline,
+                    });
+                  }
+                }
+              }
+              saveOrders(Array.from(orderMap.values()), true);
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  } catch (err) {
+    // Non-blocking
+  }
 }
 
 // Handle an incoming cloud event from another phone/tablet/computer
@@ -866,39 +877,41 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
       }
     }
 
-    // 2. Secondary fallback: check same-domain /api/orders (if JSON serverless exists)
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
-      const apiResp = await fetch(`/api/orders?t=${Date.now()}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      const contentType = apiResp.headers.get('content-type') || '';
-      if (apiResp.ok && contentType.includes('application/json')) {
-        const data = await apiResp.json();
-        if (Array.isArray(data)) {
-          for (const raw of data) {
-            if (raw && raw.orderId && !isTestOrder(raw)) {
-              const clean = normalizeOrderId(raw.orderId);
-              const existingIdx = cloudOrders.findIndex(
-                (c) => c.orderId === raw.orderId || normalizeOrderId(c.orderId) === clean
-              );
-              if (existingIdx === -1) {
-                cloudOrders.push(raw);
-              } else {
-                const cloudRank = STATUS_RANK[cloudOrders[existingIdx].status] || 0;
-                const apiRank = STATUS_RANK[raw.status] || 0;
-                if (apiRank > cloudRank) {
-                  cloudOrders[existingIdx] = { ...cloudOrders[existingIdx], ...raw };
+    // 2. Secondary fallback: check same-domain /api/orders ONLY if Firestore returned no orders
+    if (cloudOrders.length === 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        const apiResp = await fetch(`/api/orders?t=${Date.now()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        const contentType = apiResp.headers.get('content-type') || '';
+        if (apiResp.ok && contentType.includes('application/json')) {
+          const data = await apiResp.json();
+          if (Array.isArray(data)) {
+            for (const raw of data) {
+              if (raw && raw.orderId && !isTestOrder(raw)) {
+                const clean = normalizeOrderId(raw.orderId);
+                const existingIdx = cloudOrders.findIndex(
+                  (c) => c.orderId === raw.orderId || normalizeOrderId(c.orderId) === clean
+                );
+                if (existingIdx === -1) {
+                  cloudOrders.push(raw);
+                } else {
+                  const cloudRank = STATUS_RANK[cloudOrders[existingIdx].status] || 0;
+                  const apiRank = STATUS_RANK[raw.status] || 0;
+                  if (apiRank > cloudRank) {
+                    cloudOrders[existingIdx] = { ...cloudOrders[existingIdx], ...raw };
+                  }
                 }
               }
             }
           }
         }
-      }
-    } catch {}
+      } catch {}
+    }
 
     if (Array.isArray(cloudOrders)) {
       const currentOrders = getAllOrders();
