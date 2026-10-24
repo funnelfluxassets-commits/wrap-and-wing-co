@@ -232,28 +232,21 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => setOrderMode('collection')}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    orderMode === 'collection'
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
+                  className="px-3 py-1 rounded-lg text-xs font-black uppercase bg-rose-600 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <span>🛍️ Collect</span>
-                  {orderMode === 'collection' && <Check className="w-3 h-3" />}
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setOrderMode('delivery')}
-                  className={`px-3 py-1 rounded text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    orderMode === 'delivery'
-                      ? 'bg-rose-600 text-white shadow-sm'
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
+                <div
+                  title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
+                  className="px-2.5 py-1 rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 bg-zinc-900/60 text-zinc-500 border border-white/5 select-none cursor-not-allowed opacity-60"
                 >
-                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
-                  <span>Delivery</span>
-                  {orderMode === 'delivery' && <Check className="w-3 h-3" />}
-                </button>
+                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
+                  <span className="text-zinc-400">Delivery</span>
+                  <span className="text-[10px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 tracking-wider ml-0.5">
+                    Coming Soon
+                  </span>
+                </div>
               </div>
             </div>
           </div>

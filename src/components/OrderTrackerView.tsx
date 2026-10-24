@@ -51,7 +51,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const lastStatusRef = useRef<OrderStatus | null>(order?.status || null);
 
-  const isDelivery = order ? order.orderMode === 'delivery' : true;
+  const isDelivery = order ? order.orderMode === 'delivery' : false;
 
   // Auto-dismiss/redirect once delivery or collection is completed (15s grace period so customer sees celebration)
   useEffect(() => {
@@ -68,7 +68,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
     try {
       playCustomerUpdateChime();
       triggerHapticFeedback();
-      const isDeliv = (currentOrder?.orderMode || order?.orderMode || 'delivery') === 'delivery';
+      const isDeliv = (currentOrder?.orderMode || order?.orderMode || 'collection') === 'delivery';
 
       if (status === 'cooking') {
         setToastMessage('🔥 Kitchen Update: Order accepted! Your chicken is now sizzling on the flame grill!');

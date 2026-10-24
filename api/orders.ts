@@ -67,6 +67,11 @@ export default async function handler(req: any, res: any) {
       }
 
       if (type === 'ORDER_CREATED' && order && order.orderId) {
+        // Enforce collection mode for all new orders while delivery is deactivated
+        if (order.orderMode === 'delivery') {
+          order.orderMode = 'collection';
+          order.deliveryFee = 0;
+        }
         const custName = (order.customer?.customerName || '').trim().toLowerCase();
         const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => custName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(order.orderId).includes(id));
         if (isLegacyDemo) {

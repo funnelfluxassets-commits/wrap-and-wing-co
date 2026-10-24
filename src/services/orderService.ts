@@ -235,7 +235,7 @@ const todayDay = typeof window !== 'undefined'
   ? String(new Date().getDate()).padStart(2, '0')
   : '06';
 
-export function generateNextOrderId(orderMode: 'delivery' | 'collection' = 'delivery'): string {
+export function generateNextOrderId(orderMode: 'delivery' | 'collection' = 'collection'): string {
   const prefix = orderMode === 'delivery' ? 'D' : 'C';
   const dayStr = String(new Date().getDate()).padStart(2, '0');
   const targetPrefix = `${prefix}-${dayStr}`;
@@ -359,7 +359,7 @@ export function getAllOrders(): LiveOrder[] {
         tip: typeof o.tip === 'number' ? o.tip : 0,
         timeline: Array.isArray(o.timeline) ? o.timeline : [],
         status: o.status || 'received',
-        orderMode: o.orderMode || 'delivery',
+        orderMode: o.orderMode || 'collection',
         paymentMethod: o.paymentMethod || 'cod',
         paymentStatus: o.paymentStatus || 'pending',
         preferredTime: o.preferredTime || 'ASAP',
@@ -811,7 +811,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
             tip: typeof raw.tip === 'number' ? raw.tip : 0,
             timeline: Array.isArray(raw.timeline) ? raw.timeline : [],
             status: raw.status || 'received',
-            orderMode: raw.orderMode || 'delivery',
+            orderMode: raw.orderMode || 'collection',
             paymentMethod: raw.paymentMethod || 'cod',
             paymentStatus: raw.paymentStatus || 'pending',
             preferredTime: raw.preferredTime || 'ASAP',
@@ -1001,7 +1001,9 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   const now = new Date();
   const dateStr = formatToLocalDateString(now);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const isDelivery = payload.orderMode === 'delivery';
+  // Currently, only collection orders are accepted and processed
+  const activeMode: OrderMode = 'collection';
+  const isDelivery = false;
 
   const initialTimeline: OrderTimelineEvent[] = [
     {
@@ -1015,20 +1017,20 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
 
   const newOrder: LiveOrder = {
     orderId: payload.orderId,
-    orderMode: payload.orderMode,
+    orderMode: activeMode,
     status: 'received',
     items: payload.items,
     subtotal: payload.subtotal,
-    deliveryFee: payload.deliveryFee,
-    tip: typeof payload.tip === 'number' ? payload.tip : 0,
-    grandTotal: payload.grandTotal,
+    deliveryFee: 0,
+    tip: 0,
+    grandTotal: payload.subtotal,
     customer: payload.customer,
     store: payload.store,
     paymentMethod: payload.paymentMethod,
     paymentStatus: 'paid',
-    preferredTime: payload.preferredTime || (isDelivery ? 'ASAP (35–45 mins)' : 'ASAP (15–20 mins)'),
+    preferredTime: payload.preferredTime || 'ASAP (15–20 mins)',
     createdAt: `${dateStr} ${timeStr}`,
-    estimatedMinutes: isDelivery ? 40 : 20,
+    estimatedMinutes: 20,
     timeline: initialTimeline,
   };
 

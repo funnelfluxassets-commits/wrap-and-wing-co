@@ -98,10 +98,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       alert('Please provide your name and contact phone number.');
       return;
     }
-    if (orderMode === 'delivery' && !address) {
-      alert('Please enter your delivery street address.');
-      return;
-    }
 
     setIsProcessing(true);
 
@@ -116,35 +112,37 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       notes: notes.trim() || undefined,
     });
 
-    const orderId = generateNextOrderId(orderMode);
+    // Enforce that only collection orders can be processed
+    const activeOrderMode: OrderMode = 'collection';
+    const orderId = generateNextOrderId('collection');
 
-    const deliveryDetails: DeliveryDetails = {
+    const customerDetails: DeliveryDetails = {
       customerName,
       phone,
-      address,
-      suburb,
-      complexOrUnit: complexOrUnit.trim() || undefined,
-      gateCode: gateCode.trim() || undefined,
+      address: '',
+      suburb: '',
+      complexOrUnit: undefined,
+      gateCode: undefined,
       notes: notes.trim() || undefined,
       preferredTime: preferredTime === 'ASAP'
-        ? (orderMode === 'collection' ? 'ASAP (15–20 mins)' : 'ASAP (35–45 mins)')
+        ? 'ASAP (15–20 mins)'
         : preferredTime,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     const payload: CheckoutPayload = {
       orderId,
-      orderMode,
+      orderMode: activeOrderMode,
       items: [...items],
       subtotal,
-      deliveryFee,
-      tip: orderMode === 'delivery' ? tip : 0,
-      grandTotal,
-      customer: deliveryDetails,
+      deliveryFee: 0,
+      tip: 0,
+      grandTotal: subtotal,
+      customer: customerDetails,
       store: selectedStore,
       paymentMethod,
-      preferredTime: deliveryDetails.preferredTime,
-      createdAt: deliveryDetails.createdAt || 'Just now',
+      preferredTime: customerDetails.preferredTime,
+      createdAt: customerDetails.createdAt || 'Just now',
     };
 
     // If customer selected PayFast, store pending order in browser memory and forward to PayFast.

@@ -35,8 +35,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
 
-  // Temporarily locked to 'collection' until delivery infrastructure is activated
-  const [orderMode, setOrderMode] = useState<OrderMode>('collection');
+  // Strictly locked to 'collection' while delivery is deactivated / coming soon
+  const [orderMode, setOrderModeState] = useState<OrderMode>('collection');
+
+  const setOrderMode = (_mode: OrderMode) => {
+    // Delivery is coming soon; orders are strictly collection only
+    setOrderModeState('collection');
+  };
 
   const [selectedStore, setSelectedStore] = useState<StoreLocation>(STORES[0]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -49,7 +54,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      localStorage.setItem('wrap_wing_mode', orderMode);
+      localStorage.setItem('wrap_wing_mode', 'collection');
     } catch {}
   }, [orderMode]);
 
@@ -134,9 +139,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0);
-  const deliveryFee = orderMode === 'delivery' && items.length > 0 ? 25.0 : 0;
-  const effectiveTip = orderMode === 'delivery' && items.length > 0 ? tip : 0;
-  const grandTotal = subtotal + deliveryFee + effectiveTip;
+  // Delivery is coming soon; delivery fees and driver tips do not apply
+  const deliveryFee = 0;
+  const effectiveTip = 0;
+  const grandTotal = subtotal;
   const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (

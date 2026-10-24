@@ -68,28 +68,23 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
             <button
               type="button"
               onClick={() => setOrderMode('collection')}
-              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                orderMode === 'collection'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
+              className="py-2.5 rounded-lg bg-rose-600 text-white shadow-md flex items-center justify-center gap-1.5 cursor-pointer font-bold text-xs"
             >
               <span>🛍️ Store Collection</span>
-              {orderMode === 'collection' && <Check className="w-3 h-3" />}
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
             </button>
-            <button
-              type="button"
-              onClick={() => setOrderMode('delivery')}
-              className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                orderMode === 'delivery'
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
+            <div
+              className="py-2 rounded-lg flex flex-col items-center justify-center gap-0.5 text-zinc-500 bg-zinc-900/60 border border-white/5 cursor-not-allowed select-none opacity-60"
+              title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
             >
-              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
-              <span>🏍️ Home Delivery</span>
-              {orderMode === 'delivery' && <Check className="w-3 h-3" />}
-            </button>
+              <div className="flex items-center gap-1">
+                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0 text-zinc-500" />
+                <span className="text-zinc-400 font-bold text-xs">Delivery</span>
+              </div>
+              <span className="text-[9px] font-black uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded tracking-wider">
+                Coming Soon
+              </span>
+            </div>
           </div>
         </div>
 
