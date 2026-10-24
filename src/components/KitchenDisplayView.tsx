@@ -773,10 +773,10 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                   className="rounded-3xl border border-orange-500/25 bg-[#171720] flex flex-col overflow-hidden shadow-2xl transition-all hover:border-orange-500/40"
                 >
                   {/* Card Header */}
-                  <div className="p-3 sm:p-4 flex items-center justify-between gap-2 border-b border-orange-500/20 bg-zinc-950/90 text-zinc-100">
+                  <div className="p-3 sm:p-4 flex items-center justify-between gap-2 border-b border-orange-500/20 bg-zinc-950/90 text-zinc-100 flex-nowrap overflow-hidden">
                     <div className="min-w-0 pr-1 shrink">
-                      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
-                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                        <h3 className="text-base sm:text-lg font-black text-white tracking-tight shrink-0 whitespace-nowrap">
                           #{order.orderId}
                         </h3>
                         <span
@@ -830,8 +830,8 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                             title={isSilenced ? 'Ticket ringtone muted. Tap to unmute.' : 'Incoming new order! Tap to silence ringtone.'}
                           >
                             <Bell className={`w-3.5 h-3.5 shrink-0 ${isSilenced ? 'text-zinc-400' : 'text-amber-400 animate-bounce'}`} />
-                            <span>NEW</span>
-                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded ${isSilenced ? 'bg-zinc-900 text-zinc-400' : 'bg-amber-400 text-black'}`}>
+                            <span className="whitespace-nowrap">NEW</span>
+                            <span className={`text-[9px] font-black px-1.5 py-0.2 rounded whitespace-nowrap ${isSilenced ? 'bg-zinc-900 text-zinc-400' : 'bg-amber-400 text-black'}`}>
                               {isSilenced ? 'MUTED' : 'RINGING'}
                             </span>
                           </button>

@@ -1288,6 +1288,9 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
 
   // Instant real-time status progression in Firestore if configured
   if (isFirebaseConfigured) {
+    saveOrderToFirestore(updatedOrder).catch((e) =>
+      console.warn('Firestore saveOrder error:', e)
+    );
     updateOrderStatusInFirestore(updatedOrder.orderId, newStatus, timelineEvent, cookingStartedAt, completedAt).catch((e) =>
       console.warn('Firestore status update error:', e)
     );

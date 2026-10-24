@@ -62,6 +62,14 @@ export function normalizeOrderId(id: string): string {
 export function cleanDocData<T>(obj: T): T {
   if (obj === null || obj === undefined) return null as unknown as T;
   if (typeof obj !== 'object') return obj;
+  // Preserve Firestore FieldValues (such as arrayUnion, serverTimestamp, deleteField)
+  if (
+    '_methodName' in (obj as any) ||
+    (obj as any).constructor?.name === 'FieldValue' ||
+    (obj as any).constructor?.name === 'FieldValueImpl'
+  ) {
+    return obj;
+  }
   if (Array.isArray(obj)) {
     return obj.map(cleanDocData).filter((x) => x !== undefined) as unknown as T;
   }
@@ -85,6 +93,7 @@ export async function saveOrderToFirestore(order: LiveOrder): Promise<void> {
     const sanitized = cleanDocData({
       ...order,
       orderId: order.orderId,
+      updatedAt: Date.now(),
     });
     await setDoc(docRef, sanitized, { merge: true });
   } catch (err) {
@@ -106,19 +115,46 @@ export async function updateOrderStatusInFirestore(
   try {
     const cleanId = normalizeOrderId(orderId);
     const docRef = doc(db, ORDERS_COLLECTION, cleanId);
-    const updateData: Record<string, any> = { status: newStatus };
-    if (timelineEvent) {
-      updateData.timeline = arrayUnion(cleanDocData(timelineEvent));
-    }
+    const updateData: Record<string, any> = {
+      status: newStatus,
+      updatedAt: Date.now(),
+    };
     if (typeof cookingStartedAt === 'number') {
       updateData.cookingStartedAt = cookingStartedAt;
     }
     if (typeof completedAt === 'number') {
       updateData.completedAt = completedAt;
     }
-    await setDoc(docRef, cleanDocData(updateData), { merge: true });
+    if (timelineEvent) {
+      updateData.timeline = arrayUnion(cleanDocData(timelineEvent));
+    }
+    await setDoc(docRef, updateData, { merge: true });
   } catch (err) {
-    console.error('Error updating order status in Firestore:', err);
+    console.error('Error updating order status in Firestore, trying document fallback:', err);
+    try {
+      const cleanId = normalizeOrderId(orderId);
+      const docRef = doc(db, ORDERS_COLLECTION, cleanId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const existing = snap.data();
+        const existingTimeline = Array.isArray(existing.timeline) ? existing.timeline : [];
+        const newTimeline = timelineEvent ? [...existingTimeline, cleanDocData(timelineEvent)] : existingTimeline;
+        await setDoc(
+          docRef,
+          cleanDocData({
+            ...existing,
+            status: newStatus,
+            timeline: newTimeline,
+            cookingStartedAt: cookingStartedAt !== undefined ? cookingStartedAt : existing.cookingStartedAt,
+            completedAt: completedAt !== undefined ? completedAt : existing.completedAt,
+            updatedAt: Date.now(),
+          }),
+          { merge: true }
+        );
+      }
+    } catch (fallbackErr) {
+      console.error('Firestore fallback update also failed:', fallbackErr);
+    }
   }
 }
 
