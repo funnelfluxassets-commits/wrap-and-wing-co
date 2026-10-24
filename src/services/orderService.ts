@@ -973,22 +973,46 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         }
       }
 
-      // 3. Two-way sync: If local device has an order that cloud does not have, auto-push to cloud
+      // 3. Two-way self-healing sync:
+      // If local device has an order that cloud does not have, OR if local has advanced status ahead of cloud:
       for (const local of currentOrders) {
         if (isTestOrder(local)) continue;
         const localName = (local.customer?.customerName || '').trim().toLowerCase();
         const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => localName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(local.orderId).includes(id));
         if (isLegacyDemo) continue;
-        if (
-          local &&
-          local.orderId &&
-          !cloudOrders.some((c: any) => c.orderId === local.orderId || c.orderId?.replace('#', '') === local.orderId.replace('#', ''))
-        ) {
+        if (!local || !local.orderId) continue;
+
+        const cleanLocalId = normalizeOrderId(local.orderId);
+        const cloudMatch = cloudOrders.find(
+          (c) => c.orderId === local.orderId || normalizeOrderId(c.orderId) === cleanLocalId
+        );
+
+        if (!cloudMatch) {
+          // New order created locally that cloud hasn't received yet
+          if (isFirebaseConfigured) {
+            saveOrderToFirestore(local).catch(() => {});
+          }
           publishCloudEvent({
             type: 'ORDER_CREATED',
             order: local,
             timestamp: Date.now(),
           });
+        } else {
+          // Order exists in cloud. If local status has advanced ahead of cloud, push to Firestore immediately!
+          const localRank = STATUS_RANK[local.status] || 0;
+          const cloudRank = STATUS_RANK[cloudMatch.status] || 0;
+          if (localRank > cloudRank) {
+            if (isFirebaseConfigured) {
+              saveOrderToFirestore(local).catch(() => {});
+            }
+            publishCloudEvent({
+              type: 'ORDER_UPDATED',
+              orderId: local.orderId,
+              newStatus: local.status,
+              order: local,
+              timestamp: Date.now(),
+            });
+          }
         }
       }
 

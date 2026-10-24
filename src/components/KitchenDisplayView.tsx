@@ -46,6 +46,7 @@ import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
 import { StockManagementModal } from './StockManagementModal';
 import { getOutOfStockItemIds, subscribeToStockStatus } from '../services/stockService';
+import { isFirebaseConfigured, saveOrderToFirestore } from '../services/firebase';
 
 interface KitchenDisplayViewProps {
   onBackToMenu: () => void;
@@ -269,6 +270,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           return o;
         })
       );
+      if (isFirebaseConfigured) {
+        saveOrderToFirestore(updated).catch((err) =>
+          console.warn('Direct kitchen status push error:', err)
+        );
+      }
     } else {
       setOrders(getAllOrders().filter((o) => !isTestOrder(o)));
     }

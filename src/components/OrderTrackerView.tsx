@@ -32,6 +32,7 @@ import {
   Smile,
   Trash2,
   RotateCcw,
+  Utensils,
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { LiveDriverMap } from './LiveDriverMap';
@@ -56,6 +57,8 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const lastStatusRef = useRef<OrderStatus | null>(order?.status || null);
 
   const isDelivery = order ? order.orderMode === 'delivery' : false;
+  const isDineIn = order ? order.orderMode === 'dine-in' : false;
+  const tableNum = order?.tableNumber || order?.customer?.tableNumber || '';
 
   // Auto-dismiss/redirect once delivery or collection is completed (15s grace period so customer sees celebration)
   useEffect(() => {
@@ -272,7 +275,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   const createdAt = order.createdAt || 'Just now';
   const whatsAppUrl = getWhatsAppOrderUrl(order);
 
-  // Status step calculations (5-Step for Delivery, 4-Step for Collection)
+  // Status step calculations (5-Step for Delivery, 4-Step for Dine-In / Collection)
   const steps = isDelivery
     ? [
         {
@@ -302,6 +305,33 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
         {
           step: 5,
           label: 'Enjoy!',
+          icon: <Smile className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
+        },
+      ]
+    : isDineIn
+    ? [
+        {
+          step: 1,
+          label: order.status === 'received' ? 'Order Received' : 'Order Accepted',
+          icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
+        },
+        {
+          step: 2,
+          label: 'On The Grill',
+          icon: <Flame className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
+        },
+        {
+          step: 3,
+          label: tableNum ? `Serving Table ${tableNum}` : 'Serving Table',
+          icon: <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />,
+          activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
+        },
+        {
+          step: 4,
+          label: 'Served & Enjoy!',
           icon: <Smile className="w-4 h-4 sm:w-5 sm:h-5" />,
           activeColor: 'bg-gradient-to-tr from-yellow-300 via-yellow-400 to-amber-400 text-zinc-950 shadow-yellow-400/40',
         },
@@ -566,6 +596,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                       <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                       <span>HOME DELIVERY</span>
                     </>
+                  ) : isDineIn ? (
+                    <span className="flex items-center gap-1.5 text-amber-300">
+                      <Utensils className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>DINE-IN {tableNum ? `(TABLE ${tableNum})` : ''}</span>
+                    </span>
                   ) : (
                     <span>🛍️ STORE COLLECTION</span>
                   )}
@@ -581,7 +616,9 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                   <span className="text-orange-400 font-bold shrink-0">🔥 On Flame Grill</span>
                 )}
                 {order.status === 'ready' && (
-                  <span className="text-teal-400 font-bold shrink-0">📦 Food Ready</span>
+                  <span className="text-teal-400 font-bold shrink-0">
+                    {isDineIn ? `🍽️ Delivering to Table ${tableNum || ''}` : '📦 Food Ready'}
+                  </span>
                 )}
                 {order.status === 'dispatched' && (
                   <span className="text-emerald-400 font-bold flex items-center gap-1 shrink-0">
@@ -592,7 +629,13 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {order.status === 'completed' && (
                   <span className="text-emerald-300 font-bold flex items-center gap-1.5 shrink-0">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                    <span>{isDelivery ? 'Delivered & Complete' : 'Collected & Handed Over'}</span>
+                    <span>
+                      {isDelivery
+                        ? 'Delivered & Complete'
+                        : isDineIn
+                        ? `Served to Table ${tableNum || ''}`
+                        : 'Collected & Handed Over'}
+                    </span>
                   </span>
                 )}
               </span>
@@ -600,7 +643,11 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 {order.status === 'received' && 'Order Received by Kitchen ⏳'}
                 {order.status === 'cooking' && 'Order Accepted & On Grill! 🔥'}
                 {order.status === 'ready' &&
-                  (isDelivery ? 'Food Ready & Packed! 📦' : 'Hot & Ready For Pickup! 🛍️')}
+                  (isDelivery
+                    ? 'Food Ready & Packed! 📦'
+                    : isDineIn
+                    ? `Meal Ready — Serving Table ${tableNum || ''}! 🍽️`
+                    : 'Hot & Ready For Pickup! 🛍️')}
                 {order.status === 'dispatched' && (
                   <span className="inline-flex items-center gap-2">
                     <span>Driver Is On The Way!</span>
@@ -609,25 +656,39 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 )}
                 {order.status === 'completed' && (
                   <span className="inline-flex items-center gap-2">
-                    <span>{isDelivery ? 'Order Delivered & Complete!' : 'Order Collected & Complete!'}</span>
+                    <span>
+                      {isDelivery
+                        ? 'Order Delivered & Complete!'
+                        : isDineIn
+                        ? `Meal Served to Table ${tableNum || ''} — Enjoy!`
+                        : 'Order Collected & Complete!'}
+                    </span>
                     <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 inline text-amber-400 shrink-0" />
                   </span>
                 )}
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300 mt-1 max-w-md leading-relaxed">
                 {order.status === 'received' &&
-                  'Your order has been transmitted to the Pinetown kitchen. Standing by for staff to accept your ticket and begin grilling.'}
+                  (isDineIn
+                    ? `Your table order has been sent to the kitchen. Relax at Table ${tableNum || ''} while staff prepare your meal!`
+                    : 'Your order has been transmitted to the Pinetown kitchen. Standing by for staff to accept your ticket and begin grilling.')}
                 {order.status === 'cooking' &&
-                  'The kitchen has accepted your ticket! Your chicken and meals are sizzling on the flame grill with your selected baste flavour.'}
+                  (isDineIn
+                    ? `The kitchen has accepted your order! Your chicken is sizzling on the flame grill. We'll bring it right over to Table ${tableNum || ''} when ready.`
+                    : 'The kitchen has accepted your ticket! Your chicken and meals are sizzling on the flame grill with your selected baste flavour.')}
                 {order.status === 'ready' &&
                   (isDelivery
                     ? 'Your meal is freshly cooked and packed in thermal insulation! Waiting for driver departure.'
+                    : isDineIn
+                    ? `Fresh off the grill! Our staff are bringing your order over to Table ${tableNum || ''} right now.`
                     : 'Your meal is fresh off the grill and packed! Please proceed to the collection counter at Shop 1, Uniland Centre.')}
                 {order.status === 'dispatched' &&
                   'Our delivery driver has your hot meal and is heading directly to your address.'}
                 {order.status === 'completed' &&
                   (isDelivery
                     ? 'Your meal has been delivered! Thank you for ordering with Wrap & Wings Co.! We hope you enjoy your meal.'
+                    : isDineIn
+                    ? `Your order has been served to Table ${tableNum || ''}! Thank you for dining with Wrap & Wings Co.! Enjoy your meal!`
                     : 'Your meal has been handed over at the collection counter! Thank you for collecting your order with Wrap & Wings Co.! Enjoy your food!')}
               </p>
             </div>
@@ -776,17 +837,52 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </div>
         )}
 
-        {/* Pickup Location or Delivery Details Card */}
+        {/* Pickup Location, Dine-In Table, or Delivery Details Card */}
         <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/90 border border-white/10 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-              <MapPin className="w-4 h-4 text-rose-500" />
-              <span>{isDelivery ? 'Delivery Destination' : 'Collection Counter Details'}</span>
+              {isDineIn ? (
+                <Utensils className="w-4 h-4 text-rose-500" />
+              ) : (
+                <MapPin className="w-4 h-4 text-rose-500" />
+              )}
+              <span>
+                {isDelivery
+                  ? 'Delivery Destination'
+                  : isDineIn
+                  ? `Dine-In Table Service ${tableNum ? `(Table ${tableNum})` : ''}`
+                  : 'Collection Counter Details'}
+              </span>
             </h3>
             <span className="text-[11px] font-bold text-zinc-200">Wrap &amp; Wings Co</span>
           </div>
 
-          {!isDelivery ? (
+          {isDineIn ? (
+            <div className="text-xs text-zinc-200 space-y-3">
+              <div>
+                <div className="font-extrabold text-white text-base flex items-center gap-2">
+                  <Utensils className="w-4 h-4 text-amber-400" />
+                  <span>Table #{tableNum || 'Table'} • Seated In Store</span>
+                </div>
+                <div className="text-zinc-300 mt-1">
+                  Relax at your table. Our team is preparing your food fresh off the flame grill and our staff will deliver it directly to your table once ready!
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-amber-500/20 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/10 flex items-center justify-center text-amber-400 font-black text-sm shrink-0 border border-amber-400/30">
+                  #{tableNum || '-'}
+                </div>
+                <div>
+                  <div className="font-bold text-white text-xs">Table Service Active</div>
+                  <div className="text-[11px] text-zinc-400">
+                    Guest: <span className="text-zinc-200 font-semibold">{customer.customerName || 'Dine-in Customer'}</span>
+                    {customer.phone ? ` • ${customer.phone}` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : !isDelivery ? (
             <div className="text-xs text-zinc-200 space-y-2">
               <div>
                 <div className="font-extrabold text-white text-base">Shop 1, Uniland Centre, Pinetown</div>
