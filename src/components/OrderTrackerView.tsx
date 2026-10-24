@@ -110,15 +110,6 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
 
   useEffect(() => {
     if (!effectiveOrderId) {
-      // If no ID passed, try to discover active order from cloud
-      syncOrdersFromCloud().then((fresh) => {
-        const active = fresh.find(
-          (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled' && !isOrderStaleOrExpired(o)
-        );
-        if (active) {
-          setOrder(active);
-        }
-      });
       return;
     }
     const cleanTarget = effectiveOrderId.replace('#', '').trim();
@@ -208,47 +199,50 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
   if (!order) {
     return (
       <div className="min-h-screen bg-[#0d0d12] text-white flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-4">
-          <span className="text-2xl animate-spin inline-block">🍳</span>
+        <div className="w-16 h-16 rounded-full bg-zinc-900 border border-white/10 flex items-center justify-center text-3xl mb-4 shadow-xl">
+          <span className="text-2xl">📦</span>
         </div>
         <h2 className="text-xl font-black">
-          {effectiveOrderId ? `Connecting to Kitchen Feed (#${effectiveOrderId})...` : 'Looking for Active Order...'}
+          {effectiveOrderId ? `Connecting to Kitchen Feed (#${effectiveOrderId})...` : 'No Active Order to Track'}
         </h2>
-        <p className="text-xs text-zinc-400 mt-1 max-w-sm">
+        <p className="text-xs text-zinc-400 mt-2 max-w-sm">
           {effectiveOrderId
             ? 'Fetching live status from the restaurant grill system. Please hold on a moment...'
-            : 'Connecting to live restaurant kitchen feed to check your order status.'}
+            : "You don't have an active order on this device right now. Browse our menu to get fresh flame-grilled wraps and crispy wings!"}
         </p>
-        <div className="flex gap-3 mt-6">
-          <button
-            type="button"
-            onClick={async () => {
-              const orders = await syncOrdersFromCloud();
-              if (orders.length > 0) {
-                const target = effectiveOrderId
-                  ? orders.find((o) => (o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === effectiveOrderId.replace('#', '').trim()) && !isOrderStaleOrExpired(o))
-                  : orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled' && !isOrderStaleOrExpired(o));
+        <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
+          {effectiveOrderId ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const orders = await syncOrdersFromCloud();
+                const target = orders.find(
+                  (o) =>
+                    (o.orderId === effectiveOrderId ||
+                      o.orderId?.replace('#', '').trim() === effectiveOrderId.replace('#', '').trim()) &&
+                    !isOrderStaleOrExpired(o)
+                );
                 if (target) {
                   setOrder(target);
                 } else {
                   clearCurrentOrder();
                   onBackToMenu();
                 }
-              }
-            }}
-            className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg"
-          >
-            ↻ Recheck Kitchen Status
-          </button>
+              }}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg transition-transform active:scale-95"
+            >
+              ↻ Recheck Kitchen Status
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               clearCurrentOrder();
               onBackToMenu();
             }}
-            className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs cursor-pointer"
+            className="px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-zinc-950 font-black text-xs cursor-pointer shadow-lg transition-transform active:scale-95"
           >
-            Return to Menu
+            Browse Menu & Order
           </button>
         </div>
       </div>

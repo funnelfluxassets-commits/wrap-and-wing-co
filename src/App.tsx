@@ -25,7 +25,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
-import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder, isOrderStaleOrExpired } from './services/orderService';
+import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, recordMyPlacedOrder, createLiveOrder, recordCancelledOrder, isOrderStaleOrExpired } from './services/orderService';
 import { getOutOfStockItemIds, subscribeToStockStatus } from './services/stockService';
 import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
@@ -154,6 +154,7 @@ const MainContent: React.FC = () => {
           } catch {}
         }
 
+        recordMyPlacedOrder(pfOrderId);
         setCurrentOrderId(pfOrderId);
         setTrackedOrderId(pfOrderId);
         setCurrentView('track');

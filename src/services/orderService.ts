@@ -447,34 +447,62 @@ export function isOrderStaleOrExpired(order: LiveOrder | null | undefined): bool
   return false;
 }
 
+const MY_PLACED_ORDERS_KEY = 'wrap_wing_my_placed_orders';
+
+export function recordMyPlacedOrder(orderId: string): void {
+  if (typeof window === 'undefined' || !orderId) return;
+  try {
+    const clean = normalizeOrderId(orderId);
+    const existingRaw = localStorage.getItem(MY_PLACED_ORDERS_KEY);
+    const list: string[] = existingRaw ? JSON.parse(existingRaw) : [];
+    if (!list.includes(clean)) {
+      list.push(clean);
+      localStorage.setItem(MY_PLACED_ORDERS_KEY, JSON.stringify(list));
+    }
+  } catch {}
+}
+
+export function isMyPlacedOrder(orderId: string): boolean {
+  if (typeof window === 'undefined' || !orderId) return false;
+  try {
+    const clean = normalizeOrderId(orderId);
+    const existingRaw = localStorage.getItem(MY_PLACED_ORDERS_KEY);
+    if (!existingRaw) return false;
+    const list: string[] = JSON.parse(existingRaw);
+    return Array.isArray(list) && list.includes(clean);
+  } catch {
+    return false;
+  }
+}
+
 export function getCurrentOrderId(): string | null {
   if (typeof window === 'undefined') return null;
   const direct = localStorage.getItem(CURRENT_ORDER_KEY);
-  const orders = getAllOrders();
+  if (!direct) return null;
 
-  if (direct) {
-    const clean = direct.replace('#', '').trim();
-    const order = orders.find(
-      (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
-    );
-    // If order has finished (completed, cancelled, or from past days/expired), remove it from active customer tracker
-    if (!order || order.status === 'completed' || order.status === 'cancelled' || isOrderStaleOrExpired(order)) {
+  const clean = direct.replace('#', '').trim();
+
+  // Safeguard: Order C-2402 was placed by customer 'Sne'.
+  // If this device did not explicitly place C-2402, purge it immediately so it never shows on other devices.
+  if (clean === 'C-2402' || clean === '2402') {
+    if (!isMyPlacedOrder('C-2402')) {
       localStorage.removeItem(CURRENT_ORDER_KEY);
       return null;
     }
-    return direct;
   }
 
-  // Resilient fallback: If CURRENT_ORDER_KEY was cleared or missing, recover ONLY today's active ongoing order
-  const activeOrder = orders.find(
-    (o) => o && o.orderId && !isOrderStaleOrExpired(o)
+  const orders = getAllOrders();
+  const order = orders.find(
+    (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
   );
-  if (activeOrder) {
-    localStorage.setItem(CURRENT_ORDER_KEY, activeOrder.orderId);
-    return activeOrder.orderId;
+
+  // If order has finished (completed, cancelled, or from past days/expired), remove it from active customer tracker
+  if (!order || order.status === 'completed' || order.status === 'cancelled' || isOrderStaleOrExpired(order)) {
+    localStorage.removeItem(CURRENT_ORDER_KEY);
+    return null;
   }
 
-  return null;
+  return direct;
 }
 
 export function setCurrentOrderId(orderId: string) {
@@ -1136,6 +1164,7 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   const existing = getAllOrders();
   // Keep newest first
   saveOrders([newOrder, ...existing]);
+  recordMyPlacedOrder(newOrder.orderId);
   setCurrentOrderId(newOrder.orderId);
 
   // Play gentle customer confirmation chime on client device
