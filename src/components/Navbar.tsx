@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { PageView } from '../types';
-import { subscribeToOrders, getCurrentOrderId } from '../services/orderService';
+import { subscribeToOrders, getCurrentOrderId, isOrderStaleOrExpired } from '../services/orderService';
 
 export interface NavbarProps {
   onOpenStoreModal?: () => void;
@@ -29,7 +29,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
       const myOrder = orders.find(
         (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
       );
-      if (myOrder && myOrder.status !== 'completed' && myOrder.status !== 'cancelled') {
+      if (myOrder && myOrder.status !== 'completed' && myOrder.status !== 'cancelled' && !isOrderStaleOrExpired(myOrder)) {
         setActiveOrderId(myOrder.orderId);
       } else {
         setActiveOrderId(null);

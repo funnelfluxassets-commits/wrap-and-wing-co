@@ -403,6 +403,50 @@ export function getOrderById(orderId: string): LiveOrder | null {
   return orders.find((o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId) || null;
 }
 
+export function isOrderStaleOrExpired(order: LiveOrder | null | undefined): boolean {
+  if (!order) return true;
+
+  // 1. Check order creation date vs today
+  const todayStr = getLocalTodayDateString();
+  const orderDateStr = getOrderDateString(order);
+
+  // If order was placed on a previous calendar day, it is definitely expired
+  if (orderDateStr && orderDateStr < todayStr) {
+    return true;
+  }
+
+  // 2. Check order ID day code (e.g. C-2302 was day 23, today is day 24)
+  const currentDayNum = new Date().getDate();
+  const match = String(order.orderId || '').replace('#', '').match(/^[CDT]-(\d{2})\d+$/i);
+  if (match && match[1]) {
+    const orderDayNum = parseInt(match[1], 10);
+    if (!isNaN(orderDayNum) && orderDayNum !== currentDayNum) {
+      return true;
+    }
+  }
+
+  // 3. If order was completed more than 30 minutes ago, treat as stale/expired
+  if (order.status === 'completed' && order.completedAt) {
+    const ageMinutes = (Date.now() - order.completedAt) / (1000 * 60);
+    if (ageMinutes > 30) {
+      return true;
+    }
+  }
+
+  // 4. Fallback: If order is older than 6 hours
+  if (order.createdAt) {
+    const parsedTime = Date.parse(order.createdAt);
+    if (!isNaN(parsedTime)) {
+      const ageHours = (Date.now() - parsedTime) / (1000 * 60 * 60);
+      if (ageHours > 6) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function getCurrentOrderId(): string | null {
   if (typeof window === 'undefined') return null;
   const direct = localStorage.getItem(CURRENT_ORDER_KEY);
@@ -413,17 +457,17 @@ export function getCurrentOrderId(): string | null {
     const order = orders.find(
       (o) => o.orderId === direct || o.orderId?.replace('#', '').trim() === clean
     );
-    // If order has finished (completed or cancelled), it is removed from customer device
-    if (order && (order.status === 'completed' || order.status === 'cancelled')) {
+    // If order has finished (completed, cancelled, or from past days/expired), remove it from active customer tracker
+    if (!order || order.status === 'completed' || order.status === 'cancelled' || isOrderStaleOrExpired(order)) {
       localStorage.removeItem(CURRENT_ORDER_KEY);
       return null;
     }
     return direct;
   }
 
-  // Resilient fallback: If CURRENT_ORDER_KEY was cleared or missing, recover the most recent active order from device history
+  // Resilient fallback: If CURRENT_ORDER_KEY was cleared or missing, recover ONLY today's active ongoing order
   const activeOrder = orders.find(
-    (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled'
+    (o) => o && o.orderId && !isOrderStaleOrExpired(o)
   );
   if (activeOrder) {
     localStorage.setItem(CURRENT_ORDER_KEY, activeOrder.orderId);
@@ -439,10 +483,32 @@ export function setCurrentOrderId(orderId: string) {
   notifySubscribers();
 }
 
-export function clearCurrentOrder() {
+export function clearCurrentOrder(orderIdToClear?: string) {
   if (typeof window === 'undefined') return;
   try {
+    const targetId = orderIdToClear || localStorage.getItem(CURRENT_ORDER_KEY);
     localStorage.removeItem(CURRENT_ORDER_KEY);
+
+    if (targetId) {
+      const clean = targetId.replace('#', '').trim();
+      const orders = getAllOrders();
+      let changed = false;
+      const updated = orders.map((o) => {
+        if (o.orderId === targetId || o.orderId?.replace('#', '').trim() === clean) {
+          changed = true;
+          return {
+            ...o,
+            status: 'completed' as OrderStatus,
+            completedAt: o.completedAt || Date.now(),
+          };
+        }
+        return o;
+      });
+      if (changed) {
+        saveOrders(updated, false);
+      }
+    }
+
     notifySubscribers();
   } catch {}
 }

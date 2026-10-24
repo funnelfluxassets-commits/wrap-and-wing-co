@@ -8,7 +8,8 @@ import {
   getOrderById,
   syncOrdersFromCloud,
   playCustomerUpdateChime,
-  triggerHapticFeedback
+  triggerHapticFeedback,
+  isOrderStaleOrExpired,
 } from '../services/orderService';
 import { getWhatsAppOrderUrl, generateGoogleMapsUrl } from '../services/payment';
 import { isFirebaseConfigured, fetchSingleOrderFromFirestore } from '../services/firebase';
@@ -28,7 +29,9 @@ import {
   PartyPopper,
   FileText,
   Store,
-  Smile
+  Smile,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { LiveDriverMap } from './LiveDriverMap';
@@ -110,7 +113,7 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
       // If no ID passed, try to discover active order from cloud
       syncOrdersFromCloud().then((fresh) => {
         const active = fresh.find(
-          (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled'
+          (o) => o && o.orderId && o.status !== 'completed' && o.status !== 'cancelled' && !isOrderStaleOrExpired(o)
         );
         if (active) {
           setOrder(active);
@@ -223,9 +226,14 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
               const orders = await syncOrdersFromCloud();
               if (orders.length > 0) {
                 const target = effectiveOrderId
-                  ? orders.find((o) => o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === effectiveOrderId.replace('#', '').trim()) || orders[0]
-                  : orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled') || orders[0];
-                if (target) setOrder(target);
+                  ? orders.find((o) => (o.orderId === effectiveOrderId || o.orderId?.replace('#', '').trim() === effectiveOrderId.replace('#', '').trim()) && !isOrderStaleOrExpired(o))
+                  : orders.find((o) => o.status !== 'completed' && o.status !== 'cancelled' && !isOrderStaleOrExpired(o));
+                if (target) {
+                  setOrder(target);
+                } else {
+                  clearCurrentOrder();
+                  onBackToMenu();
+                }
               }
             }}
             className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer shadow-lg"
@@ -234,7 +242,10 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </button>
           <button
             type="button"
-            onClick={onBackToMenu}
+            onClick={() => {
+              clearCurrentOrder();
+              onBackToMenu();
+            }}
             className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs cursor-pointer"
           >
             Return to Menu
@@ -441,11 +452,50 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </h1>
         </div>
 
-        <div className="w-14" />
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm(`Clear Order #${order.orderId} and return to menu?`)) {
+              clearCurrentOrder(order.orderId);
+              onBackToMenu();
+            }
+          }}
+          className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-rose-600/20 text-zinc-300 hover:text-rose-300 border border-white/10 transition-colors text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+          title="Dismiss this order and return to food menu"
+        >
+          <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
+          <span className="hidden sm:inline">Clear Order</span>
+          <span className="sm:hidden">Clear</span>
+        </button>
       </header>
 
       {/* Main Content Container */}
       <main className="max-w-3xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        
+        {/* Past / Stale Order Notice Banner */}
+        {isOrderStaleOrExpired(order) && (
+          <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs sm:text-sm font-bold flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl animate-fadeIn">
+            <div className="flex items-center gap-2.5 text-center sm:text-left">
+              <span className="text-2xl">⏳</span>
+              <div>
+                <div className="font-black text-amber-300 text-sm">Past Order Notice</div>
+                <div className="text-xs text-amber-200/80">
+                  Order #{order.orderId} was placed on a previous day and is no longer active.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                clearCurrentOrder(order.orderId);
+                onBackToMenu();
+              }}
+              className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-black text-xs cursor-pointer shadow-md transition-all whitespace-nowrap active:scale-95"
+            >
+              Clear & Start Fresh Order
+            </button>
+          </div>
+        )}
         
         {/* Real-Time Kitchen Update Toast Alert */}
         {toastMessage && (
@@ -876,13 +926,13 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
           </a>
         </div>
 
-        {/* Return Button */}
-        <div className="pt-2 text-center">
+        {/* Return Button & Clear Order Action */}
+        <div className="pt-2 flex flex-col items-center gap-3">
           <button
             type="button"
             onClick={() => {
-              if (order.status === 'completed') {
-                clearCurrentOrder();
+              if (order.status === 'completed' || isOrderStaleOrExpired(order)) {
+                clearCurrentOrder(order.orderId);
               }
               onBackToMenu();
             }}
@@ -892,7 +942,21 @@ export const OrderTrackerView: React.FC<OrderTrackerViewProps> = ({
                 : 'bg-zinc-800 hover:bg-zinc-700 text-white'
             }`}
           >
-            {order.status === 'completed' ? 'Order Finished — Back to Menu' : 'Order More / Return to Menu'}
+            {order.status === 'completed' ? 'Order Finished — Back to Food Menu' : 'Order More / Return to Food Menu'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(`Clear Order #${order.orderId} from this phone and start fresh?`)) {
+                clearCurrentOrder(order.orderId);
+                onBackToMenu();
+              }
+            }}
+            className="text-xs text-zinc-400 hover:text-rose-400 font-bold transition-colors cursor-pointer py-1.5 flex items-center gap-1.5"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Already received your meal? Clear this order tracker</span>
           </button>
         </div>
 

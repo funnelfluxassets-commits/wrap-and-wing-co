@@ -25,7 +25,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
-import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder } from './services/orderService';
+import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, createLiveOrder, recordCancelledOrder, isOrderStaleOrExpired } from './services/orderService';
 import { getOutOfStockItemIds, subscribeToStockStatus } from './services/stockService';
 import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
@@ -268,7 +268,7 @@ const MainContent: React.FC = () => {
         (o) => o.orderId === myOrderId || o.orderId?.replace('#', '').trim() === cleanMyId
       );
       if (myOrder) {
-        if (myOrder.status !== 'cancelled') {
+        if (myOrder.status !== 'cancelled' && !isOrderStaleOrExpired(myOrder)) {
           // Keep active while cooking, ready, or completed so customer can see the celebratory completion screen
           setActiveOrder(myOrder);
           setTrackedOrderId(myOrder.orderId);
