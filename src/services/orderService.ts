@@ -1,5 +1,6 @@
 import { LiveOrder, OrderStatus, OrderTimelineEvent } from '../types';
-import { CheckoutPayload } from './payment';
+import { CheckoutPayload, isPayFastStaffTestMode } from './payment';
+import { getStoreOperatingStatus } from './storeHours';
 import { STORES } from '../data/stores';
 import {
   isFirebaseConfigured,
@@ -1159,6 +1160,13 @@ export function getOrderDateString(o: LiveOrder): string {
 }
 
 export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrder> {
+  const storeStatus = getStoreOperatingStatus();
+  if (!storeStatus.isOpen && !isPayFastStaffTestMode()) {
+    throw new Error(
+      `Wrap & Wings Co is currently closed for online orders. ${storeStatus.bannerMessage}`
+    );
+  }
+
   const now = new Date();
   const dateStr = formatToLocalDateString(now);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

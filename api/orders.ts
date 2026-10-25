@@ -67,6 +67,18 @@ export default async function handler(req: any, res: any) {
       }
 
       if (type === 'ORDER_CREATED' && order && order.orderId) {
+        // Enforce operating hours (Mon-Sat 09:00 - 18:00 SAST, Sunday closed)
+        const sastDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' }));
+        const sastDay = sastDate.getDay();
+        const sastMins = sastDate.getHours() * 60 + sastDate.getMinutes();
+        const isStoreClosed = sastDay === 0 || sastMins < 540 || sastMins >= 1080;
+        if (isStoreClosed && !body.isStaffTest) {
+          return res.status(403).json({
+            error: 'Wrap & Wings Co is currently closed. Online orders are only accepted during operating hours (Mon–Sat 9:00 AM – 6:00 PM, Sunday: Closed).',
+            orders: store,
+          });
+        }
+
         // Enforce collection mode for all new orders while delivery is deactivated
         if (order.orderMode === 'delivery') {
           order.orderMode = 'collection';

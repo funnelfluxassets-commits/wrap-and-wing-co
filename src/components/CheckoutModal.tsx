@@ -11,6 +11,7 @@ import {
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
 import { isItemOutOfStock } from '../services/stockService';
 import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
+import { getStoreOperatingStatus, useStoreOperatingStatus } from '../services/storeHours';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle, Utensils } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
@@ -64,6 +65,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStaffTest, setIsStaffTest] = useState(() => isPayFastStaffTestMode());
+  const storeStatus = useStoreOperatingStatus();
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +96,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Enforce restaurant operating hours (Mon-Sat 9am-6pm, Sun closed)
+    const currentStatus = getStoreOperatingStatus();
+    if (!currentStatus.isOpen && !isStaffTest) {
+      alert(
+        `Wrap & Wings Co is currently closed for online orders.\n\n${currentStatus.bannerMessage}\n\nTrading Hours:\nMonday – Saturday: 9:00 AM – 6:00 PM\nSunday: Closed`
+      );
+      setIsProcessing(false);
+      return;
+    }
+
     if (!customerName || !phone) {
       alert('Please provide your name and contact phone number.');
       return;
@@ -232,6 +245,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Operating Hours Alert inside Checkout Modal */}
+        {!storeStatus.isOpen && !isStaffTest && (
+          <div className="p-4 mx-4 sm:mx-6 mt-4 rounded-2xl bg-gradient-to-br from-amber-950/60 via-zinc-900 to-zinc-950 border border-amber-500/40 text-amber-300 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-black text-amber-200 text-sm">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>{storeStatus.bannerTitle}</span>
+            </div>
+            <p className="text-zinc-300 leading-relaxed text-xs">
+              {storeStatus.bannerMessage}
+            </p>
+            <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] text-amber-400 font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <span>Operating Hours:</span>
+              <span className="text-white">Monday – Saturday: 9:00 AM – 6:00 PM (Sunday: Closed)</span>
+            </div>
+          </div>
+        )}
 
         {/* Form Body */}
         <form onSubmit={handleSubmitOrder} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-5">
@@ -619,6 +649,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           <div className="pt-2">
             {(() => {
               const hasOutOfStockItem = items.some((i) => isItemOutOfStock(i.menuItem.id));
+
+              if (!storeStatus.isOpen && !isStaffTest) {
+                return (
+                  <div className="space-y-2">
+                    <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs space-y-1">
+                      <div className="flex items-center gap-2 font-black text-amber-200">
+                        <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>{storeStatus.bannerTitle}</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-300 leading-relaxed">
+                        {storeStatus.bannerMessage}
+                      </p>
+                      <div className="text-[10px] text-amber-400 font-bold pt-0.5">
+                        ⏰ Trading Hours: Mon–Sat 9:00 AM – 6:00 PM (Sunday: Closed)
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3.5 px-4 rounded-xl bg-zinc-800 text-amber-300 font-black text-xs uppercase tracking-wide border border-amber-500/30 cursor-not-allowed select-none flex items-center justify-center gap-2 shadow-none"
+                    >
+                      <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>{storeStatus.buttonText}</span>
+                    </button>
+                  </div>
+                );
+              }
 
               if (hasOutOfStockItem) {
                 return (

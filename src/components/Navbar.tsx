@@ -5,6 +5,7 @@ import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { PageView } from '../types';
 import { subscribeToOrders, getCurrentOrderId, isOrderStaleOrExpired } from '../services/orderService';
+import { useStoreOperatingStatus } from '../services/storeHours';
 
 export interface NavbarProps {
   onOpenStoreModal?: () => void;
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(getCurrentOrderId());
+  const storeStatus = useStoreOperatingStatus();
 
   useEffect(() => {
     const unsub = subscribeToOrders((orders) => {
@@ -41,12 +43,26 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   return (
     <>
       {/* ── Top Announcement Banner ────────────────────────────────────────── */}
-      <div className="bg-gradient-to-r from-red-700 via-rose-600 to-orange-600 text-white text-xs font-semibold py-1.5 px-4 shadow-sm">
+      <div className={`text-white text-xs font-semibold py-1.5 px-4 shadow-sm transition-colors ${
+        storeStatus.isOpen
+          ? 'bg-gradient-to-r from-red-700 via-rose-600 to-orange-600'
+          : 'bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-white/10'
+      }`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 truncate">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-extrabold tracking-wide uppercase">PINETOWN FLAGSHIP NOW OPEN</span>
-            <span className="hidden sm:inline text-white/80">• Uniland Centre (Behind Hollywoodbets)</span>
+            {storeStatus.isOpen ? (
+              <>
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                <span className="font-extrabold tracking-wide uppercase">PINETOWN FLAGSHIP OPEN NOW</span>
+                <span className="hidden sm:inline text-white/80">• Uniland Centre (Closes 6:00 PM)</span>
+              </>
+            ) : (
+              <>
+                <span className="flex h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                <span className="font-extrabold tracking-wide uppercase text-amber-300">STORE CURRENTLY CLOSED</span>
+                <span className="hidden sm:inline text-zinc-300">• {storeStatus.badgeText} • Mon–Sat 9am–6pm</span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-4 shrink-0 text-white/90">
@@ -58,8 +74,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               <span>068 886 3892</span>
             </a>
             <span className="hidden md:flex items-center gap-1 text-white/80">
-              <Clock className="w-3 h-3" />
-              <span>Mon-Sat 9am–6pm (Sun Closed)</span>
+              <Clock className="w-3 h-3 text-amber-400" />
+              <span>{storeStatus.isOpen ? 'Closes 6:00 PM' : storeStatus.badgeText}</span>
             </span>
           </div>
         </div>

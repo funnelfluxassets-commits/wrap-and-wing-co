@@ -1,10 +1,11 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { isItemOutOfStock } from '../services/stockService';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle, Utensils } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle, Utensils, Clock } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { getCdnThumbnailUrl } from '../utils/cdn';
+import { useStoreOperatingStatus } from '../services/storeHours';
 
 interface CartDrawerProps {
   onOpenCheckout: () => void;
@@ -29,6 +30,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
     selectedStore,
     clearCart,
   } = useCart();
+  const storeStatus = useStoreOperatingStatus();
 
   if (!isCartOpen) return null;
 
@@ -305,26 +307,56 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
               </div>
             </div>
 
+            {/* Store Operating Hours Alert when Closed */}
+            {!storeStatus.isOpen && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1.5 animate-fadeIn">
+                <div className="flex items-center gap-2 font-black text-amber-200">
+                  <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>{storeStatus.bannerTitle}</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  {storeStatus.bannerMessage}
+                </p>
+                <div className="text-[10px] text-amber-400 font-bold pt-0.5">
+                  ⏰ Trading Hours: Mon–Sat 9:00 AM – 6:00 PM (Sunday: Closed)
+                </div>
+              </div>
+            )}
+
             {(() => {
               const hasOutOfStockItem = items.some((i) => isItemOutOfStock(i.menuItem.id));
+              const isDisabled = !storeStatus.isOpen || hasOutOfStockItem;
 
               return (
                 <button
                   type="button"
-                  disabled={hasOutOfStockItem}
+                  disabled={isDisabled}
                   onClick={() => {
-                    if (hasOutOfStockItem) return;
+                    if (isDisabled) return;
                     setIsCartOpen(false);
                     onOpenCheckout();
                   }}
                   className={`w-full py-3.5 px-4 rounded-xl font-black text-sm tracking-wide shadow-xl transition-all flex items-center justify-center gap-2 ${
-                    hasOutOfStockItem
+                    !storeStatus.isOpen
+                      ? 'bg-zinc-800 text-amber-300 cursor-not-allowed select-none border border-amber-500/30 shadow-none'
+                      : hasOutOfStockItem
                       ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed select-none border border-white/10'
                       : 'bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-rose-950/40 hover:scale-[1.02] cursor-pointer'
                   }`}
                 >
-                  <span>{hasOutOfStockItem ? 'REMOVE SOLD OUT ITEMS TO PROCEED' : 'PROCEED TO CHECKOUT'}</span>
-                  {!hasOutOfStockItem && <ArrowRight className="w-4 h-4" />}
+                  {!storeStatus.isOpen ? (
+                    <>
+                      <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>{storeStatus.buttonText}</span>
+                    </>
+                  ) : hasOutOfStockItem ? (
+                    <span>REMOVE SOLD OUT ITEMS TO PROCEED</span>
+                  ) : (
+                    <>
+                      <span>PROCEED TO CHECKOUT</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               );
             })()}

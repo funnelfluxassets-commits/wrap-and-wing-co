@@ -5,6 +5,7 @@ import { FacebookIcon } from './icons/FacebookIcon';
 import { useCart } from '../context/CartContext';
 import { MapPin, Clock, Phone, Navigation, Check, Sparkles, X } from 'lucide-react';
 import { StoreLocation } from '../types';
+import { useStoreOperatingStatus } from '../services/storeHours';
 
 interface StoreModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface StoreModalProps {
 
 export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose }) => {
   const { selectedStore, setSelectedStore } = useCart();
+  const storeStatus = useStoreOperatingStatus();
 
   if (!isOpen) return null;
 
@@ -62,11 +64,17 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose }) => {
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-black text-white">{store.name}</span>
                     {isActive ? (
-                      <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
-                        OPEN NOW
-                      </span>
+                      storeStatus.isOpen ? (
+                        <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full">
+                          OPEN NOW
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                          {storeStatus.badgeText.toUpperCase()}
+                        </span>
+                      )
                     ) : (
-                      <span className="text-[10px] font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold bg-zinc-700/40 text-zinc-400 px-2 py-0.5 rounded-full">
                         COMING SOON
                       </span>
                     )}
@@ -97,6 +105,7 @@ export const StoreModal: React.FC<StoreModalProps> = ({ isOpen, onClose }) => {
 
 export const StoreLocatorSection: React.FC = () => {
   const flagship = STORES[0];
+  const storeStatus = useStoreOperatingStatus();
 
   return (
     <section id="store-locator" className="py-14 sm:py-20 bg-[#121217] border-t border-white/10">
@@ -122,8 +131,12 @@ export const StoreLocatorSection: React.FC = () => {
           {/* Left: Flagship Store Details Card */}
           <div className="lg:col-span-5 p-6 sm:p-8 rounded-3xl bg-zinc-900 border border-white/10 shadow-xl flex flex-col justify-between space-y-6">
             <div>
-              <div className="inline-block px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase mb-3">
-                FLAGSHIP STORE • NOW OPEN
+              <div className={`inline-block px-3 py-1 rounded-lg border text-xs font-black uppercase mb-3 ${
+                storeStatus.isOpen
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                  : 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+              }`}>
+                {storeStatus.isOpen ? 'FLAGSHIP STORE • OPEN NOW' : `FLAGSHIP STORE • ${storeStatus.badgeText.toUpperCase()}`}
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-black text-white">{flagship.name}</h3>
