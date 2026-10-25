@@ -55,7 +55,22 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (req.method === 'POST') {
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+      let body: any = {};
+      if (typeof req.body === 'string') {
+        try {
+          body = JSON.parse(req.body);
+        } catch {
+          body = Object.fromEntries(new URLSearchParams(req.body));
+        }
+      } else {
+        body = req.body || {};
+      }
+
+      // Handle PayFast Instant Payment Notification (IPN) ping
+      if (body.payment_status || body.pf_payment_id || (body.m_payment_id && !body.type)) {
+        return res.status(200).send('OK');
+      }
+
       const { type, order, orderId, newStatus, timelineEvent } = body;
 
       const targetId = orderId || order?.orderId;

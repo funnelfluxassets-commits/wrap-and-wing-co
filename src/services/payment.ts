@@ -1,5 +1,6 @@
 import { CartItem, DeliveryDetails, OrderMode, StoreLocation } from '../types';
 import { ORDER_WHATSAPP_NUMBER } from '../data/stores';
+import { md5 } from '../utils/md5';
 
 export interface CheckoutPayload {
   orderId: string;
@@ -170,17 +171,77 @@ export function setPayFastStaffTestMode(enabled: boolean) {
   } catch {}
 }
 
-export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { isSandbox?: boolean }) {
+export const PAYFAST_LIVE_MERCHANT_ID = '37558383';
+export const PAYFAST_LIVE_MERCHANT_KEY = '1hbeo86df6tge';
+export const PAYFAST_SANDBOX_MERCHANT_ID = '10000100';
+export const PAYFAST_SANDBOX_MERCHANT_KEY = '46f0cd694581a';
+
+// PayFast parameter priority ordering for signature generation (per official PayFast documentation)
+export const PAYFAST_SIGNATURE_FIELD_ORDER = [
+  'merchant_id',
+  'merchant_key',
+  'return_url',
+  'cancel_url',
+  'notify_url',
+  'name_first',
+  'name_last',
+  'email_address',
+  'cell_number',
+  'm_payment_id',
+  'amount',
+  'item_name',
+  'item_description',
+  'custom_int1',
+  'custom_int2',
+  'custom_int3',
+  'custom_int4',
+  'custom_int5',
+  'custom_str1',
+  'custom_str2',
+  'custom_str3',
+  'custom_str4',
+  'custom_str5',
+  'email_confirmation',
+  'confirmation_address',
+  'payment_method',
+];
+
+export function payfastUrlEncode(val: string): string {
+  return encodeURIComponent(val)
+    .replace(/%20/g, '+')
+    .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
+}
+
+export function generatePayFastSignature(
+  fields: Record<string, string | undefined>,
+  passphrase?: string
+): string {
+  const parts: string[] = [];
+  for (const key of PAYFAST_SIGNATURE_FIELD_ORDER) {
+    const rawVal = fields[key];
+    if (rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '') {
+      parts.push(`${key}=${payfastUrlEncode(String(rawVal).trim())}`);
+    }
+  }
+  if (passphrase && passphrase.trim() !== '') {
+    parts.push(`passphrase=${payfastUrlEncode(passphrase.trim())}`);
+  }
+  return md5(parts.join('&'));
+}
+
+export function initiatePayFastCheckout(
+  payload: CheckoutPayload,
+  options?: { isSandbox?: boolean; passphrase?: string }
+) {
   if (typeof window === 'undefined') return;
 
-  const isSandbox = options?.isSandbox ?? true;
+  const isSandbox = options?.isSandbox ?? false;
   const processUrl = isSandbox
     ? 'https://sandbox.payfast.co.za/eng/process'
     : 'https://www.payfast.co.za/eng/process';
 
-  // PayFast official sandbox merchant credentials (or production if isSandbox is false)
-  const merchantId = isSandbox ? '10000100' : '37558383';
-  const merchantKey = isSandbox ? '46f0cd694581a' : '1hbeo86df6tge';
+  const merchantId = isSandbox ? PAYFAST_SANDBOX_MERCHANT_ID : PAYFAST_LIVE_MERCHANT_ID;
+  const merchantKey = isSandbox ? PAYFAST_SANDBOX_MERCHANT_KEY : PAYFAST_LIVE_MERCHANT_KEY;
 
   const origin = window.location.origin;
   const cleanId = String(payload.orderId).replace('#', '').trim();
@@ -217,13 +278,16 @@ export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { is
     name_first: firstName,
     name_last: lastName,
     email_address: email,
-    cell_number: sanitizedCell, // only include if strictly valid SA format; omitted otherwise so PayFast never errors
+    cell_number: sanitizedCell,
     m_payment_id: cleanId,
     amount: payload.grandTotal.toFixed(2),
     item_name: `Wrap & Wings Co Order #${cleanId}`,
     item_description: `${payload.items.length} item(s) from ${payload.store.name}`,
-    payment_method: 'cc', // Forces PayFast to display the Credit / Debit Card input screen
   };
+
+  // Generate MD5 signature required by PayFast
+  const signature = generatePayFastSignature(fields, options?.passphrase);
+  fields.signature = signature;
 
   const form = document.createElement('form');
   form.method = 'POST';
@@ -231,11 +295,11 @@ export function initiatePayFastCheckout(payload: CheckoutPayload, options?: { is
   form.style.display = 'none';
 
   Object.entries(fields).forEach(([key, val]) => {
-    if (val) {
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
       const input = document.createElement('input');
       input.type = 'hidden';
       input.name = key;
-      input.value = val;
+      input.value = String(val);
       form.appendChild(input);
     }
   });
