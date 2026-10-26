@@ -40,6 +40,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   CreditCard,
   Trash2,
   RotateCcw,
@@ -586,6 +587,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       smsContactsCount: uniquePhones.size,
     };
   }, [dayOrdersData]);
+
+  // Only active and completed campaign weeks are visible in the week selector dropdown
+  const availableCampaignWeeks = useMemo(() => {
+    return REVIEW_CAMPAIGNS
+      .filter((c) => c.status === 'active' || c.status === 'completed')
+      .sort((a, b) => b.weekNumber - a.weekNumber);
+  }, []);
 
   // --- Active Campaign Week Definition & Entries ---
   const currentCampaign = useMemo(() => {
@@ -1637,46 +1645,55 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               </div>
 
-              {/* Weekly Tabs / Filter Pills */}
-              <div className="flex items-center gap-1.5 flex-wrap bg-zinc-900/90 p-1.5 rounded-2xl border border-white/10">
-                {REVIEW_CAMPAIGNS.map((c) => {
-                  const isSelected = selectedCampaignWeek === c.id;
-                  const weekCount = entries.filter((e) => getEntryCampaignWeekId(e) === c.id).length;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCampaignWeek(c.id);
+              {/* Dropdown Week Selector + Standalone "All" Button */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Styled Dropdown Week Selector */}
+                <div className="relative">
+                  <select
+                    value={selectedCampaignWeek === 'all' ? availableCampaignWeeks[0]?.id || 'week-2' : selectedCampaignWeek}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSelectedCampaignWeek(e.target.value);
                         setReviewStatusFilter('all');
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-                        isSelected
-                          ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20 scale-[1.02]'
-                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                      }`}
-                    >
-                      <span>Week {c.weekNumber}</span>
-                      {c.status === 'active' && (
-                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-zinc-950' : 'bg-emerald-400 animate-pulse'}`} />
-                      )}
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${isSelected ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
-                        {weekCount}
-                      </span>
-                    </button>
-                  );
-                })}
+                      }
+                    }}
+                    className={`appearance-none py-2 pl-3.5 pr-8 rounded-xl font-bold text-xs transition-all cursor-pointer border shadow-md focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                      selectedCampaignWeek !== 'all'
+                        ? 'bg-amber-500 text-zinc-950 border-amber-400 font-black'
+                        : 'bg-zinc-900 text-zinc-300 border-white/15 hover:border-white/30 hover:text-white'
+                    }`}
+                  >
+                    {availableCampaignWeeks.map((c) => {
+                      const count = entries.filter((e) => getEntryCampaignWeekId(e) === c.id).length;
+                      return (
+                        <option
+                          key={c.id}
+                          value={c.id}
+                          className="bg-zinc-900 text-zinc-100 py-1"
+                        >
+                          Week {c.weekNumber} ({c.status === 'active' ? 'Active' : 'Completed'}) • {count} entries
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${
+                      selectedCampaignWeek !== 'all' ? 'text-zinc-950 font-black' : 'text-zinc-400'
+                    }`}
+                  />
+                </div>
 
+                {/* Standalone All Button */}
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedCampaignWeek('all');
                     setReviewStatusFilter('all');
                   }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border flex items-center gap-1.5 shadow-sm ${
                     selectedCampaignWeek === 'all'
-                      ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-md shadow-rose-950/40'
+                      : 'bg-zinc-900 text-zinc-400 border-white/10 hover:text-white hover:bg-zinc-800'
                   }`}
                 >
                   <span>All ({entries.length})</span>
@@ -2021,9 +2038,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                 className="px-2 py-1 rounded-lg bg-zinc-900 border border-white/10 text-amber-300 font-bold text-[10px] focus:outline-none focus:border-amber-400 cursor-pointer shadow-sm"
                                 title="Campaign week cohort (select to reassign)"
                               >
-                                {REVIEW_CAMPAIGNS.map((c) => (
+                                {availableCampaignWeeks.map((c) => (
                                   <option key={c.id} value={c.id}>
-                                    Week {c.weekNumber} ({c.id === 'week-2' ? 'Active' : c.id === 'week-1' ? 'Wrap' : 'Upcoming'})
+                                    Week {c.weekNumber} ({c.id === 'week-2' ? 'Active' : 'Completed'})
                                   </option>
                                 ))}
                               </select>
