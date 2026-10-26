@@ -1016,7 +1016,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData, trafficEntriesData.totalCount)}
+                onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData, trafficEntriesData.totalCount, trafficEntriesData.entries)}
                 className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer"
                 title="Download traffic intelligence in PDF format"
               >
@@ -2470,14 +2470,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               {/* Card 5: Review Campaign Entries */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-amber-500/30 space-y-2 relative overflow-hidden shadow-lg col-span-2 sm:col-span-1">
-                <div className="flex items-center justify-between text-amber-400">
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#14141c] border border-blue-500/30 space-y-2 relative overflow-hidden shadow-lg col-span-2 sm:col-span-1">
+                <div className="flex items-center justify-between text-blue-400">
                   <span className="text-xs font-bold uppercase tracking-wider">Campaign Entries</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
                     <Trophy className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono text-center">
+                <div className="text-2xl sm:text-3xl font-black text-blue-400 font-mono text-center">
                   {trafficEntriesData.totalCount}
                 </div>
                 <p className="text-[11px] text-zinc-400 text-center">
@@ -2491,14 +2491,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </p>
                 <div className="text-[11px] text-zinc-400 text-center space-y-1.5 pt-0.5">
                   <div className="flex items-center justify-center gap-1.5">
-                    <span className="text-emerald-400 font-bold">{trafficEntriesData.verifiedCount} verified</span>
+                    <span className="text-blue-400 font-bold">{trafficEntriesData.verifiedCount} verified</span>
                     <span className="text-zinc-600 font-bold">•</span>
                     <span className="text-zinc-400">{trafficEntriesData.pendingCount} pending</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setActiveTab('reviews')}
-                    className="w-full py-1 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    className="w-full py-1 px-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                   >
                     <span>View Entries</span>
                     <ArrowRight className="w-3 h-3" />
@@ -2722,6 +2722,126 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </span>
                     </div>
                   </div>
+                </div>
+
+                {/* Detailed Campaign Customer Reviews & Star Ratings Card */}
+                <div className="bg-[#14141c] border border-blue-500/30 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <Trophy className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                          Campaign Customer Reviews
+                        </h3>
+                        <p className="text-[11px] text-zinc-400">
+                          {trafficRange === 'today'
+                            ? "Customer entries & star ratings today"
+                            : trafficRange === 'yesterday'
+                            ? 'Customer entries & star ratings yesterday'
+                            : trafficRange === 'week'
+                            ? 'Past 7 days customer reviews & ratings'
+                            : 'All-time campaign customer reviews & ratings'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 font-mono font-black text-xs">
+                      {trafficEntriesData.totalCount} {trafficEntriesData.totalCount === 1 ? 'Entry' : 'Entries'}
+                    </span>
+                  </div>
+
+                  {trafficEntriesData.entries.length === 0 ? (
+                    <div className="py-6 text-center text-zinc-500 text-xs">
+                      <Trophy className="w-7 h-7 mx-auto text-zinc-700 mb-1.5" />
+                      <p>No campaign entries recorded for this period yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                      {trafficEntriesData.entries.map((entry) => {
+                        const stars = entry.rating || 5;
+                        return (
+                          <div
+                            key={entry.id}
+                            className="p-3 rounded-2xl bg-zinc-900/80 border border-white/5 space-y-2 hover:border-blue-500/30 transition-colors"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <span className="font-bold text-white text-sm block">
+                                  {entry.fullName}
+                                </span>
+                                <span className="text-[11px] text-zinc-400 font-mono">
+                                  Till Slip #{entry.receiptNumber}
+                                  {entry.googleReviewName && (
+                                    <> • Review under <span className="text-zinc-300 font-medium">"{entry.googleReviewName}"</span></>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <div className="flex items-center justify-end gap-0.5 text-amber-400">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`w-3.5 h-3.5 ${
+                                        s <= stars
+                                          ? 'fill-amber-400 text-amber-400'
+                                          : 'text-zinc-600'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-[10px] font-mono font-bold text-blue-400 block pt-0.5">
+                                  {stars}/5 Stars
+                                </span>
+                              </div>
+                            </div>
+
+                            {entry.comments && (
+                              <p className="text-xs text-zinc-300 italic bg-black/30 p-2 rounded-xl border border-white/5 line-clamp-2">
+                                "{entry.comments}"
+                              </p>
+                            )}
+
+                            <div className="flex items-center justify-between text-[10px] pt-0.5 border-t border-white/5">
+                              <span
+                                className={`px-2 py-0.5 rounded font-bold uppercase ${
+                                  entry.status === 'verified'
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    : entry.status === 'winner'
+                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black'
+                                    : entry.status === 'uncompleted' || entry.status === 'excluded'
+                                    ? 'bg-zinc-800 text-zinc-500'
+                                    : 'bg-blue-500/15 text-blue-300 border border-blue-500/30'
+                                }`}
+                              >
+                                {entry.status === 'verified'
+                                  ? '✓ Verified'
+                                  : entry.status === 'winner'
+                                  ? '🎉 Winner'
+                                  : entry.status === 'uncompleted' || entry.status === 'excluded'
+                                  ? 'Excluded'
+                                  : 'Pending Verification'}
+                              </span>
+
+                              <span className="text-zinc-500 font-mono text-[10px]">
+                                {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('reviews')}
+                    className="w-full py-2 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>Open Campaign Manager</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
               </div>
@@ -3322,7 +3442,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-3.5 rounded-2xl bg-zinc-950 border border-white/5 space-y-1 col-span-2 sm:col-span-1">
                 <div className="text-[11px] text-zinc-400 uppercase font-bold">Campaign Entries</div>
-                <div className="text-xl font-mono font-black text-amber-400">
+                <div className="text-xl font-mono font-black text-blue-400">
                   {trafficEntriesData.totalCount}
                 </div>
                 <div className="text-[10px] text-zinc-500">
@@ -3528,7 +3648,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData, trafficEntriesData.totalCount)}
+                  onClick={() => exportTrafficToPdf(trafficSummary, trafficRange === 'today' ? "Today's Rush" : trafficRange === 'yesterday' ? 'Yesterday' : trafficRange === 'week' ? 'Past 7 Days' : 'All-Time', trafficOrdersData, trafficEntriesData.totalCount, trafficEntriesData.entries)}
                   className="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <FileText className="w-4 h-4 text-rose-400" />

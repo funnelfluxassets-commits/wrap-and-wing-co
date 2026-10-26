@@ -281,7 +281,8 @@ export function exportTrafficToPdf(
     orderIds?: string[];
     itemOrderIdsMap?: Record<string, string[]>;
   },
-  reviewEntriesCount?: number
+  reviewEntriesCount?: number,
+  reviewEntriesList?: ReviewDrawEntry[]
 ) {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -359,12 +360,14 @@ export function exportTrafficToPdf(
       : `${ordersData.ordersCount || 0} Orders (${totalOrderedUnits} Items)`;
 
   // All results recorded use the single blue color from Total Page Views
+  const campaignKpiVal = String(reviewEntriesCount ?? (trafficSummary.directActions?.reviewDraw || 0));
+
   const kpis = [
     { label: 'TOTAL PAGE VIEWS', val: String(trafficSummary.totalPageViews || 0), color: RESULT_BLUE },
     { label: 'UNIQUE DINERS', val: String(trafficSummary.uniqueVisitorIds?.length || 0), color: RESULT_BLUE },
     { label: 'ONLINE RIGHT NOW', val: '1', color: RESULT_BLUE },
     { label: 'ORDERS & ITEMS SOLD', val: ordersKpiVal, color: RESULT_BLUE },
-    { label: 'MOST CRAVED ITEMS VIEWED', val: String(totalCravedViews), color: RESULT_BLUE },
+    { label: 'CAMPAIGN ENTRIES', val: campaignKpiVal, color: RESULT_BLUE },
     { label: 'RECORDED SALES', val: formatZAR(ordersData.revenue || 0), color: RESULT_BLUE },
   ];
 
@@ -478,7 +481,7 @@ export function exportTrafficToPdf(
     { label: 'WHATSAPP CLICKS', val: String(trafficSummary.directActions?.whatsappChat || 0) },
     { label: 'PHONE CALLS', val: String(trafficSummary.directActions?.phoneCall || 0) },
     { label: 'MAPS / WAZE TAPS', val: String(trafficSummary.directActions?.directions || 0) },
-    { label: 'COMPETITION ENTRIES', val: String(reviewEntriesCount ?? (trafficSummary.directActions?.reviewDraw || 0)) },
+    { label: 'CAMPAIGN ENTRIES', val: String(reviewEntriesCount ?? (trafficSummary.directActions?.reviewDraw || 0)) },
   ];
 
   actions.forEach((act, idx) => {
@@ -677,6 +680,77 @@ export function exportTrafficToPdf(
     doc.text(String(st.count), rx + colWidth - 4, fuy, { align: 'right' });
     fuy += 5.5;
   });
+
+  // ── Campaign Customer Reviews & Star Ratings Table ──
+  if (reviewEntriesList && reviewEntriesList.length > 0) {
+    let ry = y + 36;
+    if (ry + 25 > pageHeight - 20) {
+      doc.addPage();
+      // Draw page header banner & accent line on page 2
+      doc.setFillColor(19, 19, 26);
+      doc.rect(0, 0, pageWidth, 22, 'F');
+      doc.setFillColor(225, 29, 72);
+      doc.rect(0, 22, pageWidth, 1.5, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.text('WRAP & WINGS CO. • Campaign Customer Reviews & Ratings', margin, 14);
+      ry = 30;
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(24, 24, 27);
+      doc.text(`Campaign Customer Reviews & Ratings (${reviewEntriesList.length} Entries)`, margin, ry);
+      ry += 4.5;
+    }
+
+    // Table Header
+    doc.setFillColor(244, 244, 245);
+    doc.rect(margin, ry, pageWidth - margin * 2, 5.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(113, 113, 122);
+    doc.text('CUSTOMER NAME', margin + 3, ry + 3.8);
+    doc.text('TILL SLIP', margin + 65, ry + 3.8);
+    doc.text('STAR RATING', margin + 105, ry + 3.8);
+    doc.text('STATUS', pageWidth - margin - 4, ry + 3.8, { align: 'right' });
+    ry += 6;
+
+    reviewEntriesList.slice(0, 8).forEach((entry, idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, ry - 0.5, pageWidth - margin * 2, 5, 'F');
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(24, 24, 27);
+      doc.text(entry.fullName || 'Anonymous Customer', margin + 3, ry + 3.2);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(113, 113, 122);
+      doc.text(`#${entry.receiptNumber || '—'}`, margin + 65, ry + 3.2);
+
+      // Star rating in RESULT_BLUE
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
+      const stars = entry.rating || 5;
+      doc.text(`${stars}/5 Stars`, margin + 105, ry + 3.2);
+
+      // Status
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.5);
+      if (entry.status === 'verified') {
+        doc.setTextColor(16, 185, 129);
+        doc.text('VERIFIED', pageWidth - margin - 4, ry + 3.2, { align: 'right' });
+      } else {
+        doc.setTextColor(RESULT_BLUE[0], RESULT_BLUE[1], RESULT_BLUE[2]);
+        doc.text((entry.status || 'PENDING').toUpperCase(), pageWidth - margin - 4, ry + 3.2, { align: 'right' });
+      }
+
+      ry += 5.2;
+    });
+  }
 
   // Footer on all pages
   const totalPages = doc.getNumberOfPages();
