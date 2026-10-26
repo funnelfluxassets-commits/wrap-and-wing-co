@@ -148,6 +148,6 @@ export interface ReviewDrawEntry {
   rating?: number;
   comments?: string;
   createdAt: string;
-  status?: 'pending' | 'verified' | 'winner' | 'invalid';
+  status?: 'pending' | 'verified' | 'winner' | 'uncompleted' | 'excluded' | 'invalid';
 }
 

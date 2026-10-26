@@ -42,6 +42,8 @@ import {
   ChevronRight,
   CreditCard,
   Trash2,
+  RotateCcw,
+  EyeOff,
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { isPayFastStaffTestMode, setPayFastStaffTestMode } from '../services/payment';
@@ -123,7 +125,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   // --- Reviews Draw State ---
   const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
-  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'pending' | 'winner'>('all');
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'eligible' | 'uncompleted' | 'winner'>('all');
   const [isDrawing, setIsDrawing] = useState(false);
   const [winnerModalOpen, setWinnerModalOpen] = useState(false);
   const [selectedWinner, setSelectedWinner] = useState<ReviewDrawEntry | null>(null);
@@ -583,6 +585,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thisWeek = entries.filter((e) => new Date(e.createdAt) >= oneWeekAgo);
+    const eligible = entries.filter(
+      (e) => e.status !== 'uncompleted' && e.status !== 'excluded' && e.status !== 'invalid'
+    );
+    const uncompleted = entries.filter(
+      (e) => e.status === 'uncompleted' || e.status === 'excluded'
+    );
     const winners = entries.filter((e) => e.status === 'winner');
     const totalRatings = entries.reduce((acc, curr) => acc + (curr.rating || 5), 0);
     const avgRating = entries.length > 0 ? (totalRatings / entries.length).toFixed(1) : '5.0';
@@ -590,6 +598,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return {
       total: entries.length,
       thisWeek: thisWeek.length,
+      eligible: eligible.length,
+      uncompleted: uncompleted.length,
       winners: winners.length,
       avgRating,
     };
@@ -606,21 +616,33 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         e.receiptNumber.toLowerCase().includes(q) ||
         e.googleReviewName.toLowerCase().includes(q);
 
+      const isUncompleted = e.status === 'uncompleted' || e.status === 'excluded';
+      const isWinner = e.status === 'winner';
+      const isEligible = !isUncompleted && !isWinner && e.status !== 'invalid';
+
       const matchStatus =
         reviewStatusFilter === 'all'
           ? true
+          : reviewStatusFilter === 'eligible'
+          ? isEligible
+          : reviewStatusFilter === 'uncompleted'
+          ? isUncompleted
           : reviewStatusFilter === 'winner'
-          ? e.status === 'winner'
-          : e.status !== 'winner';
+          ? isWinner
+          : true;
 
       return matchSearch && matchStatus;
     });
   }, [entries, reviewSearchQuery, reviewStatusFilter]);
 
-  // Draw Random Winner
+  // Draw Random Winner from ELIGIBLE ENTRIES ONLY
   const handleDrawRandomWinner = () => {
-    if (entries.length === 0) {
-      alert('No entries available to draw from yet.');
+    const eligibleEntries = entries.filter(
+      (e) => e.status !== 'uncompleted' && e.status !== 'excluded' && e.status !== 'invalid'
+    );
+
+    if (eligibleEntries.length === 0) {
+      alert('No eligible entries available to draw from. All entries are currently marked as uncompleted or excluded.');
       return;
     }
     setIsDrawing(true);
@@ -628,12 +650,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
     let counter = 0;
     const interval = setInterval(() => {
-      const randomIndex = Math.floor(Math.random() * entries.length);
-      setSelectedWinner(entries[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * eligibleEntries.length);
+      setSelectedWinner(eligibleEntries[randomIndex]);
       counter++;
       if (counter > 15) {
         clearInterval(interval);
-        const finalWinner = entries[Math.floor(Math.random() * entries.length)];
+        const finalWinner = eligibleEntries[Math.floor(Math.random() * eligibleEntries.length)];
         setSelectedWinner(finalWinner);
         setIsDrawing(false);
       }
@@ -642,7 +664,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   const handleMarkAsWinner = async (entry: ReviewDrawEntry) => {
     await updateReviewEntryStatus(entry.id, 'winner');
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, status: 'winner' } : e)));
     setSelectedWinner((prev) => (prev?.id === entry.id ? { ...prev, status: 'winner' } : prev));
+  };
+
+  const handleToggleExcludeEntry = async (entry: ReviewDrawEntry) => {
+    const isExcluded = entry.status === 'uncompleted' || entry.status === 'excluded';
+    const newStatus: ReviewDrawEntry['status'] = isExcluded ? 'pending' : 'uncompleted';
+    await updateReviewEntryStatus(entry.id, newStatus);
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, status: newStatus } : e)));
   };
 
   // Save Webhook URL
@@ -1559,11 +1589,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
                 <div className="flex items-center justify-between text-zinc-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">This Week</span>
-                  <Calendar className="w-4 h-4 text-amber-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider">Eligible in Draw</span>
+                  <Calendar className="w-4 h-4 text-emerald-400" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-black text-amber-400">{reviewMetrics.thisWeek}</div>
-                <p className="text-[11px] text-zinc-400">Eligible for Sunday draw</p>
+                <div className="text-2xl sm:text-3xl font-black text-emerald-400">{reviewMetrics.eligible}</div>
+                <p className="text-[11px] text-zinc-400">{reviewMetrics.uncompleted} uncompleted excluded</p>
               </div>
 
               <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
@@ -1708,13 +1738,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </button>
 
                 {/* Status Filter Buttons */}
-                <div className="inline-flex rounded-xl bg-zinc-900 p-1 border border-white/5 text-xs">
+                <div className="inline-flex rounded-xl bg-zinc-900 p-1 border border-white/5 text-xs flex-wrap gap-1">
                   <button
                     type="button"
                     onClick={() => setReviewStatusFilter('all')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                       reviewStatusFilter === 'all'
-                        ? 'bg-rose-600 text-white'
+                        ? 'bg-rose-600 text-white shadow-sm'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -1722,10 +1752,32 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </button>
                   <button
                     type="button"
+                    onClick={() => setReviewStatusFilter('eligible')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      reviewStatusFilter === 'eligible'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Eligible ({reviewMetrics.eligible})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReviewStatusFilter('uncompleted')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                      reviewStatusFilter === 'uncompleted'
+                        ? 'bg-zinc-700 text-zinc-100 shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Uncompleted ({reviewMetrics.uncompleted})
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setReviewStatusFilter('winner')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                       reviewStatusFilter === 'winner'
-                        ? 'bg-amber-500 text-zinc-950'
+                        ? 'bg-amber-500 text-zinc-950 shadow-sm font-black'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -1784,98 +1836,144 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {filteredReviews.map((e) => (
-                        <tr
-                          key={e.id}
-                          className={`hover:bg-white/[0.02] transition-colors ${
-                            e.status === 'winner' ? 'bg-amber-500/10' : ''
-                          }`}
-                        >
-                          <td className="py-3.5 px-4 text-zinc-400 whitespace-nowrap">
-                            {new Date(e.createdAt).toLocaleDateString('en-ZA', {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </td>
+                      {filteredReviews.map((e) => {
+                        const isUncompleted = e.status === 'uncompleted' || e.status === 'excluded';
+                        const isWinner = e.status === 'winner';
 
-                          <td className="py-3.5 px-4 font-bold text-white whitespace-nowrap">
-                            {e.fullName}
-                          </td>
+                        return (
+                          <tr
+                            key={e.id}
+                            className={`transition-colors ${
+                              isWinner
+                                ? 'bg-amber-500/10'
+                                : isUncompleted
+                                ? 'opacity-40 bg-zinc-950/40 hover:opacity-75'
+                                : 'hover:bg-white/[0.02]'
+                            }`}
+                          >
+                            <td className="py-3.5 px-4 text-zinc-400 whitespace-nowrap">
+                              {new Date(e.createdAt).toLocaleDateString('en-ZA', {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
 
-                          <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
-                            <a
-                              href={`https://wa.me/${getCleanWhatsAppPhone(e.phone)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline"
+                            <td
+                              className={`py-3.5 px-4 font-bold whitespace-nowrap ${
+                                isUncompleted ? 'text-zinc-500 line-through' : 'text-white'
+                              }`}
                             >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                              <span>{e.phone}</span>
-                            </a>
-                          </td>
+                              {e.fullName}
+                            </td>
 
-                          <td className="py-3.5 px-4 font-mono font-bold text-amber-300 whitespace-nowrap">
-                            {e.receiptNumber}
-                          </td>
+                            <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
+                              <a
+                                href={`https://wa.me/${getCleanWhatsAppPhone(e.phone)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-emerald-400 hover:underline"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
+                                <span>{e.phone}</span>
+                              </a>
+                            </td>
 
-                          <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded-lg bg-zinc-800 border border-white/5 text-zinc-200">
-                              {e.googleReviewName}
-                            </span>
-                          </td>
+                            <td className="py-3.5 px-4 font-mono font-bold text-amber-300 whitespace-nowrap">
+                              {e.receiptNumber}
+                            </td>
 
-                          <td className="py-3.5 px-4 text-amber-400 font-bold whitespace-nowrap">
-                            {e.rating || 5} ★
-                          </td>
-
-                          <td className="py-3.5 px-4 text-zinc-400 max-w-xs truncate" title={e.comments}>
-                            {e.comments || '—'}
-                          </td>
-
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            {e.status === 'winner' ? (
-                              <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-[10px] uppercase flex items-center gap-1 w-max">
-                                <Trophy className="w-3 h-3" />
-                                <span>Winner</span>
+                            <td className="py-3.5 px-4 text-zinc-300 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded-lg bg-zinc-800 border border-white/5 text-zinc-200">
+                                {e.googleReviewName}
                               </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase">
-                                Pending
-                              </span>
-                            )}
-                          </td>
+                            </td>
 
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
-                              {e.status !== 'winner' ? (
+                            <td className="py-3.5 px-4 text-amber-400 font-bold whitespace-nowrap">
+                              {e.rating || 5} ★
+                            </td>
+
+                            <td className="py-3.5 px-4 text-zinc-400 max-w-xs truncate" title={e.comments}>
+                              {e.comments || '—'}
+                            </td>
+
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              {isWinner ? (
+                                <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 font-black text-[10px] uppercase flex items-center gap-1 w-max">
+                                  <Trophy className="w-3 h-3" />
+                                  <span>Winner</span>
+                                </span>
+                              ) : isUncompleted ? (
+                                <span className="px-2 py-0.5 rounded-full bg-zinc-800/80 border border-zinc-700/80 text-zinc-400 font-bold text-[10px] uppercase flex items-center gap-1 w-max">
+                                  <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
+                                  <span>Uncompleted</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 w-max">
+                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
+                                  <span>Eligible</span>
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {isUncompleted ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleExcludeEntry(e)}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                    title="Restore entry back into the active draw pool"
+                                  >
+                                    <RotateCcw className="w-3 h-3 text-emerald-400" />
+                                    <span>Include</span>
+                                  </button>
+                                ) : (
+                                  <>
+                                    {!isWinner && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMarkAsWinner(e)}
+                                        className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-500 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
+                                      >
+                                        Mark Winner
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleExcludeEntry(e)}
+                                      className="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 hover:text-amber-300 text-zinc-400 text-[11px] font-bold transition-all cursor-pointer border border-white/5 flex items-center gap-1"
+                                      title="Mark as uncompleted (exclude from draw selection without deleting)"
+                                    >
+                                      <EyeOff className="w-3 h-3 text-zinc-500" />
+                                      <span>Uncompleted</span>
+                                    </button>
+                                  </>
+                                )}
+
+                                {isWinner && (
+                                  <span className="text-[11px] text-emerald-400 font-bold px-1">Awarded</span>
+                                )}
+
                                 <button
                                   type="button"
-                                  onClick={() => handleMarkAsWinner(e)}
-                                  className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-amber-600 hover:text-zinc-950 text-zinc-300 text-[11px] font-bold transition-all cursor-pointer"
+                                  onClick={async () => {
+                                    if (window.confirm(`Delete review entry #${e.id} for "${e.fullName}" permanently?`)) {
+                                      await deleteReviewEntry(e.id);
+                                      setEntries((prev) => prev.filter((item) => item.id !== e.id));
+                                    }
+                                  }}
+                                  className="p-1 rounded-lg bg-zinc-800 hover:bg-rose-600 text-zinc-500 hover:text-white transition-colors cursor-pointer"
+                                  title="Delete entry permanently"
                                 >
-                                  Mark Winner
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
-                              ) : (
-                                <span className="text-[11px] text-emerald-400 font-bold">Awarded</span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (window.confirm(`Delete review entry #${e.id} for "${e.fullName}"?`)) {
-                                    await deleteReviewEntry(e.id);
-                                  }
-                                }}
-                                className="p-1 rounded-lg bg-zinc-800 hover:bg-rose-600 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                                title="Delete entry"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
