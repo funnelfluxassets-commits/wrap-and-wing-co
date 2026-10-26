@@ -209,6 +209,11 @@ export const PAYFAST_SIGNATURE_FIELD_ORDER = [
 export function payfastUrlEncode(val: string): string {
   return encodeURIComponent(val)
     .replace(/%20/g, '+')
+    .replace(/!/g, '%21')
+    .replace(/'/g, '%27')
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/\*/g, '%2A')
     .replace(/%[0-9a-f]{2}/gi, (match) => match.toUpperCase());
 }
 
@@ -282,7 +287,7 @@ export function initiatePayFastCheckout(
     m_payment_id: cleanId,
     amount: payload.grandTotal.toFixed(2),
     item_name: `Wrap & Wings Co Order #${cleanId}`,
-    item_description: `${payload.items.length} item(s) from ${payload.store.name}`,
+    item_description: `${payload.items.length} item${payload.items.length === 1 ? '' : 's'} from ${payload.store.name}`,
   };
 
   // Generate MD5 signature required by PayFast
