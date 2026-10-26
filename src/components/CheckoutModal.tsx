@@ -62,7 +62,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [gateCode, setGateCode] = useState(() => savedProfile.gateCode || '');
   const [notes, setNotes] = useState(() => savedProfile.notes || '');
   const [preferredTime, setPreferredTime] = useState('ASAP');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('payfast');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStaffTest, setIsStaffTest] = useState(() => isPayFastStaffTestMode());
   const storeStatus = useStoreOperatingStatus();
@@ -320,7 +320,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
 
           {/* Customer Details */}
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
               <span>{orderMode === 'dine-in' ? '1. Customer Details' : '1. Contact Details'}</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -357,8 +357,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           {orderMode === 'delivery' && (
             <div className="space-y-3 pt-3 border-t border-white/10">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-rose-500" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-amber-400" />
                   <span>2. Delivery Address</span>
                 </h3>
                 <span className="text-[11px] text-zinc-200">Connected to Driver GPS</span>
@@ -435,8 +435,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           {/* Order Timing / Pickup Schedule */}
           <div className="space-y-2 pt-3 border-t border-white/10">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5" />
+              <label className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
                 <span>Preparation Timing</span>
               </label>
               <span className="text-[10px] text-amber-400 font-bold">
@@ -477,8 +477,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           {/* Payment Method Selector */}
           <div className="space-y-3 pt-3 border-t border-white/10">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4 text-rose-500" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4 text-amber-400" />
                 <span>Payment Method</span>
               </h3>
               {isStaffTest && (
@@ -506,35 +506,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* Pay On Handover (Active) */}
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('cod')}
-                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
-                  paymentMethod === 'cod'
-                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
-                    : 'border-white/10 bg-zinc-900/60 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
-                }`}
-              >
-                <div>
-                  <div className="text-xs font-black flex items-center gap-1.5">
-                    <span className={paymentMethod === 'cod' ? 'text-white' : 'text-zinc-200'}>Pay On Handover</span>
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold uppercase">ACTIVE</span>
-                  </div>
-                  <div className="text-[11px] text-zinc-300">Cash or Speedpoint card machine</div>
-                </div>
-                <div
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                    paymentMethod === 'cod'
-                      ? 'border-rose-500 bg-rose-500'
-                      : 'border-zinc-700 bg-zinc-900'
-                  }`}
-                >
-                  {paymentMethod === 'cod' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-              </button>
-
-              {/* PayFast Online Payment Gateway */}
+              {/* PayFast Online Payment Gateway (Default on Left) */}
               <button
                 type="button"
                 onClick={() => setPaymentMethod('payfast')}
@@ -568,7 +540,47 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   {paymentMethod === 'payfast' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                 </div>
               </button>
+
+              {/* Pay On Handover (On Right) */}
+              <button
+                type="button"
+                onClick={() => setPaymentMethod('cod')}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                  paymentMethod === 'cod'
+                    ? 'bg-rose-500/15 border-rose-500 ring-1 ring-rose-500 text-white'
+                    : 'border-white/10 bg-zinc-900/60 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
+                }`}
+              >
+                <div>
+                  <div className="text-xs font-black flex items-center gap-1.5">
+                    <span className={paymentMethod === 'cod' ? 'text-white' : 'text-zinc-200'}>Pay On Handover</span>
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-extrabold uppercase">ACTIVE</span>
+                  </div>
+                  <div className="text-[11px] text-zinc-300">Cash or Speedpoint card machine</div>
+                </div>
+                <div
+                  className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                    paymentMethod === 'cod'
+                      ? 'border-rose-500 bg-rose-500'
+                      : 'border-zinc-700 bg-zinc-900'
+                  }`}
+                >
+                  {paymentMethod === 'cod' && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                </div>
+              </button>
             </div>
+
+            {paymentMethod === 'payfast' && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5 animate-fadeIn">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <div className="font-bold text-amber-300">Bank-Grade Encrypted Payment</div>
+                  <p className="text-[11px] text-zinc-300 leading-relaxed">
+                    When you click <strong>Confirm & Place Order</strong> below, you will be securely redirected to PayFast to enter your Card details (with bank OTP) or complete Instant EFT / Capitec Pay safely.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Order Summary & Tip Breakdown */}

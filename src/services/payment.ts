@@ -248,10 +248,15 @@ export function initiatePayFastCheckout(
   const merchantId = isSandbox ? PAYFAST_SANDBOX_MERCHANT_ID : PAYFAST_LIVE_MERCHANT_ID;
   const merchantKey = isSandbox ? PAYFAST_SANDBOX_MERCHANT_KEY : PAYFAST_LIVE_MERCHANT_KEY;
 
-  const origin = window.location.origin;
+  const origin = (typeof window !== 'undefined' && window.location.origin && window.location.origin.startsWith('http'))
+    ? window.location.origin
+    : 'https://www.wrapandwings.co.za';
   const cleanId = String(payload.orderId).replace('#', '').trim();
-  const returnUrl = `${origin}/?view=track&orderId=${encodeURIComponent(cleanId)}&payfast=success`;
-  const cancelUrl = `${origin}/?view=menu&orderId=${encodeURIComponent(cleanId)}&payfast=cancelled`;
+  const returnUrl = `${origin}/?view=track&orderId=${cleanId}&payfast=success`;
+  const cancelUrl = `${origin}/?view=menu&orderId=${cleanId}&payfast=cancelled`;
+  const notifyUrl = origin.includes('localhost')
+    ? 'https://www.wrapandwings.co.za/api/orders'
+    : `${origin}/api/orders`;
 
   const rawName = (payload.customer.customerName || 'Wrap Wing Guest').trim();
   const parts = rawName.split(' ');
@@ -279,15 +284,15 @@ export function initiatePayFastCheckout(
     merchant_key: merchantKey,
     return_url: returnUrl,
     cancel_url: cancelUrl,
-    notify_url: `${origin}/api/orders`,
+    notify_url: notifyUrl,
     name_first: firstName,
     name_last: lastName,
     email_address: email,
     cell_number: sanitizedCell,
     m_payment_id: cleanId,
     amount: payload.grandTotal.toFixed(2),
-    item_name: `Wrap & Wings Co Order #${cleanId}`,
-    item_description: `${payload.items.length} item${payload.items.length === 1 ? '' : 's'} from ${payload.store.name}`,
+    item_name: `Wrap and Wings Order ${cleanId}`,
+    item_description: `Order from Wrap and Wings Co`,
   };
 
   // Generate MD5 signature required by PayFast
@@ -299,7 +304,9 @@ export function initiatePayFastCheckout(
   form.action = processUrl;
   form.style.display = 'none';
 
-  Object.entries(fields).forEach(([key, val]) => {
+  // Append parameters strictly in documented PayFast field sequence
+  for (const key of PAYFAST_SIGNATURE_FIELD_ORDER) {
+    const val = fields[key];
     if (val !== undefined && val !== null && String(val).trim() !== '') {
       const input = document.createElement('input');
       input.type = 'hidden';
@@ -307,7 +314,16 @@ export function initiatePayFastCheckout(
       input.value = String(val);
       form.appendChild(input);
     }
-  });
+  }
+
+  // Append calculated signature hidden field last
+  if (fields.signature) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'signature';
+    input.value = fields.signature;
+    form.appendChild(input);
+  }
 
   document.body.appendChild(form);
   form.submit();
