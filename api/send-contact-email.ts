@@ -35,12 +35,10 @@ export default async function handler(req: any, res: any) {
     process.env.VITE_ORDERS_PASS ||
     process.env.VITE_EMAIL_PASSWORD;
 
-  // Fallback if Vercel saved as Key/Value
+  // Fallback if environment variable saved as Key/Value
   if (!pass) {
-    if (process.env.Value && (process.env.Value.startsWith('Orders_') || process.env.Key === 'SMTP_PASS')) {
+    if (process.env.Key === 'SMTP_PASS' && process.env.Value) {
       pass = process.env.Value;
-    } else if (process.env.Key && process.env.Key.startsWith('Orders_')) {
-      pass = process.env.Key;
     }
   }
 

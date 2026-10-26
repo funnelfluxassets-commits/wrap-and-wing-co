@@ -36,10 +36,8 @@ export default async function handler(req: any, res: any) {
     process.env.VITE_EMAIL_PASSWORD;
 
   if (!pass) {
-    if (process.env.Value && (process.env.Value.startsWith('Orders_') || process.env.Key === 'SMTP_PASS')) {
+    if (process.env.Key === 'SMTP_PASS' && process.env.Value) {
       pass = process.env.Value;
-    } else if (process.env.Key && process.env.Key.startsWith('Orders_')) {
-      pass = process.env.Key;
     }
   }
 
