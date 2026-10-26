@@ -1679,7 +1679,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       type="button"
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          "WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.co.za/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!"
+                          "WIN A FREE WINGS COMBO THIS WEEK! 🍗🔥\nLoved your meal? Want to help our brand new local spot grow?\n1. Scan the QR code or visit wrapandwings.co.za/#review\n2. Drop us your receipt number & honest review on Google.\n3. Stand a chance to win this week's featured 3 Wings + Side combo in our Sunday draw!"
                         );
                         alert("Flyer text copied to clipboard!");
                       }}
@@ -1689,11 +1689,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     </button>
                   </div>
                   <div className="p-3 rounded-xl bg-zinc-900 border border-white/5 font-mono text-[11px] text-zinc-300 leading-relaxed">
-                    <p className="font-bold text-white">WIN A FREE WRAP MEAL THIS WEEK! 🌯🔥</p>
+                    <p className="font-bold text-white">WIN A FREE WINGS COMBO THIS WEEK! 🍗🔥</p>
                     <p>Loved your meal? Want to help our brand new local spot grow?</p>
                     <p>1. Scan the QR code or visit <strong>wrapandwings.co.za/#review</strong></p>
                     <p>2. Enter your receipt slip number &amp; leave a quick review on Google</p>
-                    <p>3. Stand a chance to win this week's featured Wrap Meal combo in our Sunday draw!</p>
+                    <p>3. Stand a chance to win this week's featured 3 Wings + Side combo in our Sunday draw!</p>
                   </div>
                 </div>
               </div>
@@ -2834,7 +2834,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </a>
                 </li>
                 <li>Match Receipt Number <strong>"{selectedWinner.receiptNumber}"</strong> in your POS.</li>
-                <li>Notify customer via WhatsApp with digital voucher code for their free Wrap Meal combo!</li>
+                <li>Notify customer via WhatsApp with digital voucher code for their free 3 Wings + Side combo!</li>
               </ol>
             </div>
 
@@ -2844,7 +2844,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 href={`https://wa.me/${getCleanWhatsAppPhone(
                   selectedWinner.phone
                 )}?text=${encodeURIComponent(
-                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly Customer Meal Draw (Free Chicken Shwarma Wrap Meal + Side) with receipt #${selectedWinner.receiptNumber}. Please reply to claim your meal voucher code!`
+                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly Customer Meal Draw (Free 3 Wings + Side Combo) with receipt #${selectedWinner.receiptNumber}. Please reply to claim your meal voucher code!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

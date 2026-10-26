@@ -129,7 +129,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal, onNavigate, onOpenS
                   onClick={() => handleNav('review')}
                   className="text-amber-400 hover:text-amber-300 transition-colors cursor-pointer text-left font-bold"
                 >
-                  🌯 Win Weekly Wrap Meal Draw
+                  🍗 Win Weekly Wings Combo Draw
                 </button>
               </li>
             </ul>

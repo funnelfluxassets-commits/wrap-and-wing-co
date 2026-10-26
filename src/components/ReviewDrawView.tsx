@@ -115,7 +115,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
-            WIN A WRAP MEAL
+            WIN A WINGS MEAL
           </h1>
 
           <div className="text-xs sm:text-sm text-zinc-200 max-w-lg mx-auto font-medium space-y-1">
@@ -123,7 +123,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               Thank you for supporting our brand-new local spot!
             </p>
             <p className="text-zinc-300">
-              Complete this quick 30-second form to enter our weekly draw to win this week's featured prize: a <strong className="text-white">Full Chicken Shwarma Wrap Meal + Crispy Side</strong>! Winners drawn randomly every Sunday evening!
+              Complete this quick 30-second form to enter our weekly draw to win this week's featured prize: <strong className="text-white">3 Flame-Grilled Wings + A Regular Side Combo</strong>! Winners drawn randomly every Sunday evening!
             </p>
           </div>
         </div>
@@ -135,13 +135,13 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
           /* ── STEP 1: The Digital Entry Form ── */
           <div className="p-5 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-8 animate-fadeIn">
             
-            {/* Featured Weekly Prize Spotlight Card with Wrap Meal Image */}
+            {/* Featured Weekly Prize Spotlight Card with Wings Image */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
               <div className="relative shrink-0 pt-2.5">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg bg-zinc-900">
                   <img
-                    src="/images/menu/thumbs/wrap-and-side-1.webp"
-                    alt="This Week's Featured Prize: Chicken Shwarma Wrap Meal + Side"
+                    src="/images/menu/wings-3.webp"
+                    alt="This Week's Featured Prize: 3 Flame-Grilled Chicken Wings + Side"
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -156,10 +156,10 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                   <span>Featured Weekly Prize</span>
                 </div>
                 <h3 className="text-base sm:text-lg font-black text-white leading-tight">
-                  Flame-Grilled Chicken Shwarma Wrap + Crispy Side
+                  3 Flame-Grilled Chicken Wings + A Regular Side
                 </h3>
                 <p className="text-xs text-zinc-300 leading-relaxed">
-                  Warm toasted tortilla wrapped with succulent flame-grilled chicken strips, fresh crisp salad, signature basting, and your choice of hot golden chips or spicy rice!
+                  3 plump, juicy flame-grilled chicken wings tossed in your choice of signature baste, paired with hot golden chips, savoury spicy rice, or fresh creamy slaw!
                 </p>
                 <div className="text-[11px] text-amber-300/90 font-medium pt-0.5">
                   🎁 Prizes change weekly — order &amp; enter every week to win!
@@ -363,7 +363,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 font-medium leading-relaxed">
-                To officially publish your review and lock in your entry for the <strong className="text-amber-400">Weekly Wrap Meal Draw</strong>, please click the button below to open our official Google Business Page and post your feedback:
+                To officially publish your review and lock in your entry for the <strong className="text-amber-400">Weekly Wings Combo Draw</strong>, please click the button below to open our official Google Business Page and post your feedback:
               </p>
             </div>
 
@@ -448,7 +448,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <ul className="space-y-1.5 pl-6 list-disc text-zinc-300">
                 <li>Entries close every Sunday at midnight.</li>
                 <li>One lucky winner is drawn at random every Sunday night.</li>
-                <li>The winner is contacted directly via WhatsApp with their digital voucher to redeem their free Wrap Meal combo!</li>
+                <li>The winner is contacted directly via WhatsApp with their digital voucher to redeem their free 3 Wings + Side combo meal!</li>
               </ul>
             </div>
 
