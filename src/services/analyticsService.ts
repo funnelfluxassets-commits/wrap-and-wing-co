@@ -1311,7 +1311,8 @@ export function generateWhatsAppDailyReportText(
   revenue: number,
   orderedItemsMap: Record<string, number>,
   orderIds: string[] = [],
-  itemOrderIdsMap?: Record<string, string[]>
+  itemOrderIdsMap?: Record<string, string[]>,
+  campaignEntriesCount?: number
 ): string {
   const sortedOrdered = Object.entries(orderedItemsMap).sort((a, b) => b[1] - a[1]);
   const totalFoodItems = Object.values(orderedItemsMap).reduce((sum, q) => sum + q, 0);
@@ -1360,7 +1361,7 @@ export function generateWhatsAppDailyReportText(
   text += `• WhatsApp Inquiries: *${summary.directActions.whatsappChat || 0}*\n`;
   text += `• Phone Calls to Shop: *${summary.directActions.phoneCall || 0}*\n`;
   text += `• GPS / Directions Taps: *${summary.directActions.directions || 0}*\n`;
-  text += `• Review Draw Entries: *${summary.directActions.reviewDraw || 0}*\n\n`;
+  text += `• Review Campaign Entries: *${campaignEntriesCount ?? (summary.directActions.reviewDraw || 0)}*\n\n`;
 
   text += `📱 *DEVICE USAGE*\n`;
   text += `• Apple iPhone / iPad: ${summary.devices.ios || 0}\n`;

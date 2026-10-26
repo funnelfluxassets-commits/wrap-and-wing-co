@@ -280,7 +280,8 @@ export function exportTrafficToPdf(
     flavourCounts?: Record<string, number>;
     orderIds?: string[];
     itemOrderIdsMap?: Record<string, string[]>;
-  }
+  },
+  reviewEntriesCount?: number
 ) {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -477,7 +478,7 @@ export function exportTrafficToPdf(
     { label: 'WHATSAPP CLICKS', val: String(trafficSummary.directActions?.whatsappChat || 0) },
     { label: 'PHONE CALLS', val: String(trafficSummary.directActions?.phoneCall || 0) },
     { label: 'MAPS / WAZE TAPS', val: String(trafficSummary.directActions?.directions || 0) },
-    { label: 'COMPETITION ENTRIES', val: String(trafficSummary.directActions?.reviewDraw || 0) },
+    { label: 'COMPETITION ENTRIES', val: String(reviewEntriesCount ?? (trafficSummary.directActions?.reviewDraw || 0)) },
   ];
 
   actions.forEach((act, idx) => {
