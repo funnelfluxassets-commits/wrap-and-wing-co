@@ -139,6 +139,19 @@ export type PageView =
 
 export type StaffRole = 'kitchen' | 'driver' | 'admin';
 
+export interface ReviewCampaignWeek {
+  id: string; // e.g. 'week-1', 'week-2', 'week-3'
+  weekNumber: number;
+  title: string;
+  prize: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  status: 'completed' | 'active' | 'upcoming';
+  winnerName?: string;
+  winnerSlip?: string;
+  bannerImage?: string;
+}
+
 export interface ReviewDrawEntry {
   id: string;
   fullName: string;
@@ -149,5 +162,6 @@ export interface ReviewDrawEntry {
   comments?: string;
   createdAt: string;
   status?: 'pending' | 'verified' | 'winner' | 'uncompleted' | 'excluded' | 'invalid';
+  campaignWeekId?: string;
 }
 

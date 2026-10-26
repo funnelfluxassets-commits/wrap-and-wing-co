@@ -70,9 +70,15 @@ import {
 import {
   subscribeToReviewEntries,
   updateReviewEntryStatus,
+  updateReviewEntryCampaignWeek,
   deleteReviewEntry,
   exportEntriesToCsv
 } from '../services/reviewService';
+import {
+  REVIEW_CAMPAIGNS,
+  getEntryCampaignWeekId,
+  getCurrentCampaignWeek,
+} from '../data/reviewCampaigns';
 import {
   getAllOrders,
   subscribeToOrders,
@@ -123,6 +129,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [webhookSavedFeedback, setWebhookSavedFeedback] = useState(false);
 
   // --- Reviews Draw State ---
+  const [selectedCampaignWeek, setSelectedCampaignWeek] = useState<string>('week-2');
   const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'eligible' | 'uncompleted' | 'winner'>('all');
@@ -580,34 +587,43 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     };
   }, [dayOrdersData]);
 
-  // --- Reviews Metrics ---
+  // --- Active Campaign Week Definition & Entries ---
+  const currentCampaign = useMemo(() => {
+    return REVIEW_CAMPAIGNS.find((c) => c.id === selectedCampaignWeek) || null;
+  }, [selectedCampaignWeek]);
+
+  // Entries filtered by selected campaign week (or all entries if 'all' is selected)
+  const campaignEntries = useMemo(() => {
+    if (selectedCampaignWeek === 'all') {
+      return entries;
+    }
+    return entries.filter((e) => getEntryCampaignWeekId(e) === selectedCampaignWeek);
+  }, [entries, selectedCampaignWeek]);
+
+  // --- Reviews Metrics for Selected Campaign Week ---
   const reviewMetrics = useMemo(() => {
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisWeek = entries.filter((e) => new Date(e.createdAt) >= oneWeekAgo);
-    const eligible = entries.filter(
+    const eligible = campaignEntries.filter(
       (e) => e.status !== 'uncompleted' && e.status !== 'excluded' && e.status !== 'invalid'
     );
-    const uncompleted = entries.filter(
+    const uncompleted = campaignEntries.filter(
       (e) => e.status === 'uncompleted' || e.status === 'excluded'
     );
-    const winners = entries.filter((e) => e.status === 'winner');
-    const totalRatings = entries.reduce((acc, curr) => acc + (curr.rating || 5), 0);
-    const avgRating = entries.length > 0 ? (totalRatings / entries.length).toFixed(1) : '5.0';
+    const winners = campaignEntries.filter((e) => e.status === 'winner');
+    const totalRatings = campaignEntries.reduce((acc, curr) => acc + (curr.rating || 5), 0);
+    const avgRating = campaignEntries.length > 0 ? (totalRatings / campaignEntries.length).toFixed(1) : '5.0';
 
     return {
-      total: entries.length,
-      thisWeek: thisWeek.length,
+      total: campaignEntries.length,
       eligible: eligible.length,
       uncompleted: uncompleted.length,
       winners: winners.length,
       avgRating,
     };
-  }, [entries]);
+  }, [campaignEntries]);
 
-  // --- Filtered Reviews ---
+  // --- Filtered Reviews for Selected Campaign Week ---
   const filteredReviews = useMemo(() => {
-    return entries.filter((e) => {
+    return campaignEntries.filter((e) => {
       const q = reviewSearchQuery.toLowerCase().trim();
       const matchSearch =
         !q ||
@@ -633,16 +649,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
       return matchSearch && matchStatus;
     });
-  }, [entries, reviewSearchQuery, reviewStatusFilter]);
+  }, [campaignEntries, reviewSearchQuery, reviewStatusFilter]);
 
-  // Draw Random Winner from ELIGIBLE ENTRIES ONLY
+  // Draw Random Winner from ELIGIBLE ENTRIES of Current Selected Campaign Week ONLY
   const handleDrawRandomWinner = () => {
-    const eligibleEntries = entries.filter(
+    const eligibleEntries = campaignEntries.filter(
       (e) => e.status !== 'uncompleted' && e.status !== 'excluded' && e.status !== 'invalid'
     );
 
     if (eligibleEntries.length === 0) {
-      alert('No eligible entries available to draw from. All entries are currently marked as uncompleted or excluded.');
+      alert(`No eligible entries available to draw from for ${currentCampaign?.title || 'this campaign'}.`);
       return;
     }
     setIsDrawing(true);
@@ -673,6 +689,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     const newStatus: ReviewDrawEntry['status'] = isExcluded ? 'pending' : 'uncompleted';
     await updateReviewEntryStatus(entry.id, newStatus);
     setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, status: newStatus } : e)));
+  };
+
+  const handleMoveEntryWeek = async (entry: ReviewDrawEntry, newWeekId: string) => {
+    await updateReviewEntryCampaignWeek(entry.id, newWeekId);
+    setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, campaignWeekId: newWeekId } : e)));
   };
 
   // Save Webhook URL
@@ -1576,15 +1597,135 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         {/* ==================================================================== */}
         {activeTab === 'reviews' && (
           <div className="space-y-6 animate-fadeIn">
+            {/* Weekly Campaign Cohort Selector Bar */}
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-[#14141e] via-[#121219] to-[#151522] border border-amber-500/30 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-zinc-950 font-black shadow-md shrink-0">
+                  <Flame className="w-5 h-5 text-zinc-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                      Campaign Cohort
+                    </span>
+                    {currentCampaign?.status === 'active' && (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[9px] font-black uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Live Draw Active
+                      </span>
+                    )}
+                    {currentCampaign?.status === 'completed' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black uppercase">
+                        <Trophy className="w-2.5 h-2.5 text-amber-400" />
+                        Completed Week
+                      </span>
+                    )}
+                    {selectedCampaignWeek === 'all' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-white/10 text-[9px] font-black uppercase">
+                        All-Time Archive
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <span>{currentCampaign ? currentCampaign.title : 'All-Time Review Archive (All Campaigns)'}</span>
+                  </h2>
+                  <p className="text-xs text-zinc-400">
+                    {currentCampaign
+                      ? `Dates: ${currentCampaign.startDate} to ${currentCampaign.endDate} • Prize: ${currentCampaign.prize}`
+                      : 'Viewing cumulative participants across all campaign weeks'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Weekly Tabs / Filter Pills */}
+              <div className="flex items-center gap-1.5 flex-wrap bg-zinc-900/90 p-1.5 rounded-2xl border border-white/10">
+                {REVIEW_CAMPAIGNS.map((c) => {
+                  const isSelected = selectedCampaignWeek === c.id;
+                  const weekCount = entries.filter((e) => getEntryCampaignWeekId(e) === c.id).length;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCampaignWeek(c.id);
+                        setReviewStatusFilter('all');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/20 scale-[1.02]'
+                          : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                      }`}
+                    >
+                      <span>Week {c.weekNumber}</span>
+                      {c.status === 'active' && (
+                        <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-zinc-950' : 'bg-emerald-400 animate-pulse'}`} />
+                      )}
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${isSelected ? 'bg-zinc-950/20 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                        {weekCount}
+                      </span>
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCampaignWeek('all');
+                    setReviewStatusFilter('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    selectedCampaignWeek === 'all'
+                      ? 'bg-rose-600 text-white shadow-md shadow-rose-950/40'
+                      : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                  }`}
+                >
+                  <span>All ({entries.length})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Completed Week Winner Celebration Banner */}
+            {currentCampaign?.status === 'completed' && currentCampaign.winnerName && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                    <Trophy className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase text-amber-400 tracking-wider">
+                      {currentCampaign.title} Winner Awarded
+                    </div>
+                    <div className="text-sm font-black text-white">
+                      {currentCampaign.winnerName} {currentCampaign.winnerSlip ? `(Receipt #${currentCampaign.winnerSlip})` : ''}
+                    </div>
+                    <div className="text-xs text-zinc-400">
+                      Prize: {currentCampaign.prize}
+                    </div>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full bg-amber-500 text-zinc-950 font-black text-[11px] uppercase shadow-sm">
+                  🏆 Winner Awarded
+                </span>
+              </div>
+            )}
+
             {/* Metric Cards Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
                 <div className="flex items-center justify-between text-zinc-400">
-                  <span className="text-[11px] font-bold uppercase tracking-wider">Total Entries</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider">
+                    {selectedCampaignWeek === 'all' ? 'Total Entries' : `${currentCampaign?.title.split(':')[0] || 'Week'} Entries`}
+                  </span>
                   <Users className="w-4 h-4 text-rose-500" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-white">{reviewMetrics.total}</div>
-                <p className="text-[11px] text-zinc-400">All-time review entries</p>
+                <p className="text-[11px] text-zinc-400">
+                  {selectedCampaignWeek === 'all'
+                    ? 'All-time review entries'
+                    : selectedCampaignWeek === 'week-2'
+                    ? 'Registered for Week 2 draw'
+                    : `${currentCampaign?.title.split(':')[0] || 'Week'} participants`}
+                </p>
               </div>
 
               <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
@@ -1611,7 +1752,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <Trophy className="w-4 h-4 text-amber-400" />
                 </div>
                 <div className="text-2xl sm:text-3xl font-black text-emerald-400">{reviewMetrics.winners}</div>
-                <p className="text-[11px] text-zinc-400">Weekly meal combos awarded</p>
+                <p className="text-[11px] text-zinc-400">
+                  {currentCampaign?.winnerName ? `Awarded: ${currentCampaign.winnerName}` : 'Weekly combos awarded'}
+                </p>
               </div>
             </div>
 
@@ -1627,7 +1770,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       In-Store Till Flyers &amp; Takeaway Bag Inserts
                     </div>
                     <h3 className="text-base sm:text-lg font-black text-white">
-                      Weekly Wrap Meal Draw QR Code &amp; Campaign URL
+                      {currentCampaign ? `${currentCampaign.title} QR Code & Campaign URL` : 'Weekly Meal Draw QR Code & Campaign URL'}
                     </h3>
                   </div>
                 </div>
@@ -1706,20 +1849,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <button
                   type="button"
                   onClick={handleDrawRandomWinner}
-                  disabled={entries.length === 0}
+                  disabled={reviewMetrics.eligible === 0}
                   className="py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-95 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Shuffle className="w-4 h-4" />
-                  <span>🎲 Draw Sunday Winner</span>
+                  <span>
+                    {currentCampaign?.status === 'completed'
+                      ? `🎲 Draw ${currentCampaign.title.split(':')[0]} Winner`
+                      : '🎲 Draw Sunday Winner'}
+                  </span>
                 </button>
 
                 {/* Export CSV Button */}
                 <button
                   type="button"
-                  onClick={() => exportEntriesToCsv(entries)}
-                  disabled={entries.length === 0}
+                  onClick={() => exportEntriesToCsv(campaignEntries)}
+                  disabled={campaignEntries.length === 0}
                   className="py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-                  title="Download all entries into Excel / CSV"
+                  title="Download entries for this campaign week into Excel / CSV"
                 >
                   <Download className="w-4 h-4 text-emerald-400" />
                   <span>Export Review CSV</span>
@@ -1728,8 +1875,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* Export PDF Button */}
                 <button
                   type="button"
-                  onClick={() => exportReviewEntriesToPdf(entries)}
-                  disabled={entries.length === 0}
+                  onClick={() => exportReviewEntriesToPdf(campaignEntries)}
+                  disabled={campaignEntries.length === 0}
                   className="py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-md shadow-rose-950/40"
                   title="Download review entries in official PDF format"
                 >
@@ -1748,7 +1895,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
-                    All ({entries.length})
+                    All ({campaignEntries.length})
                   </button>
                   <button
                     type="button"
@@ -1804,9 +1951,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                 <h2 className="text-sm font-black uppercase text-white tracking-wider flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <span>Customer Draw Entries ({filteredReviews.length})</span>
+                  <span>
+                    {currentCampaign ? `${currentCampaign.title.split(':')[0]} Participants` : 'All Customer Draw Entries'} ({filteredReviews.length})
+                  </span>
                 </h2>
-                <span className="text-xs text-zinc-400">Live Feedback &amp; Review Bridge Log</span>
+                <span className="text-xs text-zinc-400">
+                  {currentCampaign ? `${currentCampaign.title} (${currentCampaign.startDate} – ${currentCampaign.endDate})` : 'All-time cumulative entries'}
+                </span>
               </div>
 
               {filteredReviews.length === 0 ? (
@@ -1816,6 +1967,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <p className="text-xs text-zinc-400 max-w-sm mx-auto">
                     {reviewSearchQuery
                       ? 'No entries match your search query.'
+                      : currentCampaign
+                      ? `No customer entries have been submitted yet for ${currentCampaign.title}.`
                       : 'Customer entries will appear here the moment someone scans the QR code and submits their details.'}
                   </p>
                 </div>
@@ -1825,6 +1978,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <thead className="bg-zinc-900/80 text-[11px] font-black uppercase text-zinc-400 border-b border-white/10">
                       <tr>
                         <th className="py-3 px-4">Date &amp; Time</th>
+                        <th className="py-3 px-4">Campaign</th>
                         <th className="py-3 px-4">Customer Name</th>
                         <th className="py-3 px-4">WhatsApp / Cell</th>
                         <th className="py-3 px-4">Receipt #</th>
@@ -1858,6 +2012,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                 hour: '2-digit',
                                 minute: '2-digit',
                               })}
+                            </td>
+
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <select
+                                value={e.campaignWeekId || getEntryCampaignWeekId(e)}
+                                onChange={(evt) => handleMoveEntryWeek(e, evt.target.value)}
+                                className="px-2 py-1 rounded-lg bg-zinc-900 border border-white/10 text-amber-300 font-bold text-[10px] focus:outline-none focus:border-amber-400 cursor-pointer shadow-sm"
+                                title="Campaign week cohort (select to reassign)"
+                              >
+                                {REVIEW_CAMPAIGNS.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    Week {c.weekNumber} ({c.id === 'week-2' ? 'Active' : c.id === 'week-1' ? 'Wrap' : 'Upcoming'})
+                                  </option>
+                                ))}
+                              </select>
                             </td>
 
                             <td
@@ -2844,7 +3013,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 href={`https://wa.me/${getCleanWhatsAppPhone(
                   selectedWinner.phone
                 )}?text=${encodeURIComponent(
-                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly Customer Meal Draw (Free 3 Wings + Side Combo) with receipt #${selectedWinner.receiptNumber}. Please reply to claim your meal voucher code!`
+                  `Hi ${selectedWinner.fullName}! 🎉 Congratulations from Wrap & Wings Co! You have won our Weekly Customer Meal Draw (${currentCampaign?.prize || 'Free 3 Wings + Side Combo'}) with receipt #${selectedWinner.receiptNumber}. Please reply to claim your meal voucher code!`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

@@ -1,6 +1,7 @@
 import { ReviewDrawEntry } from '../types';
 import { db } from './firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query, getDocs } from 'firebase/firestore';
+import { getEntryCampaignWeekId } from '../data/reviewCampaigns';
 
 const STORAGE_KEY = 'wrap_wing_review_entries';
 const REVIEWS_COLLECTION = 'review_draw_entries';
@@ -43,6 +44,9 @@ export async function saveReviewDrawEntry(
   const createdAt = input.createdAt || new Date().toISOString();
   const status = input.status || 'pending';
 
+  const campaignWeekId =
+    input.campaignWeekId || getEntryCampaignWeekId({ createdAt });
+
   const entry: ReviewDrawEntry = {
     id,
     fullName: input.fullName.trim(),
@@ -53,6 +57,7 @@ export async function saveReviewDrawEntry(
     comments: input.comments?.trim() || '',
     createdAt,
     status,
+    campaignWeekId,
   };
 
   // 1. Save to localStorage immediately
@@ -177,6 +182,24 @@ export async function updateReviewEntryStatus(
       await setDoc(docRef, { status }, { merge: true });
     } catch (err) {
       console.warn('Error updating review status in Firestore:', err);
+    }
+  }
+}
+
+export async function updateReviewEntryCampaignWeek(
+  id: string,
+  campaignWeekId: string
+): Promise<void> {
+  const local = getLocalEntries();
+  const updated = local.map((e) => (e.id === id ? { ...e, campaignWeekId } : e));
+  saveLocalEntries(updated);
+
+  if (db) {
+    try {
+      const docRef = doc(db, REVIEWS_COLLECTION, id);
+      await setDoc(docRef, { campaignWeekId }, { merge: true });
+    } catch (err) {
+      console.warn('Error updating review campaignWeekId in Firestore:', err);
     }
   }
 }
