@@ -1,5 +1,25 @@
 import React, { useState } from 'react';
-import { Lock, ArrowLeft, CheckCircle2, Download, Printer, ShieldCheck, Truck, FileText, Bike, Car, AlertCircle, Sparkles } from 'lucide-react';
+import {
+  Lock,
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  Printer,
+  ShieldCheck,
+  Truck,
+  FileText,
+  Bike,
+  Car,
+  AlertCircle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  ChevronsUpDown,
+  Clock,
+  DollarSign,
+  MapPin,
+  Flame,
+} from 'lucide-react';
 import {
   registerDriverOnboarding,
   verifyOnboardingPin,
@@ -46,12 +66,45 @@ export const DriverAgreementOnboardingView: React.FC<DriverAgreementOnboardingVi
   const [accountNumber, setAccountNumber] = useState('');
   const [branchCode, setBranchCode] = useState('470010');
 
+  // Accordion Expand/Collapse State for the 10 Contract Points
+  const [expandedPoints, setExpandedPoints] = useState<Record<number, boolean>>({
+    1: true,
+    2: true,
+    3: false,
+    4: true,
+    5: true,
+    6: true,
+    7: false,
+    8: false,
+    9: false,
+    10: true,
+  });
+
+  const togglePoint = (num: number) => {
+    setExpandedPoints((prev) => ({
+      ...prev,
+      [num]: !prev[num],
+    }));
+  };
+
+  const expandAllPoints = () => {
+    setExpandedPoints({
+      1: true, 2: true, 3: true, 4: true, 5: true,
+      6: true, 7: true, 8: true, 9: true, 10: true,
+    });
+  };
+
+  const collapseAllPoints = () => {
+    setExpandedPoints({});
+  };
+
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [agreedToRemittance, setAgreedToRemittance] = useState(false);
   const [signedName, setSignedName] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedDriver, setSubmittedDriver] = useState<DriverProfile | null>(null);
+
 
   // Handle PIN unlock
   const handlePinSubmit = (e?: React.FormEvent) => {
@@ -547,38 +600,475 @@ export const DriverAgreementOnboardingView: React.FC<DriverAgreementOnboardingVi
             </div>
           </div>
 
-          {/* Section 5: Rate Card & Summary */}
-          <div className="bg-[#13131b] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-3">
-            <h2 className="text-sm font-black uppercase text-white tracking-wide">
-              5. Agreed Remuneration & Zone Distance Rates
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-              <div className="bg-black/40 border border-white/5 p-3 rounded-2xl">
-                <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 1 (0–3 km)</div>
-                <div className="text-base font-black text-rose-400">R28.00</div>
-                <div className="text-[9px] text-zinc-500">Pinetown CBD</div>
+          {/* Section 5: Official Agreement Terms & Conditions (10 Expandable Points) */}
+          <div className="bg-[#13131b] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-3">
+              <div>
+                <h2 className="text-sm sm:text-base font-black uppercase text-white tracking-wide flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-rose-500" />
+                  <span>5. Official Agreement Terms &amp; Conditions (Points 1 to 10)</span>
+                </h2>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Click any point card below to expand and review the complete legal clauses from the original contract agreement.
+                </p>
               </div>
-              <div className="bg-black/40 border border-white/5 p-3 rounded-2xl">
-                <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 2 (3–6 km)</div>
-                <div className="text-base font-black text-rose-400">R40.00</div>
-                <div className="text-[9px] text-zinc-500">New Germany / Sarnia</div>
-              </div>
-              <div className="bg-black/40 border border-white/5 p-3 rounded-2xl">
-                <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 3 (6–10 km)</div>
-                <div className="text-base font-black text-rose-400">R58.00</div>
-                <div className="text-[9px] text-zinc-500">Westville / Kloof</div>
-              </div>
-              <div className="bg-black/40 border border-white/5 p-3 rounded-2xl">
-                <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 4 (10–14 km)</div>
-                <div className="text-base font-black text-rose-400">R75.00</div>
-                <div className="text-[9px] text-zinc-500">Hillcrest / Waterfall</div>
+
+              {/* Expand / Collapse All Controls */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={expandAllPoints}
+                  className="px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  Expand All
+                </button>
+                <button
+                  type="button"
+                  onClick={collapseAllPoints}
+                  className="px-2.5 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[10px] font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Collapse All
+                </button>
               </div>
             </div>
-            <div className="text-[11px] text-zinc-300 pt-1 flex items-center justify-between">
-              <span>• Drivers keep <strong>100% of customer tips</strong>.</span>
-              <span>• Billing cycle: <strong>Mon 00:00 to Sat 23:59</strong>.</span>
+
+            {/* Accordion Points List */}
+            <div className="space-y-3">
+
+              {/* Point 1: Purpose & Appointment */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(1)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      1
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 1: Purpose &amp; Appointment
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        On-demand delivery services from Shop 1, Uniland Centre, 24 Anderson Road, Pinetown
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[1] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[1] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      Wrap &amp; Wing Co. engages the Driver, and the Driver agrees, to provide on-demand food delivery services from the Wrap &amp; Wing Co. Pinetown store (<strong className="text-white">Shop 1, Uniland Centre, 24 Anderson Road, Pinetown, 3610, KwaZulu-Natal</strong>) to customers ordering via the official restaurant ordering platform, in accordance with the terms and conditions outlined in this Agreement.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 2: Independent Contractor Status */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(2)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      2
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 2: Independent Contractor Status
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Strictly independent contractor • Not an employee • Full autonomy
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[2] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[2] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2.5 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong>2.1.</strong> The Driver is engaged strictly as an <strong className="text-white">Independent Contractor</strong> and not as an employee, agent, partner, or joint venturer of Wrap &amp; Wing Co.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong>2.2.</strong> The Driver acknowledges and agrees that:
+                    </p>
+                    <ul className="list-disc list-inside space-y-1.5 pl-1 text-zinc-300">
+                      <li>There is no expectation of fixed employment, minimum guaranteed hourly wage, overtime, sick leave, annual leave, or severance pay.</li>
+                      <li>The Driver has full autonomy to accept or decline individual delivery requests based on availability.</li>
+                      <li>The Driver is solely responsible for declaring and paying their own income taxes (SARS) and statutory contributions as an independent earner.</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 3: Vehicle, Fuel, Smartphone & Operational Costs */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(3)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      3
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 3: Vehicle, Fuel, Smartphone &amp; Operational Costs
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Driver-provided vehicle &amp; fuel • Cellular data &amp; GPS • Thermal delivery bag
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[3] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[3] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">3.1. Vehicle &amp; Fuel:</strong> The Driver provides their own motorcycle, scooter, or vehicle at their own expense. All costs related to fuel, maintenance, servicing, tyre repairs, licence renewals, and roadworthiness are the sole responsibility of the Driver.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">3.2. Smartphone &amp; Data:</strong> The Driver must maintain a working smartphone with active cellular data capable of running WhatsApp, receiving digital order tickets, and using GPS navigation (Google Maps or Waze).
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">3.3. Delivery Equipment:</strong> All food orders must be transported in a clean, insulated, thermal delivery bag/box to preserve food temperature, hygiene, and presentation.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 4: Remuneration, Distance Tiers & Tips */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(4)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      4
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 4: Remuneration, Distance Tiers &amp; Tips
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Zoned base payouts (R28.00 to R75.00) + 100% of customer tips to Driver
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[4] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[4] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-3 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">4.1. Variable Delivery Fee per Trip (Radius from Shop 1, Uniland Centre):</strong><br />
+                      For each successfully completed delivery order, Wrap &amp; Wing Co. will pay the Driver a base trip fee determined by the delivery distance zone:
+                    </p>
+
+                    {/* Zone Cards Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                      <div className="bg-black/60 border border-white/10 p-3 rounded-2xl">
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 1 (0–3 km)</div>
+                        <div className="text-base font-black text-rose-400">R28.00</div>
+                        <div className="text-[10px] text-zinc-400 mt-0.5">Pinetown CBD, Hatton Estate, Ashley, Surprise Farm</div>
+                      </div>
+                      <div className="bg-black/60 border border-white/10 p-3 rounded-2xl">
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 2 (3.1–6 km)</div>
+                        <div className="text-base font-black text-rose-400">R40.00</div>
+                        <div className="text-[10px] text-zinc-400 mt-0.5">New Germany, Cowies Hill, Sarnia, Moseley</div>
+                      </div>
+                      <div className="bg-black/60 border border-white/10 p-3 rounded-2xl">
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 3 (6.1–10 km)</div>
+                        <div className="text-base font-black text-rose-400">R58.00</div>
+                        <div className="text-[10px] text-zinc-400 mt-0.5">Westville, Kloof, Chiltern Hills</div>
+                      </div>
+                      <div className="bg-black/60 border border-white/10 p-3 rounded-2xl">
+                        <div className="text-[10px] text-zinc-400 font-bold uppercase">Zone 4 (10.1–14 km)</div>
+                        <div className="text-base font-black text-rose-400">R75.00</div>
+                        <div className="text-[10px] text-zinc-400 mt-0.5">Hillcrest, Waterfall, Pinetown South</div>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-amber-300 italic">
+                      *Deliveries exceeding 14.0 km must be pre-approved by the restaurant manager on duty and will be remunerated at a mutually agreed custom rate (minimum R85.00).
+                    </p>
+
+                    <div className="pt-2 border-t border-white/5 space-y-1.5">
+                      <p className="font-bold text-white">4.2. Customer Tips (100% Pass-Through):</p>
+                      <p className="leading-relaxed">
+                        The Driver retains <strong className="text-emerald-400">100% of all customer tips</strong>:
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 pl-1 text-zinc-300">
+                        <li><strong className="text-white">Digital Tips:</strong> Tips paid by card, PayFast, or digital checkout through the website are recorded directly in the order ledger and remitted in full to the Driver in the weekly payout.</li>
+                        <li><strong className="text-white">Cash Tips:</strong> Tips handed directly in cash by the customer belong entirely to the Driver immediately.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 5: Payment Schedule & Settlement Cycle */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(5)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      5
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 5: Payment Schedule &amp; Settlement Cycle
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Weekly cycle Mon 00:00 to Sat 23:59 • EFT Payout every Monday by 12:00 PM
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[5] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[5] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">5.1. Billing Cycle:</strong> The delivery week runs from <strong className="text-amber-400">Monday 00:00 to Saturday 23:59</strong>.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">5.2. Weekly Reconciliation:</strong> Every Monday morning, restaurant management reconciles completed deliveries, trip fees, and tips using the Wrap &amp; Wing Co. Admin Portal order logs.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">5.3. Payment Day:</strong> Payouts are transferred via Electronic Funds Transfer (EFT) directly into the Driver&apos;s linked South African bank account (e.g., Capitec, FNB, Standard Bank, Nedbank) by <strong className="text-emerald-400">Monday 12:00 PM</strong> for the preceding week&apos;s completed trips.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">5.4. Weekly Earnings Statement:</strong> A digital trip breakdown (showing total trips, distance fees, tips, and net payout) will be sent to the Driver via WhatsApp or email alongside the payment confirmation.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 6: Cash-on-Delivery (COD) Procedures */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(6)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      6
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 6: Cash-on-Delivery (COD) Procedures
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Exact cash collection • 100% remittance to kitchen cashier immediately upon return
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[6] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[6] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="text-zinc-400">If the Driver accepts an order where the customer selected Cash on Delivery:</p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">6.1.</strong> The Driver must collect the exact food amount plus delivery fee from the customer before handing over the food order.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">6.2.</strong> The Driver must return and remit <strong className="text-rose-400">100% of the food collection cash</strong> to the kitchen cashier immediately upon returning to the store.
+                    </p>
+                    <p className="leading-relaxed text-rose-300">
+                      <strong className="text-rose-400">6.3.</strong> Withholding, short-paying, or delaying cash remittances constitutes gross misconduct and grounds for immediate contract termination and legal recovery.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 7: Driver Standards, Hygiene & Conduct */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(7)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      7
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 7: Driver Standards, Hygiene &amp; Conduct
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Thermal bag care • Professional courtesy • Zero tolerance policy
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[7] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[7] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">7.1. Food Quality &amp; Handling:</strong> Food must remain upright, unopened, and sealed inside the thermal bag until handed directly to the customer.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">7.2. Customer Service:</strong> The Driver will represent Wrap &amp; Wing Co. professionally, courteously, and respectfully at all times.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">7.3. Communication:</strong> In the event of traffic delays, complex access issues, or difficulty locating a customer, the Driver must promptly message or call the customer or restaurant manager.
+                    </p>
+                    <p className="leading-relaxed text-rose-300">
+                      <strong className="text-rose-400">7.4. Zero Tolerance:</strong> Drinking alcohol, substance use, reckless driving, food tampering, or aggressive behaviour will result in immediate termination of this Agreement.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 8: Safety, Licencing & Liability */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(8)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      8
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 8: Safety, Licencing &amp; Liability
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Light Vehicle Code 8 / Code B &amp; Motorcycle Code A / A1 • Driver operates at own risk
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[8] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[8] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">8.1. Licence &amp; Compliance:</strong> The Driver warrants that they hold a valid South African Driver&apos;s Licence (<strong className="text-amber-300">Light Vehicle Code 8 / Code B, or Motorcycle Code A / A1</strong>) and that their vehicle is legally licensed, roadworthy, and equipped with a helmet and required safety gear.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">8.2. Insurance &amp; Accidents:</strong> The Driver acknowledges that Wrap &amp; Wing Co. does not provide vehicle insurance, third-party liability insurance, medical aid, or personal injury cover. The Driver operates their vehicle at their own risk.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">8.3. Traffic Violations:</strong> All traffic fines, speeding citations, parking tickets, or towing costs incurred during deliveries are the sole responsibility of the Driver.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 9: Duration & Termination */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(9)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      9
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 9: Duration &amp; Termination
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Month-to-month basis • 7 calendar days notice • Immediate termination for misconduct
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[9] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[9] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      <strong className="text-white">9.1.</strong> This Agreement commences on the date of signature and continues on a month-to-month basis.
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">9.2.</strong> Either party may terminate this Agreement at any time by providing <strong className="text-amber-300">seven (7) calendar days&apos; written notice</strong> (including via WhatsApp).
+                    </p>
+                    <p className="leading-relaxed">
+                      <strong className="text-white">9.3.</strong> Wrap &amp; Wing Co. reserves the right to terminate this Agreement immediately without notice in the event of theft, fraud, violence, food safety violations, driving under the influence, or failure to remit cash collections.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Point 10: Signatures & Digital Acceptance */}
+              <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => togglePoint(10)}
+                  className="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 font-black text-xs flex items-center justify-center shrink-0">
+                      10
+                    </span>
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-white">
+                        Point 10: Signatures &amp; Acceptance
+                      </h3>
+                      <p className="text-[10px] sm:text-[11px] text-zinc-400">
+                        Legally binding electronic signature under the South African ECT Act
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-1 rounded-lg bg-white/5 text-zinc-400">
+                    {expandedPoints[10] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </div>
+                </button>
+
+                {expandedPoints[10] && (
+                  <div className="px-4 pb-4 pt-1 text-xs text-zinc-300 border-t border-white/5 space-y-2 bg-zinc-950/40">
+                    <p className="leading-relaxed">
+                      By digitally signing and submitting Section 6 below, both parties acknowledge and accept all the terms, conditions, distance rate tiers, and remittance obligations set out in this Agreement.
+                    </p>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
+
 
           {/* Section 6: Digital Signature & Acceptance */}
           <div className="bg-[#13131b] border border-white/10 rounded-3xl p-5 sm:p-6 space-y-4">

@@ -151,12 +151,43 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   };
 
   // Filter only home delivery orders (must be COD or successfully paid via PayFast)
-  const deliveryOrders = orders.filter(
-    (o): o is LiveOrder => Boolean(
-      o && typeof o === 'object' && o.orderId && o.orderMode === 'delivery' &&
-      (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid')
-    )
-  );
+  // Strictly excludes collection orders (C-), dine-in table orders (T-), and pre-launch legacy history
+  const deliveryOrders = orders.filter((o): o is LiveOrder => {
+    if (!o || typeof o !== 'object' || !o.orderId) return false;
+
+    const cleanId = String(o.orderId || '').replace('#', '').trim().toUpperCase();
+
+    // 1. HARD FILTER: Strictly exclude Collection (C-) and Dine-In Table (T-) orders
+    if (cleanId.startsWith('C-') || cleanId.startsWith('T-') || cleanId.startsWith('COLLECT')) {
+      return false;
+    }
+
+    // 2. Must be delivery mode
+    if (o.orderMode !== 'delivery') return false;
+
+    // 3. Payment check: must be COD or successfully paid via PayFast
+    if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
+
+    // 4. Live active orders (received, cooking, ready, dispatched) are ALWAYS visible to drivers
+    if (o.status === 'received' || o.status === 'cooking' || o.status === 'ready' || o.status === 'dispatched') {
+      return true;
+    }
+
+    // 5. If completed: only show if assigned to a registered driver OR completed from Oct 29, 2026 onwards
+    if (o.status === 'completed') {
+      if (o.driverId || o.driverName) return true;
+
+      // Filter out pre-launch history (orders before Oct 29, 2026)
+      const epoch = getOrderCompletionEpoch(o);
+      const LAUNCH_DATE_EPOCH = new Date('2026-10-29T00:00:00+02:00').getTime();
+      if (epoch && epoch >= LAUNCH_DATE_EPOCH) return true;
+
+      // Pre-launch history remains in Admin Panel, but is hidden from the drivers module
+      return false;
+    }
+
+    return false;
+  });
   
   // Calculate day / week / month metrics for the active driver
   const driverMetrics = calculateDriverMetrics(activeDriver.id, orders);

@@ -344,6 +344,175 @@ export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): D
   };
 }
 
+export interface OverallDeliveryMetrics {
+  today: DriverStatsBucket;
+  thisWeek: DriverStatsBucket;
+  thisMonth: DriverStatsBucket;
+  allTime: DriverStatsBucket;
+  orders: LiveOrder[];
+}
+
+/**
+ * Calculate store-wide delivery KPIs across Today, This Week (Mon-Sat), and This Month
+ */
+export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliveryMetrics {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const deliveryOrders = orders.filter((o) => {
+    if (!o || typeof o !== 'object' || !o.orderId) return false;
+    const cleanId = String(o.orderId || '').replace('#', '').trim().toUpperCase();
+    if (cleanId.startsWith('C-') || cleanId.startsWith('T-')) return false;
+    if (o.orderMode !== 'delivery') return false;
+    return true;
+  });
+
+  const initBucket = (): DriverStatsBucket => ({
+    deliveriesCount: 0,
+    baseFees: 0,
+    tips: 0,
+    totalEarnings: 0,
+  });
+
+  const today = initBucket();
+  const thisWeek = initBucket();
+  const thisMonth = initBucket();
+  const allTime = initBucket();
+
+  deliveryOrders.forEach((o) => {
+    let orderTime = o.completedAt || o.driverAcceptedAt || Date.now();
+    const completedEvent = (o.timeline || []).find((t) => t.status === 'completed' || t.status === 'dispatched');
+    if (completedEvent?.epochTime) {
+      orderTime = completedEvent.epochTime;
+    }
+    const orderDate = new Date(orderTime);
+
+    const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+    const tip = typeof o.tip === 'number' ? o.tip : 0;
+    const earning = baseFee + tip;
+    const isPayable = o.status === 'completed' || o.status === 'dispatched';
+
+    allTime.deliveriesCount += 1;
+    if (isPayable) {
+      allTime.baseFees += baseFee;
+      allTime.tips += tip;
+      allTime.totalEarnings += earning;
+    }
+
+    const orderDateStr = orderDate.toISOString().split('T')[0];
+    if (orderDateStr === todayStr) {
+      today.deliveriesCount += 1;
+      if (isPayable) {
+        today.baseFees += baseFee;
+        today.tips += tip;
+        today.totalEarnings += earning;
+      }
+    }
+
+    if (isDateInCurrentMonToSatWeek(orderDate)) {
+      thisWeek.deliveriesCount += 1;
+      if (isPayable) {
+        thisWeek.baseFees += baseFee;
+        thisWeek.tips += tip;
+        thisWeek.totalEarnings += earning;
+      }
+    }
+
+    if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+      thisMonth.deliveriesCount += 1;
+      if (isPayable) {
+        thisMonth.baseFees += baseFee;
+        thisMonth.tips += tip;
+        thisMonth.totalEarnings += earning;
+      }
+    }
+  });
+
+  return {
+    today,
+    thisWeek,
+    thisMonth,
+    allTime,
+    orders: deliveryOrders,
+  };
+}
+
+/**
+ * 1-Click CSV Exporter for Delivery & Driver Ledger (Excel & Google Sheets ready)
+ */
+export function exportDeliveryLedgerToCsv(orders: LiveOrder[], period: string): void {
+  if (typeof window === 'undefined') return;
+  const headers = [
+    'Order ID',
+    'Created Date/Time',
+    'Driver Assigned',
+    'Customer Name',
+    'Customer Phone',
+    'Delivery Street Address',
+    'Suburb',
+    'Complex / Unit',
+    'Gate Code',
+    'Order Items',
+    'Food Subtotal (R)',
+    'Distance Delivery Fee (R)',
+    'Driver Tip (R)',
+    'Total Driver Earning (R)',
+    'Grand Total (R)',
+    'Payment Method',
+    'Payment Status',
+    'Delivery Status',
+  ];
+
+  const escapeCsv = (str: string | number | undefined | null) => {
+    if (str === undefined || str === null) return '""';
+    const s = String(str).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  const rows = orders.map((o) => {
+    const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+    const tip = typeof o.tip === 'number' ? o.tip : 0;
+    const driverEarning = baseFee + tip;
+    const itemsSummary = (o.items || [])
+      .map((i) => `${i.quantity}x ${i.menuItem?.name || 'Meal'}`)
+      .join('; ');
+
+    return [
+      escapeCsv(o.orderId),
+      escapeCsv(o.createdAt || 'N/A'),
+      escapeCsv(o.driverName || 'Unassigned'),
+      escapeCsv(o.customer?.customerName || 'Customer'),
+      escapeCsv(o.customer?.phone || ''),
+      escapeCsv(o.customer?.address || ''),
+      escapeCsv(o.customer?.suburb || 'Pinetown'),
+      escapeCsv(o.customer?.complexOrUnit || ''),
+      escapeCsv(o.customer?.gateCode || ''),
+      escapeCsv(itemsSummary),
+      escapeCsv((o.subtotal || 0).toFixed(2)),
+      escapeCsv(baseFee.toFixed(2)),
+      escapeCsv(tip.toFixed(2)),
+      escapeCsv(driverEarning.toFixed(2)),
+      escapeCsv((o.grandTotal || 0).toFixed(2)),
+      escapeCsv((o.paymentMethod || 'cod').toUpperCase()),
+      escapeCsv((o.paymentStatus || 'pending').toUpperCase()),
+      escapeCsv((o.status || 'received').toUpperCase()),
+    ];
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  link.setAttribute('download', `wrap-and-wings-delivery-ledger-${period}-${dateStr}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // ----------------------------------------------------------------------
 // BROWSER-SIDE PDF GENERATION OF COMPLETED DRIVER AGREEMENT
 // ----------------------------------------------------------------------

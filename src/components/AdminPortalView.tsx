@@ -100,6 +100,16 @@ import {
   exportTrafficToPdf,
   exportReviewEntriesToPdf
 } from '../services/pdfExportService';
+import {
+  calculateAllDeliveriesMetrics,
+  calculateDriverMetrics,
+  getRegisteredDrivers,
+  getDriverDisplayName,
+  downloadCompletedAgreementPdf,
+  exportDeliveryLedgerToCsv,
+  DriverProfile,
+} from '../services/driverService';
+
 
 interface AdminPortalViewProps {
   onBackToMenu: () => void;
@@ -112,9 +122,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   onLogout,
   onNavigateRole,
 }) => {
-  // Navigation Tab: Orders & Sales CRM vs Google Review Draw vs Customer Traffic
-  const [activeTab, setActiveTab] = useState<'orders' | 'reviews' | 'traffic'>('orders');
+  // Navigation Tab: Orders & Sales CRM vs Delivery Records & Driver KPI vs Google Review Draw vs Customer Traffic
+  const [activeTab, setActiveTab] = useState<'orders' | 'deliveries' | 'reviews' | 'traffic'>('orders');
   const [isPayFastTesting, setIsPayFastTesting] = useState(() => isPayFastStaffTestMode());
+
+  // --- Delivery Records & Driver KPI State ---
+  const [deliveryTimeframe, setDeliveryTimeframe] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('all');
+  const [deliverySearchQuery, setDeliverySearchQuery] = useState<string>('');
+
 
   // --- Orders State ---
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
@@ -766,7 +782,95 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setTimeout(() => setWebhookSavedFeedback(false), 2500);
   };
 
+  // --- Delivery KPI & Driver Roster Memoized Computations ---
+  const registeredDrivers = useMemo<DriverProfile[]>(() => {
+    return getRegisteredDrivers();
+  }, [activeTab]);
+
+  const deliveryMetrics = useMemo(() => {
+    return calculateAllDeliveriesMetrics(orders);
+  }, [orders]);
+
+  const driver1Metrics = useMemo(() => {
+    return calculateDriverMetrics('DRV-01', orders);
+  }, [orders]);
+
+  const driver2Metrics = useMemo(() => {
+    return calculateDriverMetrics('DRV-02', orders);
+  }, [orders]);
+
+  const currentDeliveryBucket = useMemo(() => {
+    switch (deliveryTimeframe) {
+      case 'today':
+        return { label: "Today's Deliveries", stats: deliveryMetrics.today };
+      case 'week':
+        return { label: "This Week's Deliveries (Mon–Sat)", stats: deliveryMetrics.thisWeek };
+      case 'month':
+        return { label: "This Month's Deliveries", stats: deliveryMetrics.thisMonth };
+      case 'all':
+      default:
+        return { label: "All-Time Deliveries", stats: deliveryMetrics.allTime };
+    }
+  }, [deliveryMetrics, deliveryTimeframe]);
+
+  const filteredDeliveryOrders = useMemo(() => {
+    const allDelivs = deliveryMetrics.orders;
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const isThisMonSat = (d: Date) => {
+      const day = now.getDay();
+      const diffToMonday = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + diffToMonday);
+      monday.setHours(0, 0, 0, 0);
+      const saturday = new Date(monday);
+      saturday.setDate(monday.getDate() + 5);
+      saturday.setHours(23, 59, 59, 999);
+      const time = d.getTime();
+      return time >= monday.getTime() && time <= saturday.getTime();
+    };
+
+    return allDelivs.filter((order) => {
+      const orderDate = new Date(order.createdAt || Date.now());
+
+      if (deliveryTimeframe === 'today') {
+        const dStr = orderDate.toISOString().split('T')[0];
+        if (dStr !== todayStr) return false;
+      } else if (deliveryTimeframe === 'week') {
+        if (!isThisMonSat(orderDate)) return false;
+      } else if (deliveryTimeframe === 'month') {
+        if (orderDate.getMonth() !== currentMonth || orderDate.getFullYear() !== currentYear) return false;
+      }
+
+      if (selectedDriverFilter !== 'all') {
+        if (selectedDriverFilter === 'unassigned') {
+          if (order.driverId) return false;
+        } else if (order.driverId !== selectedDriverFilter) {
+          return false;
+        }
+      }
+
+      if (deliverySearchQuery.trim()) {
+        const q = deliverySearchQuery.toLowerCase();
+        const matchesId = (order.orderId || '').toLowerCase().includes(q);
+        const matchesName = (order.customerName || order.customer?.customerName || '').toLowerCase().includes(q);
+        const matchesPhone = (order.customerPhone || order.customer?.phone || '').toLowerCase().includes(q);
+        const matchesSuburb = (order.deliverySuburb || order.customer?.suburb || '').toLowerCase().includes(q);
+        const matchesAddress = (order.deliveryAddress || order.customer?.address || '').toLowerCase().includes(q);
+        if (!matchesId && !matchesName && !matchesPhone && !matchesSuburb && !matchesAddress) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [deliveryMetrics, deliveryTimeframe, selectedDriverFilter, deliverySearchQuery]);
+
   return (
+
     <div className="min-h-screen bg-[#0a0a0f] text-zinc-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
       {/* ── Top Manager Navigation Bar ── */}
       <header className="sticky top-0 z-40 bg-[#121218]/95 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-3.5 shadow-xl">
@@ -892,6 +996,23 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             <button
               type="button"
+              onClick={() => setActiveTab('deliveries')}
+              className={`px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
+                activeTab === 'deliveries'
+                  ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-lg shadow-orange-950/50'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-white/5'
+              }`}
+            >
+              <DeliveryMotorbikeIcon className="w-4 h-4 text-orange-400" />
+              <span>Delivery Records &amp; Driver KPI</span>
+              <span className="px-2 py-0.5 rounded-full bg-black/40 text-[11px] font-mono">
+                {deliveryMetrics.allTime.deliveriesCount}
+              </span>
+            </button>
+
+
+            <button
+              type="button"
               onClick={() => setActiveTab('reviews')}
               className={`px-3 sm:px-4 py-2 rounded-2xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'reviews'
@@ -924,8 +1045,35 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </button>
           </div>
 
+          {/* Action Buttons for Deliveries Tab */}
+          {activeTab === 'deliveries' && (
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
+              <button
+                type="button"
+                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                disabled={filteredDeliveryOrders.length === 0}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                title="Download delivery trips & driver earnings ledger CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Delivery CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onNavigateRole('driver')}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Launch Driver Live View"
+              >
+                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Open Driver Portal</span>
+              </button>
+            </div>
+          )}
+
           {/* Action Buttons for Orders Tab */}
           {activeTab === 'orders' && (
+
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 type="button"
@@ -1127,6 +1275,59 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <p className="text-[11px] text-zinc-400">Portions cooked on {formatReportDateLabel(selectedOrderDate)}</p>
               </div>
             </div>
+
+            {/* Today's Delivery Operations & Driver Summary Card */}
+            <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-950/40 via-amber-950/20 to-zinc-900 border border-orange-500/30 p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400 shrink-0 shadow-inner">
+                  <DeliveryMotorbikeIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-sm sm:text-base font-black text-white">
+                      Today&apos;s Delivery Operations &amp; Driver Summary
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/30 text-orange-300 text-[10px] font-bold">
+                      Live Delivery Tracker
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Operating daily until 17:00 • Base zoned rates + 100% tips to driver
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick stats pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Runs Today</span>
+                  <span className="text-base font-black text-white font-mono">{deliveryMetrics.today.deliveriesCount}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Base Fees</span>
+                  <span className="text-base font-black text-amber-400 font-mono">R{deliveryMetrics.today.baseFees.toFixed(0)}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Driver Tips</span>
+                  <span className="text-base font-black text-yellow-400 font-mono">R{deliveryMetrics.today.tips.toFixed(0)}</span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-black/40 border border-white/5">
+                  <span className="text-[10px] uppercase font-bold text-zinc-400 block">Net Payout</span>
+                  <span className="text-base font-black text-emerald-400 font-mono">R{deliveryMetrics.today.totalEarnings.toFixed(0)}</span>
+                </div>
+              </div>
+
+              {/* Jump to Full Deliveries Tab Button */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('deliveries')}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs transition-all shadow-md shadow-orange-950/50 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap self-stretch md:self-center shrink-0"
+              >
+                <span>Full Delivery KPIs &amp; Ledger</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
 
             {/* Action Toolbar */}
             <div className="p-4 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col lg:flex-row items-center justify-between gap-4">
@@ -3677,6 +3878,490 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* ==================================================================== */}
+      {/* TAB 4: DELIVERY RECORDS & DRIVER KPI SHEET                           */}
+      {/* ==================================================================== */}
+      {activeTab === 'deliveries' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Header & Timeframe Selector Row */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                  <DeliveryMotorbikeIcon className="w-4 h-4" />
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-white">
+                  Delivery Records &amp; Driver KPI
+                </h2>
+              </div>
+              <p className="text-xs text-zinc-400">
+                Performance tracking, weekly driver payroll ledger (Mon–Sat cycle), and historical delivery trips
+              </p>
+            </div>
+
+            {/* Timeframe Pill Filter */}
+            <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-2xl bg-zinc-900 border border-white/5">
+              <button
+                type="button"
+                onClick={() => setDeliveryTimeframe('today')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  deliveryTimeframe === 'today'
+                    ? 'bg-amber-500 text-zinc-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                Today
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryTimeframe('week')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  deliveryTimeframe === 'week'
+                    ? 'bg-amber-500 text-zinc-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+                title="Weekly Billing Cycle: Monday 00:00 to Saturday 23:59 • EFT Payout Monday by 12:00"
+              >
+                This Week (Mon–Sat)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryTimeframe('month')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  deliveryTimeframe === 'month'
+                    ? 'bg-amber-500 text-zinc-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                This Month
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryTimeframe('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  deliveryTimeframe === 'all'
+                    ? 'bg-amber-500 text-zinc-950 shadow-md'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                All-Time
+              </button>
+            </div>
+          </div>
+
+          {/* Timeframe Notice Banner for Weekly Payroll */}
+          {deliveryTimeframe === 'week' && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between gap-3 text-xs text-amber-300">
+              <div className="flex items-center gap-2.5">
+                <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>
+                  <strong>Driver Weekly Billing Cycle:</strong> Runs Monday 00:00 to Saturday 23:59. Payouts processed every <strong>Monday by 12:00 PM</strong> via EFT bank transfer.
+                </span>
+              </div>
+              <span className="hidden md:inline px-2 py-0.5 rounded bg-amber-500/20 text-[11px] font-mono font-bold">
+                Clause 5.1 &amp; 5.2
+              </span>
+            </div>
+          )}
+
+          {/* Store-Wide Delivery KPI Cards (4 cards) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Completed Trips</span>
+                <DeliveryMotorbikeIcon className="w-4 h-4 text-orange-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                {currentDeliveryBucket.stats.deliveriesCount}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                {currentDeliveryBucket.label}
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Base Delivery Fees</span>
+                <DollarSign className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono">
+                R{currentDeliveryBucket.stats.baseFees.toFixed(2)}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                Tiered Suburb Fees (R28–R75)
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Customer Tips</span>
+                <Flame className="w-4 h-4 text-yellow-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-yellow-400 font-mono">
+                R{currentDeliveryBucket.stats.tips.toFixed(2)}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                100% directly to drivers
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#13131a] border border-white/10 shadow-lg space-y-1">
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Net Driver Payout</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
+                R{currentDeliveryBucket.stats.totalEarnings.toFixed(2)}
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                Total earnings for delivery team
+              </p>
+            </div>
+          </div>
+
+          {/* Registered Drivers Roster & Weekly Payroll Cards */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                  Driver Roster &amp; Weekly Payroll
+                </h3>
+              </div>
+              <span className="text-xs text-zinc-400">
+                2 Registered Driver Slots • Mon–Sat Weekly Payout
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {[
+                { profile: registeredDrivers.find(d => d.id === 'DRV-01') || { id: 'DRV-01', driverNumber: 1, name: 'Driver #1', phone: '', pin: '1001', active: true }, metrics: driver1Metrics },
+                { profile: registeredDrivers.find(d => d.id === 'DRV-02') || { id: 'DRV-02', driverNumber: 2, name: 'Driver #2', phone: '', pin: '1002', active: true }, metrics: driver2Metrics }
+              ].map(({ profile, metrics }) => {
+                const displayName = getDriverDisplayName(profile as DriverProfile);
+                const hasCompletedOnboarding = profile.onboardingCompleted || (profile.name && profile.name !== `Driver #${profile.driverNumber}`);
+                const weeklyEarnings = metrics.thisWeek.totalEarnings;
+
+                return (
+                  <div
+                    key={profile.id}
+                    className="p-5 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl space-y-4 relative overflow-hidden"
+                  >
+                    {/* Header: Driver Name & Status */}
+                    <div className="flex items-start justify-between gap-3 border-b border-white/5 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white font-black text-base shadow-lg shadow-orange-950/60">
+                          #{profile.driverNumber}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-base font-black text-white">{displayName}</h4>
+                            {hasCompletedOnboarding ? (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                                Agreement Signed
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
+                                Ready for Onboarding
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-400">
+                            {profile.phone || 'Phone pending'} • PIN: <span className="font-mono text-zinc-300">{profile.pin}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* View Agreement PDF Action */}
+                      <button
+                        type="button"
+                        onClick={() => downloadCompletedAgreementPdf(profile as DriverProfile)}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                        title="Download / View signed Independent Driver Agreement PDF"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-amber-400" />
+                        <span>View PDF</span>
+                      </button>
+                    </div>
+
+                    {/* Driver Particulars Grid */}
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-zinc-950/60 p-3 rounded-2xl border border-white/5">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 block">Vehicle Reg</span>
+                        <span className="font-mono font-bold text-zinc-200">{profile.vehicleReg || 'Pending'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 block">Licence Code</span>
+                        <span className="font-bold text-zinc-200">{profile.licenceCode || 'Code 8 / Motorcycle'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 block">Bank &amp; Account</span>
+                        <span className="font-mono text-zinc-300">
+                          {profile.bankName ? `${profile.bankName} (${profile.accountNumber || 'Acc Pending'})` : 'Banking Pending'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 block">Signed Date</span>
+                        <span className="text-zinc-300">{profile.signedAgreementDate || 'Pending Submission'}</span>
+                      </div>
+                    </div>
+
+                    {/* Weekly Payroll Summary Box */}
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-teal-950/20 to-zinc-900 border border-emerald-500/20 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                          <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Weekly EFT Payout (Mon–Sat Cycle)</span>
+                        </span>
+                        <span className="font-mono font-black text-sm text-emerald-400">
+                          R{weeklyEarnings.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 text-center text-[11px] pt-1 border-t border-white/5">
+                        <div>
+                          <span className="text-zinc-400 block text-[10px]">Trips Done</span>
+                          <span className="font-mono font-bold text-white">{metrics.thisWeek.deliveriesCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-400 block text-[10px]">Base Fees</span>
+                          <span className="font-mono font-bold text-amber-400">R{metrics.thisWeek.baseFees.toFixed(0)}</span>
+                        </div>
+                        <div>
+                          <span className="text-zinc-400 block text-[10px]">Tips</span>
+                          <span className="font-mono font-bold text-yellow-400">R{metrics.thisWeek.tips.toFixed(0)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Delivery Trips Ledger Table */}
+          <div className="p-5 sm:p-6 rounded-3xl bg-[#13131a] border border-white/10 shadow-xl space-y-4">
+            {/* Table Filters Bar */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-white">
+                  Delivery Trips Ledger ({filteredDeliveryOrders.length})
+                </h3>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Search Input */}
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={deliverySearchQuery}
+                    onChange={(e) => setDeliverySearchQuery(e.target.value)}
+                    placeholder="Search order #, customer, suburb..."
+                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500"
+                  />
+                  {deliverySearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setDeliverySearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Driver Filter Dropdown */}
+                <select
+                  value={selectedDriverFilter}
+                  onChange={(e) => setSelectedDriverFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+                >
+                  <option value="all">All Drivers</option>
+                  <option value="DRV-01">Driver #1 (Sipho)</option>
+                  <option value="DRV-02">Driver #2</option>
+                  <option value="unassigned">Unassigned</option>
+                </select>
+
+                {/* Export CSV Button */}
+                <button
+                  type="button"
+                  onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                  disabled={filteredDeliveryOrders.length === 0}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Table or Empty State */}
+            {filteredDeliveryOrders.length === 0 ? (
+              <div className="py-12 text-center space-y-2 bg-zinc-950/40 rounded-2xl border border-dashed border-white/10">
+                <DeliveryMotorbikeIcon className="w-8 h-8 mx-auto text-zinc-600" />
+                <p className="text-sm font-bold text-zinc-400">No delivery trips found for this filter</p>
+                <p className="text-xs text-zinc-500">
+                  Try switching the timeframe to &quot;All-Time&quot; or clearing your search.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-zinc-900/90 text-zinc-400 uppercase text-[10px] tracking-wider border-b border-white/5">
+                    <tr>
+                      <th className="py-3 px-3.5">Order #</th>
+                      <th className="py-3 px-3.5">Date &amp; Time</th>
+                      <th className="py-3 px-3.5">Customer &amp; Suburb</th>
+                      <th className="py-3 px-3.5">Assigned Driver</th>
+                      <th className="py-3 px-3.5 text-right">Base Fee</th>
+                      <th className="py-3 px-3.5 text-right">Tip</th>
+                      <th className="py-3 px-3.5 text-right">Driver Total</th>
+                      <th className="py-3 px-3.5 text-right">Order Grand Total</th>
+                      <th className="py-3 px-3.5 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 bg-zinc-950/40">
+                    {filteredDeliveryOrders.map((order) => {
+                      const cleanId = String(order.orderId || '').replace('#', '');
+                      const orderDate = new Date(order.createdAt || Date.now());
+                      const baseFee = typeof order.deliveryFee === 'number' && order.deliveryFee > 0 ? order.deliveryFee : 28;
+                      const tip = typeof order.tip === 'number' ? order.tip : 0;
+                      const driverTotal = baseFee + tip;
+                      const customerName = order.customerName || order.customer?.customerName || 'Customer';
+                      const customerPhone = order.customerPhone || order.customer?.phone || '';
+                      const suburb = order.deliverySuburb || order.customer?.suburb || 'Pinetown';
+                      const address = order.deliveryAddress || order.customer?.address || '';
+                      const mapsUrl = address ? generateGoogleMapsUrl(address, suburb) : '';
+
+                      // Assigned driver label
+                      const assignedDriver = registeredDrivers.find(d => d.id === order.driverId);
+                      const driverLabel = assignedDriver
+                        ? getDriverDisplayName(assignedDriver)
+                        : order.driverId
+                        ? `Driver (${order.driverId})`
+                        : 'Unassigned';
+
+                      return (
+                        <tr key={order.orderId || Math.random()} className="hover:bg-white/[0.02] transition-colors">
+                          {/* Order ID */}
+                          <td className="py-3 px-3.5 font-mono font-black text-white">
+                            #{cleanId}
+                          </td>
+
+                          {/* Date & Time */}
+                          <td className="py-3 px-3.5 text-zinc-300">
+                            <div>{orderDate.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</div>
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              {orderDate.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </td>
+
+                          {/* Customer & Suburb */}
+                          <td className="py-3 px-3.5">
+                            <div className="font-bold text-white">{customerName}</div>
+                            <div className="flex items-center gap-1 text-[11px] text-amber-300/90">
+                              <span>{suburb}</span>
+                              {mapsUrl && (
+                                <a
+                                  href={mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 inline-flex items-center"
+                                  title="Open in Google Maps"
+                                >
+                                  <ExternalLink className="w-3 h-3 ml-0.5" />
+                                </a>
+                              )}
+                            </div>
+                            {customerPhone && (
+                              <div className="text-[10px] text-zinc-400 font-mono">{customerPhone}</div>
+                            )}
+                          </td>
+
+                          {/* Assigned Driver */}
+                          <td className="py-3 px-3.5">
+                            {order.driverId ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold text-[11px]">
+                                <DeliveryMotorbikeIcon className="w-3 h-3" />
+                                <span>{driverLabel}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px]">
+                                Unassigned
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Base Fee */}
+                          <td className="py-3 px-3.5 text-right font-mono font-bold text-amber-400">
+                            R{baseFee.toFixed(2)}
+                          </td>
+
+                          {/* Tip */}
+                          <td className="py-3 px-3.5 text-right font-mono text-yellow-400">
+                            R{tip.toFixed(2)}
+                          </td>
+
+                          {/* Driver Total */}
+                          <td className="py-3 px-3.5 text-right font-mono font-black text-emerald-400">
+                            R{driverTotal.toFixed(2)}
+                          </td>
+
+                          {/* Grand Total */}
+                          <td className="py-3 px-3.5 text-right font-mono text-zinc-200">
+                            R{(order.grandTotal || 0).toFixed(2)}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-3.5 text-center">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                order.status === 'delivered'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : order.status === 'dispatched'
+                                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse'
+                                  : order.status === 'cooking' || order.status === 'ready'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  : 'bg-zinc-800 text-zinc-400'
+                              }`}
+                            >
+                              {order.status || 'received'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Bottom Actions Toolbar */}
+            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <span className="text-zinc-400">
+                Weekly cycle is Monday 00:00 to Saturday 23:59 • Payout processed every Monday by 12:00 PM via EFT
+              </span>
+
+              <button
+                type="button"
+                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                disabled={filteredDeliveryOrders.length === 0}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Ledger CSV</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ── Daily Orders & Sales Shift Report Modal ── */}
       {dailyOrdersReportModalOpen && (
