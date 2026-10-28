@@ -4,8 +4,7 @@ import { isItemOutOfStock } from '../services/stockService';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle, Utensils, Clock } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
-import { getCdnThumbnailUrl } from '../utils/cdn';
-import { useStoreOperatingStatus } from '../services/storeHours';
+import { useStoreOperatingStatus, useDeliveryOperatingStatus } from '../services/storeHours';
 
 interface CartDrawerProps {
   onOpenCheckout: () => void;
@@ -31,6 +30,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
     clearCart,
   } = useCart();
   const storeStatus = useStoreOperatingStatus();
+  const deliveryStatus = useDeliveryOperatingStatus();
 
   if (!isCartOpen) return null;
 
@@ -97,17 +97,45 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
               <span>Collect</span>
             </button>
 
-            {/* 3. Delivery (Coming Soon) */}
-            <div
-              className="py-1.5 rounded-lg flex flex-col items-center justify-center text-zinc-500 bg-zinc-900/60 border border-white/5 cursor-not-allowed select-none opacity-60"
-              title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
+            {/* 3. Delivery Button (Active) */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!deliveryStatus.isOpen) {
+                  alert(
+                    `Doorstep Delivery is available Monday to Saturday between 9:00 AM and 5:00 PM (17:00).\n\n${deliveryStatus.message}\n\nCollection and Dine-In remain open until 6:00 PM.`
+                  );
+                  return;
+                }
+                setOrderMode('delivery');
+              }}
+              className={`py-2 rounded-lg flex items-center justify-center gap-1 transition-all cursor-pointer font-black ${
+                orderMode === 'delivery'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : deliveryStatus.isOpen
+                  ? 'text-zinc-400 hover:text-white'
+                  : 'text-zinc-500 opacity-70'
+              }`}
+              title={deliveryStatus.isOpen ? 'Doorstep Delivery (Mon–Sat until 5:00 PM)' : deliveryStatus.message}
             >
-              <span className="text-zinc-400 font-bold text-[10px]">Delivery</span>
-              <span className="text-[8px] font-black uppercase text-amber-400 tracking-wider">
-                Soon
+              <DeliveryMotorbikeIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>Delivery</span>
+              {orderMode === 'delivery' && <Check className="w-3 h-3 stroke-[3]" />}
+            </button>
+          </div>
+
+          {/* Delivery Notice Pill inside Cart */}
+          {orderMode === 'delivery' && (
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-xs animate-fadeIn">
+              <div className="flex items-center gap-1.5 text-amber-300 font-extrabold">
+                <DeliveryMotorbikeIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Doorstep Delivery Active</span>
+              </div>
+              <span className="text-[11px] text-zinc-300 font-bold">
+                Closes 5:00 PM Daily
               </span>
             </div>
-          </div>
+          )}
 
           {/* Table Picker inside Cart when Dine-In is active */}
           {orderMode === 'dine-in' && (
@@ -320,6 +348,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout }) => {
                 <div className="text-[10px] text-amber-400 font-bold pt-0.5">
                   ⏰ Trading Hours: Mon–Sat 9:00 AM – 6:00 PM (Sunday: Closed)
                 </div>
+              </div>
+            )}
+
+            {/* Delivery Cutoff (Closed at 17:00 daily) Alert */}
+            {orderMode === 'delivery' && storeStatus.isOpen && !deliveryStatus.isOpen && (
+              <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2 animate-fadeIn">
+                <div className="flex items-center gap-2 font-black text-rose-200">
+                  <Clock className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>Delivery Closed for Today (5:00 PM Cutoff)</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  Doorstep Delivery closes at 5:00 PM daily. However, our kitchen is still open for Collection and Dine-In until 6:00 PM!
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOrderMode('collection')}
+                  className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Switch to Collection</span>
+                </button>
               </div>
             )}
 

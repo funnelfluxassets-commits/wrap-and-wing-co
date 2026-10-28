@@ -11,7 +11,8 @@ import {
 import { createLiveOrder, playCustomerUpdateChime, generateNextOrderId } from '../services/orderService';
 import { isItemOutOfStock } from '../services/stockService';
 import { logCheckoutStart, logOrderCompleted } from '../services/analyticsService';
-import { getStoreOperatingStatus, useStoreOperatingStatus } from '../services/storeHours';
+import { getStoreOperatingStatus, useStoreOperatingStatus, getDeliveryOperatingStatus, useDeliveryOperatingStatus } from '../services/storeHours';
+import { getDeliveryFeeForSuburb } from '../services/driverService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle, Utensils } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
@@ -50,7 +51,7 @@ interface CheckoutModalProps {
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, onOrderSuccess }) => {
-  const { items, orderMode, subtotal, deliveryFee, tip, setTip, grandTotal, selectedStore, clearCart, tableNumber, setTableNumber } = useCart();
+  const { items, orderMode, setOrderMode, subtotal, tip, setTip, selectedStore, clearCart, tableNumber, setTableNumber } = useCart();
 
   const savedProfile = loadSavedProfile();
   const [hasAutofilled, setHasAutofilled] = useState(() => Boolean(savedProfile.customerName || savedProfile.phone));
@@ -66,6 +67,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStaffTest, setIsStaffTest] = useState(() => isPayFastStaffTestMode());
   const storeStatus = useStoreOperatingStatus();
+  const deliveryStatus = useDeliveryOperatingStatus();
+
+  // Dynamic delivery fee calculation based on delivery distance tier for the selected suburb
+  const calculatedDeliveryFee = orderMode === 'delivery' ? getDeliveryFeeForSuburb(suburb) : 0;
+  const calculatedGrandTotal = subtotal + calculatedDeliveryFee + (orderMode === 'delivery' ? tip : 0);
 
   useEffect(() => {
     if (isOpen) {
@@ -107,13 +113,33 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       return;
     }
 
+    // Enforce delivery operating cutoff at 17:00 (5:00 PM)
+    if (orderMode === 'delivery') {
+      const delStatus = getDeliveryOperatingStatus();
+      if (!delStatus.isOpen && !isStaffTest) {
+        alert(
+          `Doorstep Delivery has closed for today.\n\n${delStatus.message}\n\nCollection and Dine-In orders remain open until 6:00 PM! Please switch your order to Collection to proceed.`
+        );
+        setIsProcessing(false);
+        return;
+      }
+
+      if (!address.trim()) {
+        alert('Please enter your delivery street address.');
+        setIsProcessing(false);
+        return;
+      }
+    }
+
     if (!customerName || !phone) {
       alert('Please provide your name and contact phone number.');
+      setIsProcessing(false);
       return;
     }
 
     if (orderMode === 'dine-in' && !tableNumber) {
       alert('Please select your table number (6, 48, 7, 3, or 47) where you are seated.');
+      setIsProcessing(false);
       return;
     }
 
@@ -130,19 +156,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       notes: notes.trim() || undefined,
     });
 
-    const activeOrderMode: OrderMode = orderMode === 'dine-in' ? 'dine-in' : 'collection';
+    const activeOrderMode: OrderMode = orderMode;
     const orderId = generateNextOrderId(activeOrderMode);
 
     const customerDetails: DeliveryDetails = {
       customerName,
       phone,
-      address: '',
-      suburb: '',
-      complexOrUnit: undefined,
-      gateCode: undefined,
+      address: activeOrderMode === 'delivery' ? address : '',
+      suburb: activeOrderMode === 'delivery' ? suburb : '',
+      complexOrUnit: activeOrderMode === 'delivery' ? (complexOrUnit.trim() || undefined) : undefined,
+      gateCode: activeOrderMode === 'delivery' ? (gateCode.trim() || undefined) : undefined,
       notes: notes.trim() || undefined,
       preferredTime: preferredTime === 'ASAP'
-        ? (activeOrderMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)')
+        ? (activeOrderMode === 'delivery' ? 'ASAP (35–45 mins)' : (activeOrderMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)'))
         : preferredTime,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       tableNumber: activeOrderMode === 'dine-in' ? tableNumber : undefined,
@@ -153,9 +179,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       orderMode: activeOrderMode,
       items: [...items],
       subtotal,
-      deliveryFee: 0,
-      tip: 0,
-      grandTotal: subtotal,
+      deliveryFee: calculatedDeliveryFee,
+      tip: activeOrderMode === 'delivery' ? tip : 0,
+      grandTotal: calculatedGrandTotal,
       customer: customerDetails,
       store: selectedStore,
       paymentMethod,
@@ -260,6 +286,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
               <span>Operating Hours:</span>
               <span className="text-white">Monday – Saturday: 9:00 AM – 6:00 PM (Sunday: Closed)</span>
             </div>
+          </div>
+        )}
+
+        {/* Delivery Cutoff (Closed at 17:00 daily) Alert */}
+        {orderMode === 'delivery' && storeStatus.isOpen && !deliveryStatus.isOpen && !isStaffTest && (
+          <div className="p-4 mx-4 sm:mx-6 mt-4 rounded-2xl bg-gradient-to-br from-rose-950/70 via-zinc-900 to-zinc-950 border border-rose-500/50 text-rose-300 text-xs space-y-2">
+            <div className="flex items-center gap-2 font-black text-rose-200 text-sm">
+              <Clock className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>Doorstep Delivery Closed for Today (5:00 PM Cutoff)</span>
+            </div>
+            <p className="text-zinc-200 leading-relaxed text-xs">
+              Doorstep Delivery closes at 5:00 PM daily. However, our flame kitchen is still open for Collection and Dine-In until 6:00 PM!
+            </p>
+            <button
+              type="button"
+              onClick={() => setOrderMode('collection')}
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+            >
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Switch to Collection (Ready in 15–20 mins)</span>
+            </button>
           </div>
         )}
 
@@ -592,8 +639,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             {orderMode === 'delivery' && (
               <>
                 <div className="flex justify-between">
-                  <span>Delivery Fee</span>
-                  <span className="text-white font-bold">R{deliveryFee.toFixed(2)}</span>
+                  <span>Delivery Fee ({suburb})</span>
+                  <span className="text-white font-bold">R{calculatedDeliveryFee.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center justify-between py-1.5 border-t border-white/5 my-0.5">
                   <span className="text-zinc-200 font-semibold">Add Driver Tip:</span>
@@ -634,7 +681,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
             )}
             <div className="flex justify-between text-sm font-black text-white pt-2 border-t border-white/10">
               <span>Total Bill</span>
-              <span className="text-amber-400 text-base">R{grandTotal.toFixed(2)}</span>
+              <span className="text-amber-400 text-base">R{calculatedGrandTotal.toFixed(2)}</span>
             </div>
           </div>
 

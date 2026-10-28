@@ -61,18 +61,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return '';
   });
 
-  // Support Dine-In and Collection ('delivery' is temporarily coming soon)
+  // Support Dine-In, Collection, and Delivery
   const [orderMode, setOrderModeState] = useState<OrderMode>(() => {
     if (typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
-        const urlMode = params.get('mode');
+        const urlMode = params.get('mode') as OrderMode;
         const urlTable = params.get('table') || params.get('tbl') || params.get('t');
         if (urlTable || urlMode === 'dine-in') {
           return 'dine-in';
         }
+        if (urlMode === 'delivery' || urlMode === 'collection') {
+          return urlMode;
+        }
         const saved = localStorage.getItem('wrap_wing_mode') as OrderMode;
-        if (saved === 'dine-in' || saved === 'collection') {
+        if (saved === 'dine-in' || saved === 'collection' || saved === 'delivery') {
           return saved;
         }
       } catch {}
@@ -89,8 +92,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const setOrderMode = (mode: OrderMode) => {
-    // Delivery is coming soon; customer can select Dine-In or Collection
-    if (mode === 'delivery') return;
     setOrderModeState(mode);
     try {
       localStorage.setItem('wrap_wing_mode', mode);
@@ -193,10 +194,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.itemTotal, 0);
-  // Delivery is coming soon; delivery fees and driver tips do not apply
-  const deliveryFee = 0;
-  const effectiveTip = 0;
-  const grandTotal = subtotal;
+  const deliveryFee = orderMode === 'delivery' ? 28 : 0;
+  const effectiveTip = orderMode === 'delivery' ? tip : 0;
+  const grandTotal = subtotal + deliveryFee + effectiveTip;
   const totalItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (

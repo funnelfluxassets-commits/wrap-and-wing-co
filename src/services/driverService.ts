@@ -60,6 +60,22 @@ export function getDriverDisplayName(driver: DriverProfile): string {
 }
 
 /**
+ * Distance Tiers / Basting Fee according to driver agreement:
+ * Zone 1 (0–3 km): R28.00 (Pinetown CBD, Hatton Estate)
+ * Zone 2 (3–6 km): R40.00 (New Germany, Sarnia, Cowies Hill)
+ * Zone 3 (6–10 km): R58.00 (Westville, Kloof)
+ * Zone 4 (10–14 km): R75.00 (Hillcrest, Waterfall)
+ */
+export function getDeliveryFeeForSuburb(suburb?: string): number {
+  if (!suburb) return 28;
+  const s = suburb.toLowerCase().trim();
+  if (s.includes('hillcrest') || s.includes('waterfall')) return 75;
+  if (s.includes('westville') || s.includes('kloof')) return 58;
+  if (s.includes('new germany') || s.includes('sarnia') || s.includes('cowies')) return 40;
+  return 28; // Default Zone 1 (Pinetown / Hatton Estate)
+}
+
+/**
  * Retrieve all registered drivers from localStorage or seed defaults
  */
 export function getRegisteredDrivers(): DriverProfile[] {

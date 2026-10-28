@@ -5,7 +5,7 @@ import { SOCIAL_LINKS } from '../data/stores';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { PageView } from '../types';
 import { subscribeToOrders, getCurrentOrderId, isOrderStaleOrExpired } from '../services/orderService';
-import { useStoreOperatingStatus } from '../services/storeHours';
+import { useStoreOperatingStatus, useDeliveryOperatingStatus } from '../services/storeHours';
 
 export interface NavbarProps {
   onOpenStoreModal?: () => void;
@@ -19,6 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(getCurrentOrderId());
   const storeStatus = useStoreOperatingStatus();
+  const deliveryStatus = useDeliveryOperatingStatus();
 
   useEffect(() => {
     const unsub = subscribeToOrders((orders) => {
@@ -77,6 +78,46 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
               <Clock className="w-3 h-3 text-amber-400" />
               <span>{storeStatus.isOpen ? 'Closes 6:00 PM' : storeStatus.badgeText}</span>
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── DELIVERY NOW AVAILABLE PROMINENT HEADER BANNER ──────────────────── */}
+      <div className="bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-zinc-950 py-1.5 sm:py-2 px-4 shadow-md border-b border-amber-600/30">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 truncate">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-red-600 animate-ping shrink-0" />
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-black tracking-wide uppercase truncate">
+              <DeliveryMotorbikeIcon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-950 shrink-0" />
+              <span className="text-zinc-950 font-black">DELIVERY NOW AVAILABLE</span>
+            </div>
+            <span className="hidden md:inline text-xs font-bold text-zinc-900">
+              • Greater Pinetown Area • Orders close 5:00 PM daily (1 hr before store close)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {orderMode === 'delivery' ? (
+              <span className="px-2.5 py-1 rounded-full bg-zinc-950 text-amber-300 text-[10px] sm:text-xs font-black uppercase flex items-center gap-1 shadow-sm">
+                <Check className="w-3 h-3 stroke-[3]" />
+                <span>Delivery Active</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!deliveryStatus.isOpen) {
+                    alert(`Doorstep Delivery is available Monday to Saturday between 9:00 AM and 5:00 PM (17:00).\n\n${deliveryStatus.message}\n\nCollection and Dine-In remain open until 6:00 PM.`);
+                    return;
+                  }
+                  setOrderMode('delivery');
+                }}
+                className="px-3 py-1 rounded-full bg-zinc-950 hover:bg-zinc-800 text-amber-300 hover:text-white text-[10px] sm:text-xs font-black uppercase transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+              >
+                <span>Order Delivery</span>
+                <span>➔</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -281,18 +322,50 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate }) => {
                   {orderMode === 'collection' && <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />}
                 </button>
 
-                {/* 3. Delivery (Coming Soon) */}
-                <div
-                  title="Doorstep Delivery is coming soon to Wrap & Wings Co!"
-                  className="px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold uppercase flex items-center gap-1 sm:gap-1.5 bg-zinc-900/60 text-zinc-500 border border-white/5 select-none cursor-not-allowed opacity-60 shrink-0"
+                {/* 3. Delivery Button (Active) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!deliveryStatus.isOpen) {
+                      alert(
+                        `Doorstep Delivery is available Monday to Saturday between 9:00 AM and 5:00 PM (17:00).\n\n${deliveryStatus.message}\n\nCollection and Dine-In remain open until 6:00 PM.`
+                      );
+                      return;
+                    }
+                    setOrderMode('delivery');
+                  }}
+                  className={`px-2.5 sm:px-3 py-1 rounded-lg text-[11px] sm:text-xs font-black uppercase transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0 ${
+                    orderMode === 'delivery'
+                      ? 'bg-rose-600 text-white shadow-sm'
+                      : deliveryStatus.isOpen
+                      ? 'text-zinc-400 hover:text-white'
+                      : 'text-zinc-500 opacity-70'
+                  }`}
+                  title={deliveryStatus.isOpen ? 'Doorstep Delivery to your address (Closes 5:00 PM daily)' : deliveryStatus.message}
                 >
-                  <DeliveryMotorbikeIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-zinc-500" />
-                  <span className="text-zinc-400">Delivery</span>
-                  <span className="text-[9px] sm:text-[10px] font-black uppercase px-1 sm:px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 tracking-wider">
-                    Coming Soon
-                  </span>
-                </div>
+                  <DeliveryMotorbikeIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span>Delivery</span>
+                  {!deliveryStatus.isOpen ? (
+                    <span className="text-[9px] font-bold text-amber-400 bg-amber-500/20 px-1 py-0.5 rounded ml-0.5">
+                      Closes 5PM
+                    </span>
+                  ) : orderMode === 'delivery' ? (
+                    <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] shrink-0" />
+                  ) : (
+                    <span className="text-[9px] font-black text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded ml-0.5">
+                      OPEN
+                    </span>
+                  )}
+                </button>
               </div>
+
+              {/* Delivery Active Notice Pill */}
+              {orderMode === 'delivery' && (
+                <div className="flex items-center gap-1.5 text-xs text-amber-300 font-extrabold px-3 py-1.5 md:py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 shrink-0 animate-fadeIn">
+                  <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Doorstep Delivery Active • Orders Close 5:00 PM Daily</span>
+                </div>
+              )}
 
               {/* Dine-In Table Pill (Visible and interactive on BOTH Mobile & Desktop) */}
               {orderMode === 'dine-in' && (

@@ -1170,16 +1170,18 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   const now = new Date();
   const dateStr = formatToLocalDateString(now);
   const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  const activeMode: OrderMode = payload.orderMode === 'dine-in' ? 'dine-in' : 'collection';
+  const activeMode: OrderMode = payload.orderMode || 'collection';
   const table = payload.customer?.tableNumber || payload.tableNumber;
-  const isDelivery = false;
+  const isDelivery = activeMode === 'delivery';
 
   const initialTimeline: OrderTimelineEvent[] = [
     {
       status: 'received',
       timestamp: timeStr,
       label: 'Order Placed & Received',
-      note: activeMode === 'dine-in'
+      note: isDelivery
+        ? `Delivery order received for ${payload.customer?.address || payload.customer?.suburb || 'Customer'}`
+        : activeMode === 'dine-in'
         ? `Order sent to kitchen for Table ${table || ''}`
         : `Ticket sent to ${payload.store.name}`,
       epochTime: Date.now(),
@@ -1193,16 +1195,16 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     status: 'received',
     items: payload.items,
     subtotal: payload.subtotal,
-    deliveryFee: 0,
-    tip: 0,
-    grandTotal: payload.subtotal,
+    deliveryFee: typeof payload.deliveryFee === 'number' ? payload.deliveryFee : (isDelivery ? 28 : 0),
+    tip: typeof payload.tip === 'number' ? payload.tip : 0,
+    grandTotal: payload.grandTotal,
     customer: payload.customer,
     store: payload.store,
     paymentMethod: payload.paymentMethod,
     paymentStatus: 'paid',
-    preferredTime: payload.preferredTime || (activeMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)'),
+    preferredTime: payload.preferredTime || (isDelivery ? 'ASAP (35–45 mins)' : (activeMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)')),
     createdAt: `${dateStr} ${timeStr}`,
-    estimatedMinutes: activeMode === 'dine-in' ? 15 : 20,
+    estimatedMinutes: isDelivery ? 40 : (activeMode === 'dine-in' ? 15 : 20),
     timeline: initialTimeline,
   };
 
