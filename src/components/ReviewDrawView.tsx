@@ -10,11 +10,16 @@ import {
   ShieldCheck,
   Sparkles,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle,
+  Clock,
+  MessageCircle,
+  Check,
+  Flame,
 } from 'lucide-react';
 import { PageView } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
-import { saveReviewDrawEntry } from '../services/reviewService';
+import { saveReviewDrawEntry, updateReviewEntryStatus } from '../services/reviewService';
 
 interface ReviewDrawViewProps {
   onNavigate: (view: PageView) => void;
@@ -34,6 +39,23 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntryId, setSubmittedEntryId] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [hasClickedGoogle, setHasClickedGoogle] = useState(false);
+  const [hasConfirmedPost, setHasConfirmedPost] = useState(false);
+  const [confirmingPost, setConfirmingPost] = useState(false);
+
+  const handleConfirmGooglePost = async () => {
+    if (!submittedEntryId) return;
+    setConfirmingPost(true);
+    try {
+      await updateReviewEntryStatus(submittedEntryId, 'verified');
+    } catch (err) {
+      console.warn('Could not update status to verified in cloud:', err);
+    }
+    setHasConfirmedPost(true);
+    setConfirmingPost(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,6 +189,58 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </div>
             </div>
 
+            {/* ── 2-Step Roadmap Banner ── */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-orange-500/10 to-zinc-900 border-2 border-amber-500/40 shadow-xl space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-ping" />
+                  <span className="text-xs sm:text-sm font-black uppercase text-amber-300 tracking-wider">
+                    2 Quick Steps Required To Qualify
+                  </span>
+                </div>
+                <span className="text-[11px] font-bold text-zinc-400 bg-zinc-800/80 px-2.5 py-0.5 rounded-full border border-white/10">
+                  ~45 Seconds Total
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {/* Step 1 Pill */}
+                <div className="p-3 rounded-xl bg-amber-500/20 border-2 border-amber-400/60 flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0 shadow">
+                    1
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-white flex items-center gap-1.5">
+                      <span>Fill Web Form</span>
+                      <span className="text-[10px] text-amber-300 bg-amber-500/30 px-1.5 py-0.5 rounded font-bold">You are here</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-300 truncate">Name, cell &amp; receipt number</p>
+                  </div>
+                </div>
+
+                {/* Step 2 Pill */}
+                <div className="p-3 rounded-xl bg-zinc-900/90 border border-white/15 flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-zinc-800 text-zinc-300 font-black text-xs flex items-center justify-center shrink-0 border border-white/10">
+                    2
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-black text-zinc-200 flex items-center gap-1.5">
+                      <span>Post on Google</span>
+                      <span className="text-[10px] text-rose-400 bg-rose-500/20 px-1.5 py-0.5 rounded font-bold">Mandatory</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 truncate">1-click to qualify your entry</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 pt-1 text-[11px] text-zinc-300 leading-snug">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <span>
+                  <strong className="text-amber-300">Important:</strong> Filling this form is <strong className="text-white">Step 1</strong>. You will be guided immediately to <strong className="text-white">Step 2</strong> to post on Google. Both steps are needed so your ticket is qualified!
+                </span>
+              </div>
+            </div>
+
             <div className="space-y-2 text-center sm:text-left border-b border-white/10 pb-6">
               <div className="flex items-center justify-center sm:justify-start gap-2.5 text-rose-400 font-black text-xs uppercase tracking-wider">
                 <Gift className="w-4 h-4 text-rose-500" />
@@ -176,7 +250,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                 Enter Your Details &amp; Order Receipt
               </h2>
               <p className="text-xs sm:text-sm text-zinc-300">
-                Entries are open to all customers who ordered this week. Please ensure you complete the final step after submitting to officially lock in your entry on Google!
+                Entries are open to all customers who ordered this week. Complete this step, then finish Step 2 on Google to activate your ticket!
               </p>
             </div>
 
@@ -326,129 +400,103 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </div>
 
               {/* Submit CTA */}
-              <div className="pt-4">
+              <div className="pt-4 space-y-2.5">
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center gap-2.5 text-xs text-amber-300">
+                  <Clock className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>
+                    <strong>Next up: Step 2 of 2!</strong> After clicking below, you'll be guided to Google to post your review and lock in your entry ticket.
+                  </span>
+                </div>
+
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-rose-600 via-orange-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 active:scale-98 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-sm sm:text-base tracking-wide shadow-xl shadow-orange-950/60 transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? (
-                    <span className="whitespace-nowrap">Submitting Entry...</span>
+                    <span className="whitespace-nowrap">Saving Step 1 Details...</span>
                   ) : (
                     <>
-                      <span className="hidden sm:inline whitespace-nowrap">Submit Details &amp; Continue to Final Step</span>
-                      <span className="sm:hidden whitespace-nowrap">Submit &amp; Continue</span>
-                      <ArrowRight className="w-4 h-4 shrink-0" />
+                      <div className="flex items-center gap-2">
+                        <span>Proceed to Step 2: Post on Google</span>
+                        <ArrowRight className="w-4 h-4 shrink-0" />
+                      </div>
+                      <span className="text-[11px] font-normal text-amber-100/90 sm:ml-1">
+                        (Takes 10s • Required to Qualify)
+                      </span>
                     </>
                   )}
                 </button>
               </div>
             </form>
           </div>
-        ) : (
-          /* ── STEP 2: The Final Nudge Confirmation Screen ── */
-          <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border border-orange-500/50 shadow-2xl shadow-orange-950/30 space-y-8 animate-fadeIn text-center">
-            <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center text-white shadow-xl shadow-rose-950/60">
-              <Sparkles className="w-8 h-8" />
+        ) : hasConfirmedPost ? (
+          /* ── CELEBRATION SCREEN: Entry Verified & Confirmed ── */
+          <div className="p-6 sm:p-10 rounded-3xl bg-[#121217] border-2 border-emerald-500/50 shadow-2xl shadow-emerald-950/40 space-y-8 animate-fadeIn text-center">
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+              <div className="relative w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-amber-400 flex items-center justify-center text-white shadow-2xl shadow-emerald-950/80">
+                <Trophy className="w-10 h-10" />
+              </div>
             </div>
 
             <div className="space-y-3 max-w-xl mx-auto">
-              <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 text-[10px] sm:text-xs font-black uppercase tracking-wider whitespace-nowrap shadow-sm">
-                <span className="hidden sm:inline">✓ Entry Details Received ({submittedEntryId})</span>
-                <span className="sm:hidden">✓ Entry Received ({submittedEntryId})</span>
-              </span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-black uppercase tracking-wider shadow-sm">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Entry Officially Qualified &amp; Locked In</span>
+              </div>
 
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white uppercase tracking-tight">
-                🎉 NOW FOR THE FINAL STEP!
+              <h2 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-tight">
+                🎉 YOU'RE IN THE DRAW!
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 font-medium leading-relaxed">
-                To officially publish your review and lock in your entry for the <strong className="text-amber-400">Weekly Wings Combo Draw</strong>, please click the button below to open our official Google Business Page and post your feedback:
+                Thank you for posting your Google review! Your entry ticket is officially active for this Sunday's <strong className="text-amber-400">Wings Meal Draw</strong>.
               </p>
             </div>
 
-            {/* Direct Google Review Action Button */}
-            <div className="pt-2 max-w-md mx-auto space-y-3">
-              <a
-                href={GOOGLE_REVIEW_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-sm sm:text-base tracking-wide shadow-2xl shadow-amber-950/70 transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span className="hidden sm:inline whitespace-nowrap">👉 Click Here to Publish Review on Google</span>
-                <span className="sm:hidden whitespace-nowrap">👉 Publish Review on Google</span>
-                <ExternalLink className="w-4 h-4 shrink-0" />
-              </a>
-
-              <p className="text-[11px] text-zinc-400">
-                Opens directly to Wrap &amp; Wings Co on Google Business
-              </p>
-
-              {/* Guidance Info: Where to find the Reviews tab on Google Business */}
-              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 text-left space-y-2.5 shadow-lg">
-                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
-                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Where to find the "Reviews" tab on our page:</span>
+            {/* Ticket Summary Card */}
+            <div className="max-w-md mx-auto p-5 rounded-2xl bg-zinc-900/90 border border-emerald-500/30 text-left space-y-3 shadow-xl">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <span className="text-xs font-black uppercase tracking-wider text-zinc-400">Your Ticket Reference</span>
+                <span className="font-mono text-sm sm:text-base font-black text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/30">
+                  #{submittedEntryId.slice(0, 8).toUpperCase()}
+                </span>
+              </div>
+              <div className="space-y-1.5 text-xs text-zinc-300">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Name:</span>
+                  <span className="font-bold text-white">{fullName}</span>
                 </div>
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  Once our Google Business page opens, look for the navigation tabs directly below our name:
-                </p>
-                <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 py-1 text-[11px] font-bold">
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Overview</span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Menu</span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/60 text-amber-300 font-black">
-                    👉 Reviews
-                  </span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Photos</span>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">WhatsApp Cell:</span>
+                  <span className="font-bold text-white">{phone}</span>
                 </div>
-                <p className="text-[11px] text-zinc-300 leading-relaxed">
-                  Tap on <strong className="text-white">"Reviews"</strong> (right next to the Menu tab), select your star rating, paste your feedback, and tap <strong>Post</strong> to lock in your entry!
-                </p>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Order Slip #:</span>
+                  <span className="font-bold text-white">{receiptNumber}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Google Account:</span>
+                  <span className="font-bold text-white">{googleReviewName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Rating:</span>
+                  <span className="font-bold text-amber-400">{'★'.repeat(rating)} ({rating}/5 Stars)</span>
+                </div>
               </div>
             </div>
 
-            {/* Quick-Copy Helper if user typed comments */}
-            {comments.trim() && (
-              <div className="p-4 rounded-2xl bg-zinc-900 border border-white/10 max-w-md mx-auto space-y-2 text-left">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase text-zinc-400 tracking-wider">
-                    Your Review Draft:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyComments}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-emerald-400">Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>Copy to Clipboard</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-zinc-200 italic line-clamp-3">"{comments.trim()}"</p>
-              </div>
-            )}
-
-            {/* Reassurance & Draw Timeline */}
-            <div className="p-5 rounded-2xl bg-zinc-900/80 border border-white/10 max-w-md mx-auto text-left space-y-2 text-xs text-zinc-300">
+            {/* Winner Draw Reassurance */}
+            <div className="p-4 rounded-2xl bg-zinc-900/60 border border-white/10 max-w-md mx-auto text-left space-y-2 text-xs text-zinc-300">
               <div className="flex items-center gap-2 text-amber-400 font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                <span>How the Draw Works:</span>
+                <Sparkles className="w-4 h-4" />
+                <span>What Happens Next:</span>
               </div>
               <ul className="space-y-1.5 pl-6 list-disc text-zinc-300">
-                <li>Entries close every Sunday at midnight.</li>
-                <li>One lucky winner is drawn at random every Sunday night.</li>
-                <li>The winner is contacted directly via WhatsApp with their digital voucher to redeem their free 3 Wings + Side combo meal!</li>
+                <li>Entries close Sunday midnight.</li>
+                <li>One lucky ticket is selected at random.</li>
+                <li>The winner is messaged directly on WhatsApp (<strong className="text-white">{phone}</strong>) with a digital coupon for a free <strong className="text-amber-400">3 Wings + Regular Side combo</strong>!</li>
               </ul>
             </div>
 
@@ -457,7 +505,196 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <button
                 type="button"
                 onClick={() => onNavigate('menu')}
-                className="px-6 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white text-sm font-black transition-all shadow-lg cursor-pointer"
+              >
+                Back to Food Menu
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── STEP 2: The Mandatory Google Review Conversion Screen ── */
+          <div className="p-5 sm:p-10 rounded-3xl bg-[#121217] border-2 border-amber-500/60 shadow-2xl shadow-orange-950/40 space-y-7 animate-fadeIn">
+            
+            {/* Top Visual Roadmap: Step 1 Done, Step 2 Action Required */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Step 1: Complete */}
+              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center gap-3">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500 text-zinc-950 font-black text-xs flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 stroke-[3]" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-white flex items-center gap-1.5">
+                    <span>Step 1: Details Saved</span>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded font-bold">Done ✓</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 truncate">Ticket #{submittedEntryId.slice(0, 8).toUpperCase()}</p>
+                </div>
+              </div>
+
+              {/* Step 2: Action Required */}
+              <div className="p-3 rounded-xl bg-gradient-to-r from-rose-500/25 to-amber-500/25 border-2 border-rose-500 flex items-center gap-3 animate-pulse">
+                <div className="w-7 h-7 rounded-lg bg-rose-500 text-white font-black text-xs flex items-center justify-center shrink-0 shadow">
+                  2
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-black text-white flex items-center gap-1.5">
+                    <span>Step 2: Post on Google</span>
+                    <span className="text-[10px] text-rose-300 bg-rose-600 px-1.5 py-0.5 rounded font-black tracking-wide uppercase">Action Required</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200 truncate">Tap below to qualify entry</p>
+                </div>
+              </div>
+            </div>
+
+            {/* High-Urgency Status Box */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-rose-950/60 via-amber-950/40 to-zinc-900 border-2 border-rose-500/50 text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 text-xs font-black uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>Your Entry Is Not Complete Yet!</span>
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
+                🚨 1 Final Step to Qualify Your Ticket!
+              </h2>
+
+              <p className="text-xs sm:text-sm text-zinc-200 max-w-xl mx-auto leading-relaxed">
+                Your entry ticket is currently <span className="text-amber-400 font-black underline uppercase">PENDING</span>. Under contest rules, only entries with a published review on our Google Business Page can be entered into the Sunday meal draw.
+              </p>
+            </div>
+
+            {/* Quick-Copy Review Draft (If Customer Typed Comments) */}
+            {comments.trim() ? (
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-900/90 border border-amber-500/30 space-y-3 text-left">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
+                      Your Review Draft (Copy to Paste on Google):
+                    </span>
+                    <span className="text-xs text-amber-300 font-bold">{'★'.repeat(rating)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyComments}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-black transition-all shadow-md cursor-pointer"
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-950" />
+                        <span>Copied to Clipboard!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>📋 1-Click Copy Review Text</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="p-3 rounded-xl bg-black/60 border border-white/10 text-xs text-zinc-200 italic">
+                  "{comments.trim()}"
+                </div>
+                <p className="text-[11px] text-zinc-400">
+                  💡 Tip: Click copy above so you won't have to retype your review on Google!
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-white/10 flex items-center justify-between text-left text-xs">
+                <div>
+                  <span className="text-zinc-400">Your Chosen Star Rating:</span>
+                  <div className="text-amber-400 font-bold text-sm">{'★'.repeat(rating)} ({rating}/5 Stars)</div>
+                </div>
+                <span className="text-[11px] text-zinc-400">Rate 5 stars on Google to qualify!</span>
+              </div>
+            )}
+
+            {/* ── GIANT PRIMARY ACTION: GOOGLE REVIEW BUTTON ── */}
+            <div className="space-y-4 text-center max-w-xl mx-auto">
+              <a
+                href={GOOGLE_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setHasClickedGoogle(true)}
+                className="w-full py-5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-base sm:text-lg tracking-wide shadow-2xl shadow-orange-950/80 transition-all flex items-center justify-center gap-3 cursor-pointer ring-4 ring-amber-500/30 animate-bounce"
+              >
+                <span>👉 STEP 2: OPEN GOOGLE &amp; POST REVIEW</span>
+                <ExternalLink className="w-5 h-5 shrink-0" />
+              </a>
+
+              <p className="text-xs text-zinc-400">
+                Opens directly to Wrap and Wing Co on Google Maps
+              </p>
+
+              {/* Visual Guidance on Google Reviews Tab */}
+              <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 text-left space-y-2.5 shadow-lg">
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>How to post once Google opens:</span>
+                </div>
+                <div className="flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 py-1 text-[11px] font-bold">
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Overview</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Menu</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2.5 py-0.5 rounded-md bg-amber-500/25 border-2 border-amber-400 text-amber-300 font-black">
+                    👉 Tap "Reviews"
+                  </span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400">Photos</span>
+                </div>
+                <p className="text-[11px] text-zinc-300 leading-relaxed">
+                  1. Tap the <strong className="text-white">"Reviews"</strong> tab.<br />
+                  2. Select your <strong className="text-amber-400">5-Star rating</strong>.<br />
+                  3. Paste your feedback (if copied) and tap <strong className="text-white">"Post"</strong>!
+                </p>
+              </div>
+            </div>
+
+            {/* ── CONFIRMATION / LOCK IN BUTTON ── */}
+            <div className="p-5 rounded-2xl bg-zinc-900 border-2 border-emerald-500/40 text-center space-y-3 max-w-xl mx-auto">
+              <div className="text-xs font-bold text-zinc-300">
+                Already posted your review on Google?
+              </div>
+              <button
+                type="button"
+                onClick={handleConfirmGooglePost}
+                disabled={confirmingPost}
+                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-98 text-white font-black text-sm sm:text-base tracking-wide shadow-lg shadow-emerald-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {confirmingPost ? (
+                  <span>Verifying Ticket...</span>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                    <span>✅ I've Posted My Google Review — Lock In My Ticket!</span>
+                  </>
+                )}
+              </button>
+              <p className="text-[11px] text-zinc-400">
+                Locks in your entry ticket so our team can verify it for the Sunday meal draw.
+              </p>
+            </div>
+
+            {/* WhatsApp Fallback */}
+            <div className="text-center pt-1">
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                  `Wrap & Wing Co Customer Meal Draw:\nPost your Google review here to qualify for the weekly draw:\n${GOOGLE_REVIEW_URL}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-amber-400 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 text-emerald-400" />
+                <span>On desktop or need to post later? Share review link to WhatsApp</span>
+              </a>
+            </div>
+
+            {/* Back to Menu */}
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={() => onNavigate('menu')}
+                className="px-6 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs font-bold transition-colors cursor-pointer"
               >
                 Back to Food Menu
               </button>
