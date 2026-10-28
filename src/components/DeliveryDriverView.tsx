@@ -29,25 +29,42 @@ import {
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
+import {
+  getRegisteredDrivers,
+  getActiveDriverSession,
+  setActiveDriverSession,
+  calculateDriverMetrics,
+  getDriverDisplayName,
+  downloadCompletedAgreementPdf,
+} from '../services/driverService';
+import { claimOrderDelivery } from '../services/orderService';
+import { DriverProfile } from '../types';
+import { User, DollarSign, Calendar, ChevronDown, Check, Shield, Hand, Sparkles, Flame, FileCheck } from 'lucide-react';
 
 interface DeliveryDriverViewProps {
   onBackToMenu: () => void;
   onLogout?: () => void;
   onViewOrderTracker?: (orderId: string) => void;
+  onOpenAgreement?: () => void;
 }
 
 export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   onBackToMenu,
   onLogout,
   onViewOrderTracker,
+  onOpenAgreement,
 }) => {
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
-  const [filter, setFilter] = useState<'ready' | 'dispatched' | 'completed' | 'all'>('ready');
+  const [registeredDrivers, setRegisteredDrivers] = useState<DriverProfile[]>(() => getRegisteredDrivers());
+  const [activeDriver, setActiveDriver] = useState<DriverProfile>(() => getActiveDriverSession());
+  const [metricsPeriod, setMetricsPeriod] = useState<'today' | 'week' | 'month'>('today');
+  const [filter, setFilter] = useState<'incoming' | 'ready' | 'dispatched' | 'my-trips' | 'completed' | 'all'>('incoming');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentTime, setCurrentTime] = useState<string>(() => new Date().toLocaleTimeString());
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedTicketOrder, setSelectedTicketOrder] = useState<LiveOrder | null>(null);
 
+  const activeDisplayName = getDriverDisplayName(activeDriver);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
   const isInitializedRef = useRef(false);
 
@@ -66,15 +83,18 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     };
   }, []);
 
-  // Real-time synchronization
+  // Real-time synchronization: alert on new incoming orders (received or cooking) as well as ready!
   useEffect(() => {
     const unsubscribe = subscribeToOrders((newOrders) => {
       const currentKnown = knownOrderIdsRef.current;
-      const readyDeliveries = newOrders.filter(
-        (o) => o.orderMode === 'delivery' && o.status === 'ready' && !currentKnown.has(o.orderId)
+      const incomingDeliveries = newOrders.filter(
+        (o) =>
+          o.orderMode === 'delivery' &&
+          (o.status === 'received' || o.status === 'cooking' || o.status === 'ready') &&
+          !currentKnown.has(o.orderId)
       );
 
-      if (isInitializedRef.current && readyDeliveries.length > 0 && soundEnabled) {
+      if (isInitializedRef.current && incomingDeliveries.length > 0 && soundEnabled) {
         playKitchenChime();
       }
 
@@ -113,6 +133,23 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     }
   };
 
+  const handleSwitchDriver = (drv: DriverProfile) => {
+    setActiveDriver(drv);
+    setActiveDriverSession(drv);
+  };
+
+  const handleClaimOrder = (orderId: string) => {
+    const updated = claimOrderDelivery(orderId, activeDriver.id, activeDisplayName);
+    if (updated) {
+      setOrders((prev) => prev.map((o) => (o.orderId === orderId ? updated : o)));
+    } else {
+      setOrders(getAllOrders());
+    }
+    if (soundEnabled) {
+      playKitchenChime();
+    }
+  };
+
   // Filter only home delivery orders (must be COD or successfully paid via PayFast)
   const deliveryOrders = orders.filter(
     (o): o is LiveOrder => Boolean(
@@ -120,6 +157,15 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid')
     )
   );
+  
+  // Calculate day / week / month metrics for the active driver
+  const driverMetrics = calculateDriverMetrics(activeDriver.id, orders);
+  const activeBucket =
+    metricsPeriod === 'today'
+      ? driverMetrics.today
+      : metricsPeriod === 'week'
+      ? driverMetrics.thisWeek
+      : driverMetrics.thisMonth;
   
   // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
   const extractOrderSequence = (orderId: string): number => {
@@ -191,17 +237,30 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   };
 
   const sortedAllDeliveryOrders = sortOrdersNewestFirst(deliveryOrders);
+  const kitchenOrders = sortedAllDeliveryOrders.filter(
+    (o) => o.status === 'received' || o.status === 'cooking'
+  );
   const readyOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'ready');
   const dispatchedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'dispatched');
   const completedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'completed');
+  const myTripsOrders = sortedAllDeliveryOrders.filter(
+    (o) =>
+      o.driverId === activeDriver.id ||
+      o.driverName === activeDriver.name ||
+      o.driverName === activeDisplayName
+  );
 
   const displayedOrders =
-    filter === 'ready'
+    filter === 'incoming'
+      ? kitchenOrders
+      : filter === 'ready'
       ? readyOrders
       : filter === 'dispatched'
       ? dispatchedOrders
       : filter === 'completed'
       ? completedOrders
+      : filter === 'my-trips'
+      ? myTripsOrders
       : sortedAllDeliveryOrders;
 
   return (
@@ -268,97 +327,220 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
         </div>
       </header>
 
-      {/* ── Driver Action Deck & Status Filters ─────────────────────────────── */}
-      <div className="bg-[#121217] border-b border-white/10 px-4 sm:px-6 py-3.5 shadow-md">
+      {/* ── Driver Profile Bar & Earnings Log ─────────────────────────────── */}
+      <div className="bg-[#101017] border-b border-white/10 px-4 sm:px-6 py-3 shadow-md">
         <div className="max-w-4xl mx-auto space-y-3">
-          {/* Block of 4 Buttons (2 per line), styled like the navigation block */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-2.5 text-xs font-bold">
+          
+          {/* Driver Switcher & Agreement Access */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase text-zinc-400">Active Driver:</span>
+              <div className="flex items-center gap-1.5 bg-black/60 p-1 rounded-xl border border-white/10">
+                {registeredDrivers.map((drv) => (
+                  <button
+                    key={drv.id}
+                    type="button"
+                    onClick={() => handleSwitchDriver(drv)}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      activeDriver.id === drv.id
+                        ? 'bg-rose-600 text-white shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <User className="w-3 h-3" />
+                    <span>{getDriverDisplayName(drv)} (PIN: {drv.pin})</span>
+                    {activeDriver.id === drv.id && <Check className="w-3 h-3" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Signed Agreement & Onboarding Action */}
+            <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+              {activeDriver.onboardingCompleted ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => downloadCompletedAgreementPdf(activeDriver)}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 hover:text-white transition-all text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm"
+                    title="Download / View the signed agreement PDF"
+                  >
+                    <FileCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>View Signed Agreement (PDF)</span>
+                  </button>
+                  {onOpenAgreement && (
+                    <button
+                      type="button"
+                      onClick={onOpenAgreement}
+                      className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-zinc-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
+                      title="Update details or re-sign"
+                    >
+                      <span>Edit Info</span>
+                    </button>
+                  )}
+                </>
+              ) : (
+                onOpenAgreement && (
+                  <button
+                    type="button"
+                    onClick={onOpenAgreement}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Complete Agreement &amp; Onboarding</span>
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {/* Personal Earnings Performance Dashboard (Day / Week / Month) */}
+          <div className="rounded-2xl bg-zinc-900/80 border border-white/10 p-3 sm:p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-black uppercase text-white tracking-wider">
+                  {activeDisplayName}’s Delivery Ledger
+                </span>
+              </div>
+
+              {/* Timeframe selector */}
+              <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-lg border border-white/10 text-[10px] font-black uppercase">
+                <button
+                  type="button"
+                  onClick={() => setMetricsPeriod('today')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                    metricsPeriod === 'today' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricsPeriod('week')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                    metricsPeriod === 'week' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  This Week (Mon–Sat)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMetricsPeriod('month')}
+                  className={`px-2 py-0.5 rounded-md transition-colors cursor-pointer ${
+                    metricsPeriod === 'month' ? 'bg-zinc-700 text-white' : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  This Month
+                </button>
+              </div>
+            </div>
+
+            {/* Metrics cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+              <div className="p-2 rounded-xl bg-black/40 border border-white/5">
+                <div className="text-[10px] text-zinc-400 font-bold uppercase">Deliveries</div>
+                <div className="text-base font-black text-white">{activeBucket.deliveriesCount}</div>
+                <div className="text-[9px] text-zinc-500">Completed runs</div>
+              </div>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/5">
+                <div className="text-[10px] text-zinc-400 font-bold uppercase">Base Rates</div>
+                <div className="text-base font-black text-amber-400">R{activeBucket.baseFees.toFixed(2)}</div>
+                <div className="text-[9px] text-zinc-500">Distance tiers</div>
+              </div>
+              <div className="p-2 rounded-xl bg-black/40 border border-white/5">
+                <div className="text-[10px] text-zinc-400 font-bold uppercase">Tips Earned</div>
+                <div className="text-base font-black text-emerald-400">R{activeBucket.tips.toFixed(2)}</div>
+                <div className="text-[9px] text-zinc-500">100% kept by driver</div>
+              </div>
+              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                <div className="text-[10px] text-emerald-300 font-bold uppercase">Net Payout</div>
+                <div className="text-base font-black text-emerald-400">R{activeBucket.totalEarnings.toFixed(2)}</div>
+                <div className="text-[9px] text-emerald-500/80 font-bold">Monday 12:00 EFT</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Status Filters (In Prep, Ready, Dispatched, My Trips, Completed, All) */}
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs font-bold pt-1">
+            <button
+              type="button"
+              onClick={() => setFilter('incoming')}
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
+                filter === 'incoming'
+                  ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md shadow-rose-600/30'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-rose-300 border border-rose-500/30'
+              }`}
+            >
+              <span>🔥 In Prep ({kitchenOrders.length})</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setFilter('ready')}
-              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
                 filter === 'ready'
                   ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 shadow-md shadow-amber-500/20'
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2]" />
-              </span>
-              <span>Ready at Kitchen</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                filter === 'ready' ? 'bg-black/30 text-zinc-950' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-              }`}>
-                {readyOrders.length}
-              </span>
+              <span>🛍️ Ready ({readyOrders.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setFilter('dispatched')}
-              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
                 filter === 'dispatched'
                   ? 'bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/30'
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
-                <DeliveryMotorbikeIcon className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
-              </span>
-              <span>On Road</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                filter === 'dispatched' ? 'bg-black/30 text-white' : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-              }`}>
-                {dispatchedOrders.length}
-              </span>
+              <span>🏍️ On Road ({dispatchedOrders.length})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setFilter('my-trips')}
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
+                filter === 'my-trips'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
+                  : 'bg-zinc-900/90 hover:bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+              }`}
+            >
+              <span>⭐ My Trips ({myTripsOrders.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setFilter('completed')}
-              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
                 filter === 'completed'
                   ? 'bg-zinc-700 text-white shadow-md border border-white/20'
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
-                <Smile className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
-              </span>
-              <span>Completed Runs</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                filter === 'completed' ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
-              }`}>
-                {completedOrders.length}
-              </span>
+              <span>✅ Done ({completedOrders.length})</span>
             </button>
 
             <button
               type="button"
               onClick={() => setFilter('all')}
-              className={`py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer font-black text-center ${
+              className={`py-2 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer font-black text-center ${
                 filter === 'all'
                   ? 'bg-zinc-800 text-white shadow-md border border-white/20'
                   : 'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 border border-white/10'
               }`}
             >
-              <span className="w-6 h-6 rounded-full bg-zinc-900 border-2 border-yellow-400/90 shadow-[0_0_6px_rgba(250,204,21,0.35)] flex items-center justify-center shrink-0">
-                <FileText className="w-3.5 h-3.5 text-zinc-300 stroke-[2.2] shrink-0" />
-              </span>
-              <span>All Tickets</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                filter === 'all' ? 'bg-black/30 text-white' : 'bg-zinc-800 text-zinc-400'
-              }`}>
-                {deliveryOrders.length}
-              </span>
+              <span>📋 All ({deliveryOrders.length})</span>
             </button>
           </div>
 
-          {/* Helper bar below the block of 4 */}
+          {/* Helper bar below */}
           <div className="flex items-center justify-between pt-0.5 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-              <span className="text-[11px] font-bold text-zinc-300">Live GPS Radar Active</span>
+              <span className="text-[11px] font-bold text-zinc-300">Live Radar Active • Logged in as {activeDisplayName}</span>
             </div>
 
             <button
@@ -370,12 +552,13 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                 setTimeout(() => setIsSyncing(false), 500);
               }}
               disabled={isSyncing}
-              className="py-1.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+              className="py-1 px-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-[11px] font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-amber-400 ${isSyncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3 h-3 text-amber-400 ${isSyncing ? 'animate-spin' : ''}`} />
               <span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
             </button>
           </div>
+
         </div>
       </div>
 
@@ -390,7 +573,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               No delivery runs in this section
             </h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-sm">
-              When kitchen staff click "Food Ready &amp; Packed" on a delivery order, it appears here instantly for pickup and routing.
+              New customer orders appear here the moment they are placed and accepted by the kitchen, allowing you to accept responsibility and head to the shop while food is being prepared.
             </p>
           </div>
         ) : (
@@ -408,12 +591,18 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               const items = Array.isArray(order.items) ? order.items : [];
               const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
               const isPaid = order.paymentStatus === 'paid';
+              const isClaimedByMe =
+                order.driverId === activeDriver.id ||
+                order.driverName === activeDisplayName ||
+                order.driverName === activeDriver.name;
 
               return (
                 <div
                   key={order.orderId}
                   className={`rounded-3xl border flex flex-col justify-between overflow-hidden shadow-2xl transition-all ${
-                    order.status === 'ready'
+                    order.status === 'received' || order.status === 'cooking'
+                      ? 'bg-gradient-to-b from-rose-950/35 via-zinc-900 to-zinc-950 border-rose-500/50 ring-1 ring-rose-500/30'
+                      : order.status === 'ready'
                       ? 'bg-gradient-to-b from-amber-950/40 via-zinc-900 to-zinc-950 border-amber-500/50 ring-2 ring-amber-500/30'
                       : order.status === 'dispatched'
                       ? 'bg-gradient-to-b from-orange-950/40 via-zinc-900 to-zinc-950 border-orange-500/50'
@@ -424,23 +613,33 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   {/* Card Header */}
                   <div className="p-4 sm:p-5 border-b border-white/10 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-lg font-black text-white">
                           #{order.orderId}
                         </span>
+                        
+                        {/* Status Badge */}
                         <span
                           className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                            order.status === 'ready'
-                              ? 'bg-amber-400 text-zinc-950 animate-pulse'
+                            order.status === 'received' || order.status === 'cooking'
+                              ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse'
+                              : order.status === 'ready'
+                              ? 'bg-amber-400 text-zinc-950 animate-pulse font-extrabold'
                               : order.status === 'dispatched'
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-emerald-500/20 text-emerald-400'
+                              ? 'bg-orange-500 text-white font-extrabold'
+                              : 'bg-emerald-500/20 text-emerald-400 font-extrabold'
                           }`}
                         >
+                          {(order.status === 'received' || order.status === 'cooking') && (
+                            <span className="inline-flex items-center gap-1">
+                              <Flame className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                              <span>{order.status === 'received' ? 'IN PREP' : 'COOKING'}</span>
+                            </span>
+                          )}
                           {order.status === 'ready' && (
                             <span className="inline-flex items-center gap-1">
                               <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-                              <span>READY FOR PICKUP</span>
+                              <span>READY</span>
                             </span>
                           )}
                           {order.status === 'dispatched' && (
@@ -456,6 +655,26 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                             </span>
                           )}
                         </span>
+
+                        {/* Driver Claim Badge */}
+                        {order.driverName ? (
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                              isClaimedByMe
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            }`}
+                          >
+                            <User className="w-3 h-3" />
+                            <span>
+                              {isClaimedByMe ? `You (${activeDisplayName})` : order.driverName}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-rose-500/25 text-rose-300 border border-rose-500/40 animate-pulse">
+                            Needs Driver
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-right">
@@ -612,32 +831,95 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
 
                   {/* Action Buttons */}
                   <div className="p-3 bg-zinc-950/90 border-t border-white/10 space-y-2">
-                    {order.status === 'ready' && (
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(order.orderId, 'dispatched')}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <DeliveryMotorbikeIcon className="w-4 h-4 text-zinc-950" />
-                        <span>ACCEPT &amp; START DELIVERY</span>
-                      </button>
+                    
+                    {/* IN KITCHEN PREP (Received or Cooking) */}
+                    {(order.status === 'received' || order.status === 'cooking') && (
+                      <>
+                        {!order.driverId ? (
+                          <button
+                            type="button"
+                            onClick={() => handleClaimOrder(order.orderId)}
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-rose-600 via-amber-600 to-yellow-500 hover:from-rose-500 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-rose-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                          >
+                            <Hand className="w-4 h-4 text-zinc-950" />
+                            <span>ACCEPT ORDER &amp; HEAD TO SHOP ({activeDisplayName.toUpperCase()})</span>
+                          </button>
+                        ) : isClaimedByMe ? (
+                          <div className="w-full py-3 px-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-bold text-xs text-center flex flex-col items-center justify-center gap-1 shadow-sm">
+                            <div className="flex items-center gap-1.5 font-black text-emerald-400">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>ACCEPTED BY YOU • HEAD TO SHOP</span>
+                            </div>
+                            <span className="text-[11px] text-zinc-300">
+                              Kitchen is preparing food. Head to the store for pickup!
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="w-full py-3 px-3 rounded-2xl bg-zinc-900 border border-white/10 text-zinc-400 font-bold text-xs text-center flex items-center justify-center gap-2">
+                            <Shield className="w-4 h-4 text-amber-400" />
+                            <span>Accepted by {order.driverName || 'Another Driver'} (Heading to shop)</span>
+                          </div>
+                        )}
+                      </>
                     )}
 
+                    {/* READY FOR PICKUP */}
+                    {order.status === 'ready' && (
+                      <>
+                        {!order.driverId ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleClaimOrder(order.orderId);
+                            }}
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <Hand className="w-4 h-4 text-zinc-950" />
+                            <span>ACCEPT DELIVERY ({activeDisplayName.toUpperCase()})</span>
+                          </button>
+                        ) : isClaimedByMe ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange(order.orderId, 'dispatched')}
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer animate-pulse"
+                          >
+                            <DeliveryMotorbikeIcon className="w-4 h-4 text-zinc-950" />
+                            <span>FOOD PACKED • START TRIP &amp; OUT ON ROAD</span>
+                          </button>
+                        ) : (
+                          <div className="w-full py-3 px-3 rounded-2xl bg-zinc-900 border border-white/10 text-zinc-400 font-bold text-xs text-center flex items-center justify-center gap-2">
+                            <Shield className="w-4 h-4 text-amber-400" />
+                            <span>Assigned to {order.driverName || 'Another Driver'}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* DISPATCHED / ON THE ROAD */}
                     {order.status === 'dispatched' && (
-                      <button
-                        type="button"
-                        onClick={() => handleStatusChange(order.orderId, 'completed')}
-                        className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>CONFIRM DELIVERED &amp; COMPLETE RUN</span>
-                      </button>
+                      <>
+                        {isClaimedByMe || !order.driverId ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange(order.orderId, 'completed')}
+                            className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm tracking-wide shadow-lg shadow-emerald-950/60 transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                            <span>CONFIRM DELIVERED &amp; COMPLETE RUN</span>
+                          </button>
+                        ) : (
+                          <div className="w-full py-3 px-3 rounded-2xl bg-zinc-900 border border-white/10 text-zinc-400 font-bold text-xs text-center flex items-center justify-center gap-2">
+                            <DeliveryMotorbikeIcon className="w-4 h-4 text-orange-400" />
+                            <span>Out for delivery with {order.driverName}</span>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {order.status === 'completed' && (
                       <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold text-center flex items-center justify-center gap-1.5">
                         <CheckCircle className="w-4 h-4" />
-                        <span>Delivery Run Finished</span>
+                        <span>Run Completed by {order.driverName || 'Driver'}</span>
                       </div>
                     )}
 

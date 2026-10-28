@@ -124,6 +124,31 @@ export interface LiveOrder {
   timeline: OrderTimelineEvent[];
   cookingStartedAt?: number;
   completedAt?: number;
+  driverId?: string;
+  driverName?: string;
+  driverAcceptedAt?: number;
+}
+
+export interface DriverProfile {
+  id: string; // e.g. 'DRV-01', 'DRV-02'
+  driverNumber: number; // 1, 2, etc.
+  name: string;
+  phone: string;
+  pin: string; // 4-digit PIN for Driver Portal access
+  idOrPassportNumber?: string;
+  residentialAddress?: string;
+  vehicleType: 'motorcycle' | 'light_vehicle' | 'car';
+  vehicleDetails: string;
+  vehicleReg: string;
+  licenceCode: string; // 'Code 8 / Code B (Light Vehicle)' | 'Code A / A1 (Motorcycle)'
+  licenceNumber?: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  branchCode: string;
+  active: boolean;
+  onboardingCompleted?: boolean;
+  signedAgreementDate?: string;
 }
 
 export type PageView =
@@ -135,7 +160,8 @@ export type PageView =
   | 'track'
   | 'contact'
   | 'review'
-  | 'admin';
+  | 'admin'
+  | 'driver-agreement';
 
 export type StaffRole = 'kitchen' | 'driver' | 'admin';
 

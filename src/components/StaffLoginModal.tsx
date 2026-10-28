@@ -10,9 +10,11 @@ interface StaffLoginModalProps {
   onSuccess: (role: StaffRole) => void;
 }
 
+import { authenticateDriver, setActiveDriverSession } from '../services/driverService';
+
 const VALID_PINS: Record<StaffRole, string[]> = {
   kitchen: ['0099'],
-  driver: ['0011'],
+  driver: ['0011', '1001', '1002'],
   admin: ['3858'],
 };
 
@@ -48,6 +50,22 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanPin = pin.trim();
+
+    // Check specific driver PIN authentication
+    if (role === 'driver') {
+      const matchedDriver = authenticateDriver(cleanPin);
+      if (matchedDriver) {
+        setActiveDriverSession(matchedDriver);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('wrap_wing_staff_role', 'driver');
+        }
+        setPin('');
+        setError(null);
+        onSuccess('driver');
+        return;
+      }
+    }
+
     const valid = VALID_PINS[role];
 
     if (valid.includes(cleanPin)) {
@@ -60,7 +78,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
     } else {
       setError(
         `Invalid PIN code for ${
-          role === 'kitchen' ? 'Kitchen Display' : role === 'driver' ? 'Delivery Driver' : 'Admin Portal'
+          role === 'kitchen' ? 'Kitchen Display' : role === 'driver' ? 'Delivery Driver (PIN: 1001 / 1002)' : 'Admin Portal'
         }. Please try again.`
       );
       setPin('');

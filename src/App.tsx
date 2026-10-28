@@ -19,6 +19,7 @@ import { ReviewDrawView } from './components/ReviewDrawView';
 import { AdminPortalView } from './components/AdminPortalView';
 import { KitchenDisplayView } from './components/KitchenDisplayView';
 import { DeliveryDriverView } from './components/DeliveryDriverView';
+import { DriverAgreementOnboardingView } from './components/DriverAgreementOnboardingView';
 import { StaffLoginModal } from './components/StaffLoginModal';
 import { OrderTrackerView } from './components/OrderTrackerView';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -40,6 +41,7 @@ const VALID_VIEWS: PageView[] = [
   'contact',
   'review',
   'admin',
+  'driver-agreement',
 ];
 
 const parseViewFromUrl = (): PageView => {
@@ -63,11 +65,16 @@ const parseViewFromUrl = (): PageView => {
     return path as PageView;
   }
 
-  // 3. Query parameter check (e.g. ?view=review)
+  // 3. Query parameter check (e.g. ?view=review or ?view=driver-agreement or ?view=onboarding)
   const searchParams = new URLSearchParams(window.location.search);
   const queryView = searchParams.get('view')?.toLowerCase();
-  if (queryView && VALID_VIEWS.includes(queryView as PageView)) {
-    return queryView as PageView;
+  if (queryView) {
+    if (queryView === 'onboarding' || queryView === 'agreement' || queryView === 'driver-agreement') {
+      return 'driver-agreement';
+    }
+    if (VALID_VIEWS.includes(queryView as PageView)) {
+      return queryView as PageView;
+    }
   }
 
   return 'menu';
@@ -434,6 +441,7 @@ const MainContent: React.FC = () => {
             <DeliveryDriverView
               onBackToMenu={() => handleNavigate('menu')}
               onLogout={handleStaffLogout}
+              onOpenAgreement={() => handleNavigate('driver-agreement')}
               onViewOrderTracker={(orderId) => {
                 setTrackedOrderId(orderId);
                 handleNavigate('track');
@@ -457,6 +465,13 @@ const MainContent: React.FC = () => {
             }}
           />
         )
+      ) : currentView === 'driver-agreement' ? (
+        <ErrorBoundary fallbackTitle="Driver Agreement Onboarding Recovery">
+          <DriverAgreementOnboardingView
+            onBackToMenu={() => handleNavigate('menu')}
+            onLaunchDriverPortal={() => handleNavigate('delivery')}
+          />
+        </ErrorBoundary>
       ) : currentView === 'track' ? (
         <ErrorBoundary fallbackTitle="Order Tracker Recovery">
           <OrderTrackerView

@@ -1416,6 +1416,74 @@ export function updateOrderStatus(orderId: string, newStatus: OrderStatus, note?
   return updatedOrder;
 }
 
+export function claimOrderDelivery(orderId: string, driverId: string, driverName: string): LiveOrder | null {
+  const cleanId = orderId.replace('#', '').trim();
+  const orders = getAllOrders();
+  const index = orders.findIndex(
+    (o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId
+  );
+  if (index === -1) return null;
+
+  const current = orders[index];
+  const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const timelineEvent: OrderTimelineEvent = {
+    status: current.status,
+    timestamp: nowStr,
+    label: `Assigned to ${driverName}`,
+    note: `Delivery responsibility accepted by ${driverName} (${driverId})`,
+    epochTime: Date.now(),
+  };
+
+  const updatedOrder: LiveOrder = {
+    ...current,
+    driverId,
+    driverName,
+    driverAcceptedAt: Date.now(),
+    timeline: [...current.timeline, timelineEvent],
+  };
+
+  orders[index] = updatedOrder;
+  saveOrders(orders, true);
+
+  if (isFirebaseConfigured) {
+    saveOrderToFirestore(updatedOrder).catch((e) =>
+      console.warn('Firestore claimOrder error:', e)
+    );
+  }
+
+  publishCloudEvent({
+    type: 'ORDER_UPDATED',
+    orderId: updatedOrder.orderId,
+    order: updatedOrder,
+    timestamp: Date.now(),
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('wrap_wing_order_status_updated', {
+        detail: {
+          orderId: updatedOrder.orderId,
+          order: updatedOrder,
+        },
+      })
+    );
+  }
+
+  if (broadcastChannel) {
+    try {
+      broadcastChannel.postMessage({
+        type: 'ORDER_STATUS_CHANGED',
+        orderId: updatedOrder.orderId,
+        order: updatedOrder,
+        timestamp: Date.now(),
+      });
+    } catch {}
+  }
+
+  return updatedOrder;
+}
+
 export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () => void {
   if (typeof window === 'undefined') return () => {};
 
