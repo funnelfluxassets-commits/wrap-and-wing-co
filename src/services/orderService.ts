@@ -1159,6 +1159,54 @@ export function getOrderDateString(o: LiveOrder): string {
   return 'undated';
 }
 
+/**
+ * Returns a guaranteed-valid Date object for any LiveOrder,
+ * avoiding RangeError: Invalid time value when calling date methods.
+ */
+export function getSafeOrderDate(o: LiveOrder): Date {
+  if (!o) return new Date();
+
+  // 1. Check timeline events with valid epochTime
+  if (Array.isArray(o.timeline) && o.timeline.length > 0) {
+    for (const evt of o.timeline) {
+      if (typeof evt?.epochTime === 'number' && evt.epochTime > 1600000000000 && !isNaN(evt.epochTime)) {
+        return new Date(evt.epochTime);
+      }
+    }
+  }
+
+  // 2. Check completedAt / driverAcceptedAt / cookingStartedAt
+  if (typeof o.completedAt === 'number' && o.completedAt > 1600000000000 && !isNaN(o.completedAt)) {
+    return new Date(o.completedAt);
+  }
+  if (typeof (o as any).driverAcceptedAt === 'number' && (o as any).driverAcceptedAt > 1600000000000 && !isNaN((o as any).driverAcceptedAt)) {
+    return new Date((o as any).driverAcceptedAt);
+  }
+  if (typeof o.cookingStartedAt === 'number' && o.cookingStartedAt > 1600000000000 && !isNaN(o.cookingStartedAt)) {
+    return new Date(o.cookingStartedAt);
+  }
+
+  // 3. Try parsing createdAt string
+  if (o.createdAt && typeof o.createdAt === 'string') {
+    const parsed = Date.parse(o.createdAt);
+    if (!isNaN(parsed)) {
+      return new Date(parsed);
+    }
+  }
+
+  // 4. Try parsing extracted date string from getOrderDateString
+  const dateStr = getOrderDateString(o);
+  if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const parsed = Date.parse(`${dateStr}T12:00:00`);
+    if (!isNaN(parsed)) {
+      return new Date(parsed);
+    }
+  }
+
+  return new Date();
+}
+
+
 export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrder> {
   const storeStatus = getStoreOperatingStatus();
   if (!storeStatus.isOpen && !isPayFastStaffTestMode()) {

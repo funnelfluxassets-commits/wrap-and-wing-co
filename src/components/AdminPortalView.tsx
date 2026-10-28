@@ -108,7 +108,9 @@ import {
   downloadCompletedAgreementPdf,
   exportDeliveryLedgerToCsv,
   DriverProfile,
+  getSafeOrderDate,
 } from '../services/driverService';
+
 
 
 interface AdminPortalViewProps {
@@ -816,11 +818,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const filteredDeliveryOrders = useMemo(() => {
     const allDelivs = deliveryMetrics.orders;
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = getLocalTodayDateString();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     const isThisMonSat = (d: Date) => {
+      if (!d || isNaN(d.getTime())) return false;
       const day = now.getDay();
       const diffToMonday = (day === 0 ? -6 : 1) - day;
       const monday = new Date(now);
@@ -834,16 +837,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     };
 
     return allDelivs.filter((order) => {
-      const orderDate = new Date(order.createdAt || Date.now());
+      const orderDate = getSafeOrderDate(order);
+      const orderDateStr = getOrderDateString(order);
 
       if (deliveryTimeframe === 'today') {
-        const dStr = orderDate.toISOString().split('T')[0];
-        if (dStr !== todayStr) return false;
+        if (orderDateStr !== todayStr) return false;
       } else if (deliveryTimeframe === 'week') {
         if (!isThisMonSat(orderDate)) return false;
       } else if (deliveryTimeframe === 'month') {
-        if (orderDate.getMonth() !== currentMonth || orderDate.getFullYear() !== currentYear) return false;
+        if (isNaN(orderDate.getTime()) || orderDate.getMonth() !== currentMonth || orderDate.getFullYear() !== currentYear) return false;
       }
+
 
       if (selectedDriverFilter !== 'all') {
         if (selectedDriverFilter === 'unassigned') {
@@ -2279,13 +2283,19 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             }`}
                           >
                             <td className="py-3.5 px-4 text-zinc-400 whitespace-nowrap">
-                              {new Date(e.createdAt).toLocaleDateString('en-ZA', {
-                                day: 'numeric',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              {(() => {
+                                const d = new Date(e.createdAt);
+                                return !isNaN(d.getTime())
+                                  ? d.toLocaleDateString('en-ZA', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })
+                                  : (typeof e.createdAt === 'string' ? e.createdAt : 'Recent');
+                              })()}
                             </td>
+
 
                             <td className="py-3.5 px-4 whitespace-nowrap">
                               <select
@@ -3026,8 +3036,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               </span>
 
                               <span className="text-zinc-500 font-mono text-[10px]">
-                                {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {(() => {
+                                  const d = new Date(entry.createdAt);
+                                  return !isNaN(d.getTime())
+                                    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                    : '';
+                                })()}
                               </span>
+
                             </div>
                           </div>
                         );
@@ -4229,7 +4245,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   <tbody className="divide-y divide-white/5 bg-zinc-950/40">
                     {filteredDeliveryOrders.map((order) => {
                       const cleanId = String(order.orderId || '').replace('#', '');
-                      const orderDate = new Date(order.createdAt || Date.now());
+                      const orderDate = getSafeOrderDate(order);
+                      const isValidDate = !isNaN(orderDate.getTime());
+                      const dateLabel = isValidDate
+                        ? orderDate.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })
+                        : getOrderDateString(order);
+                      const timeLabel = isValidDate
+                        ? orderDate.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })
+                        : (typeof order.createdAt === 'string' ? order.createdAt : '');
+
                       const baseFee = typeof order.deliveryFee === 'number' && order.deliveryFee > 0 ? order.deliveryFee : 28;
                       const tip = typeof order.tip === 'number' ? order.tip : 0;
                       const driverTotal = baseFee + tip;
@@ -4256,11 +4280,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                           {/* Date & Time */}
                           <td className="py-3 px-3.5 text-zinc-300">
-                            <div>{orderDate.toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}</div>
-                            <div className="text-[10px] text-zinc-500 font-mono">
-                              {orderDate.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
-                            </div>
+                            <div>{dateLabel}</div>
+                            {timeLabel && (
+                              <div className="text-[10px] text-zinc-500 font-mono">
+                                {timeLabel}
+                              </div>
+                            )}
                           </td>
+
 
                           {/* Customer & Suburb */}
                           <td className="py-3 px-3.5">

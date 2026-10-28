@@ -1,5 +1,8 @@
 import { jsPDF } from 'jspdf';
 import { DriverProfile, LiveOrder } from '../types';
+import { getSafeOrderDate, getOrderDateString, getLocalTodayDateString } from './orderService';
+
+export { getSafeOrderDate };
 
 const DRIVERS_STORAGE_KEY = 'wrap_wing_registered_drivers';
 const ACTIVE_DRIVER_KEY = 'wrap_wing_active_driver_profile';
@@ -241,6 +244,7 @@ export interface DriverCompleteMetrics {
  * Helper to check if an epoch timestamp falls in current Monday-to-Saturday week
  */
 function isDateInCurrentMonToSatWeek(d: Date): boolean {
+  if (!d || isNaN(d.getTime())) return false;
   const now = new Date();
   
   // Find Monday of current week
@@ -262,7 +266,7 @@ function isDateInCurrentMonToSatWeek(d: Date): boolean {
 export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): DriverCompleteMetrics {
   const driver = getDriverById(driverId) || DEFAULT_DRIVERS[0];
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = getLocalTodayDateString();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
@@ -288,14 +292,8 @@ export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): D
   const allTime = initBucket();
 
   driverOrders.forEach((o) => {
-    // Determine completed date/time
-    let orderTime = o.completedAt || o.driverAcceptedAt || Date.now();
-    // Try timeline timestamp if epoch not present
-    const completedEvent = (o.timeline || []).find((t) => t.status === 'completed' || t.status === 'dispatched');
-    if (completedEvent?.epochTime) {
-      orderTime = completedEvent.epochTime;
-    }
-    const orderDate = new Date(orderTime);
+    const orderDate = getSafeOrderDate(o);
+    const orderDateStr = getOrderDateString(o);
 
     // Delivery fee and tips (default base fee if not set)
     const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
@@ -309,7 +307,6 @@ export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): D
     allTime.totalEarnings += earning;
 
     // Today
-    const orderDateStr = orderDate.toISOString().split('T')[0];
     if (orderDateStr === todayStr) {
       today.deliveriesCount += 1;
       today.baseFees += baseFee;
@@ -326,7 +323,7 @@ export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): D
     }
 
     // This Month
-    if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+    if (!isNaN(orderDate.getTime()) && orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
       thisMonth.deliveriesCount += 1;
       thisMonth.baseFees += baseFee;
       thisMonth.tips += tip;
@@ -357,7 +354,7 @@ export interface OverallDeliveryMetrics {
  */
 export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliveryMetrics {
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = getLocalTodayDateString();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
@@ -382,12 +379,8 @@ export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliv
   const allTime = initBucket();
 
   deliveryOrders.forEach((o) => {
-    let orderTime = o.completedAt || o.driverAcceptedAt || Date.now();
-    const completedEvent = (o.timeline || []).find((t) => t.status === 'completed' || t.status === 'dispatched');
-    if (completedEvent?.epochTime) {
-      orderTime = completedEvent.epochTime;
-    }
-    const orderDate = new Date(orderTime);
+    const orderDate = getSafeOrderDate(o);
+    const orderDateStr = getOrderDateString(o);
 
     const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
     const tip = typeof o.tip === 'number' ? o.tip : 0;
@@ -401,7 +394,6 @@ export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliv
       allTime.totalEarnings += earning;
     }
 
-    const orderDateStr = orderDate.toISOString().split('T')[0];
     if (orderDateStr === todayStr) {
       today.deliveriesCount += 1;
       if (isPayable) {
@@ -420,7 +412,7 @@ export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliv
       }
     }
 
-    if (orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
+    if (!isNaN(orderDate.getTime()) && orderDate.getMonth() === currentMonth && orderDate.getFullYear() === currentYear) {
       thisMonth.deliveriesCount += 1;
       if (isPayable) {
         thisMonth.baseFees += baseFee;
@@ -438,6 +430,7 @@ export function calculateAllDeliveriesMetrics(orders: LiveOrder[]): OverallDeliv
     orders: deliveryOrders,
   };
 }
+
 
 /**
  * 1-Click CSV Exporter for Delivery & Driver Ledger (Excel & Google Sheets ready)
