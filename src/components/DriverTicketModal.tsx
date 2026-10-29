@@ -1,5 +1,11 @@
 import React from 'react';
-import { CheckoutPayload, generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
+import {
+  CheckoutPayload,
+  generateGoogleMapsUrl,
+  generateWazeUrl,
+  generateGoogleMapsCoordinatesUrl,
+  generateWazeCoordinatesUrl
+} from '../services/payment';
 import { LiveOrder } from '../types';
 import { X, Navigation, Phone, MessageSquare, MapPin, CheckCircle, Share2, AlertCircle } from 'lucide-react';
 
@@ -12,18 +18,15 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
   if (!order) return null;
 
   const isDelivery = order.orderMode === 'delivery';
-  const googleMapsUrl = generateGoogleMapsUrl(
-    order.customer.address,
-    order.customer.suburb,
-    order.customer.latitude,
-    order.customer.longitude
-  );
-  const wazeUrl = generateWazeUrl(
-    order.customer.address,
-    order.customer.suburb,
-    order.customer.latitude,
-    order.customer.longitude
-  );
+  const addressGoogleMapsUrl = generateGoogleMapsUrl(order.customer.address, order.customer.suburb);
+  const addressWazeUrl = generateWazeUrl(order.customer.address, order.customer.suburb);
+  const hasPhoneGps = typeof order.customer.latitude === 'number' && typeof order.customer.longitude === 'number';
+  const phoneGpsMapsUrl = hasPhoneGps
+    ? generateGoogleMapsCoordinatesUrl(order.customer.latitude!, order.customer.longitude!)
+    : '';
+  const phoneGpsWazeUrl = hasPhoneGps
+    ? generateWazeCoordinatesUrl(order.customer.latitude!, order.customer.longitude!)
+    : '';
   const cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
   const customerPhoneInternational = cleanPhone.startsWith('0') ? `27${cleanPhone.slice(1)}` : cleanPhone;
 
@@ -92,27 +95,75 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                 )}
               </div>
 
-              {/* Turn-by-Turn GPS Buttons */}
-              <div className="grid grid-cols-2 gap-2.5 pt-2">
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-900/40 transition-transform hover:scale-105"
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>Google Maps</span>
-                </a>
+              {/* Turn-by-Turn GPS Navigation Options */}
+              <div className="space-y-2 pt-2">
+                {/* 1. Navigate to Delivery Address */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] font-black uppercase text-amber-400">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                      <span>1. Destination Address (Home/Work)</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-mono">{order.customer.suburb}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <a
+                      href={addressGoogleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-blue-900/40 transition-transform hover:scale-[1.02]"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Maps to Address</span>
+                    </a>
 
-                <a
-                  href={wazeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2.5 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/40 transition-transform hover:scale-105"
-                >
-                  <Navigation className="w-3.5 h-3.5" />
-                  <span>Waze GPS</span>
-                </a>
+                    <a
+                      href={addressWazeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2.5 px-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-cyan-900/40 transition-transform hover:scale-[1.02]"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span>Waze to Address</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* 2. Navigate to Customer Phone GPS (If captured) */}
+                {hasPhoneGps && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-300">
+                      <span className="flex items-center gap-1">
+                        <Navigation className="w-3 h-3 text-emerald-400" />
+                        <span>2. Customer Mobile Phone Pin</span>
+                      </span>
+                      <span className="font-mono text-zinc-400 text-[10px]">
+                        {order.customer.latitude?.toFixed(4)}, {order.customer.longitude?.toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href={phoneGpsMapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-2.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 flex items-center justify-center gap-1.5 text-xs font-black transition-colors"
+                      >
+                        <Navigation className="w-3 h-3 text-emerald-400" />
+                        <span>Maps to Phone Pin</span>
+                      </a>
+
+                      <a
+                        href={phoneGpsWazeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2 px-2.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 flex items-center justify-center gap-1.5 text-xs font-black transition-colors"
+                      >
+                        <Navigation className="w-3 h-3 text-emerald-400" />
+                        <span>Waze to Phone Pin</span>
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Driver Direct Contact Customer */}
@@ -146,8 +197,10 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                     (order.customer.gateCode ? `🔑 Gate Code: ${order.customer.gateCode}\n` : '') +
                     (order.customer.notes ? `📝 Note: "${order.customer.notes}"\n` : '') +
                     `👤 *Customer:* ${order.customer.customerName} (${order.customer.phone})\n\n` +
-                    `🗺️ *Google Maps GPS:* ${googleMapsUrl}\n` +
-                    `🗺️ *Waze Navigation:* ${wazeUrl}\n\n` +
+                    `🗺️ *Google Maps to Address:* ${addressGoogleMapsUrl}\n` +
+                    `🗺️ *Waze Navigation:* ${addressWazeUrl}\n` +
+                    (phoneGpsMapsUrl ? `📍 *Customer Phone Pin GPS:* ${phoneGpsMapsUrl}\n` : '') +
+                    '\n' +
                     (order.tip ? `🛵 *Driver Tip Included:* R${order.tip.toFixed(2)}\n` : '') +
                     `💰 *Collection Amount:* R${(typeof order.grandTotal === 'number' ? order.grandTotal : 0).toFixed(2)} (${'paymentStatus' in order && order.paymentStatus === 'paid' ? 'PAID ONLINE' : 'COLLECT ON HANDOVER'})`
                   )}`}

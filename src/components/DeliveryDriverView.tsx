@@ -8,7 +8,12 @@ import {
   unlockAudio,
   syncOrdersFromCloud
 } from '../services/orderService';
-import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
+import {
+  generateGoogleMapsUrl,
+  generateWazeUrl,
+  generateGoogleMapsCoordinatesUrl,
+  generateWazeCoordinatesUrl
+} from '../services/payment';
 import {
   MapPin,
   Phone,
@@ -630,8 +635,11 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               const waNumber = cleanPhone.startsWith('0')
                 ? `27${cleanPhone.slice(1)}`
                 : cleanPhone.replace('+', '');
-              const googleMapsUrl = generateGoogleMapsUrl(address, suburb, customer.latitude, customer.longitude);
-              const wazeUrl = generateWazeUrl(address, suburb, customer.latitude, customer.longitude);
+              const addressGoogleMapsUrl = generateGoogleMapsUrl(address, suburb);
+              const addressWazeUrl = generateWazeUrl(address, suburb);
+              const hasPhoneGps = typeof customer.latitude === 'number' && typeof customer.longitude === 'number';
+              const phoneGpsMapsUrl = hasPhoneGps ? generateGoogleMapsCoordinatesUrl(customer.latitude, customer.longitude) : '';
+              const phoneGpsWazeUrl = hasPhoneGps ? generateWazeCoordinatesUrl(customer.latitude, customer.longitude) : '';
               const items = Array.isArray(order.items) ? order.items : [];
               const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
               const isPaid = order.paymentStatus === 'paid';
@@ -774,44 +782,94 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                   </div>
 
                   {/* 1-Tap Navigation & Contact Buttons */}
-                  <div className="p-3 bg-zinc-950/60 border-b border-white/10 grid grid-cols-2 gap-2 text-xs font-bold">
-                    <a
-                      href={googleMapsUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="py-2.5 px-3 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      <span>Google Maps</span>
-                    </a>
+                  <div className="p-3 bg-zinc-950/60 border-b border-white/10 space-y-2">
+                    {/* Primary: Navigate to Customer Delivery Address (Home / Work) */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-black uppercase text-amber-400">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+                          <span>1. Delivery Address (Home/Work)</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-400 font-mono">{suburb}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                        <a
+                          href={addressGoogleMapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center text-[11px]"
+                        >
+                          <Navigation className="w-3 h-3 text-blue-400" />
+                          <span>Maps to Address</span>
+                        </a>
 
-                    <a
-                      href={wazeUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="py-2.5 px-3 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 hover:text-white border border-cyan-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      <span>Waze GPS</span>
-                    </a>
+                        <a
+                          href={addressWazeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2 px-2.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 hover:text-white border border-cyan-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center text-[11px]"
+                        >
+                          <Navigation className="w-3 h-3 text-cyan-400" />
+                          <span>Waze to Address</span>
+                        </a>
+                      </div>
+                    </div>
 
-                    <a
-                      href={`tel:${cleanPhone}`}
-                      className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
-                    >
-                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Call Client</span>
-                    </a>
+                    {/* Secondary: Navigate to Customer Phone GPS Location (If captured) */}
+                    {hasPhoneGps && (
+                      <div className="p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30 space-y-1">
+                        <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-300">
+                          <span className="flex items-center gap-1">
+                            <Navigation className="w-3 h-3 text-emerald-400" />
+                            <span>2. Customer Phone GPS Pin</span>
+                          </span>
+                          <span className="font-mono text-zinc-400 text-[9px]">
+                            {Number(customer.latitude).toFixed(4)}, {Number(customer.longitude).toFixed(4)}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                          <a
+                            href={phoneGpsMapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="py-1.5 px-2 rounded-lg bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/40 flex items-center justify-center gap-1 text-[11px]"
+                          >
+                            <Navigation className="w-3 h-3 text-emerald-400" />
+                            <span>Maps to Phone Pin</span>
+                          </a>
+                          <a
+                            href={phoneGpsWazeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="py-1.5 px-2 rounded-lg bg-emerald-600/25 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/40 flex items-center justify-center gap-1 text-[11px]"
+                          >
+                            <Navigation className="w-3 h-3 text-emerald-400" />
+                            <span>Waze to Phone Pin</span>
+                          </a>
+                        </div>
+                      </div>
+                    )}
 
-                    <a
-                      href={`https://wa.me/${waNumber}?text=Hi%20${encodeURIComponent(customer.customerName || 'there')}!%20This%20is%20your%20Wrap%20%26%20Wings%20Co.%20driver%20with%20order%20%23${order.orderId}.%20I%20am%20on%20my%20way!`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="py-2.5 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>WhatsApp</span>
-                    </a>
+                    {/* Direct Client Contact */}
+                    <div className="grid grid-cols-2 gap-2 pt-1 text-xs font-bold">
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Call Client</span>
+                      </a>
+
+                      <a
+                        href={`https://wa.me/${waNumber}?text=Hi%20${encodeURIComponent(customer.customerName || 'there')}!%20This%20is%20your%20Wrap%20%26%20Wings%20Co.%20driver%20with%20order%20%23${order.orderId}.%20I%20am%20on%20my%20way!`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2.5 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white border border-emerald-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer text-center"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+                    </div>
                   </div>
 
                   {/* Meal Checklist (To verify thermal bags) */}

@@ -32,20 +32,22 @@ export function formatFullDeliveryAddress(address: string, suburb: string): stri
   return parts.filter(Boolean).join(', ');
 }
 
-export function generateGoogleMapsUrl(address: string, suburb: string, lat?: number, lng?: number): string {
-  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  }
+export function generateGoogleMapsUrl(address: string, suburb: string): string {
   const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`;
 }
 
-export function generateWazeUrl(address: string, suburb: string, lat?: number, lng?: number): string {
-  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-    return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-  }
+export function generateGoogleMapsCoordinatesUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
+export function generateWazeUrl(address: string, suburb: string): string {
   const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://waze.com/ul?q=${encodeURIComponent(fullAddress)}&navigate=yes`;
+}
+
+export function generateWazeCoordinatesUrl(lat: number, lng: number): string {
+  return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
 }
 
 // ── WhatsApp Order Message Formatter ─────────────────────────────────────────
