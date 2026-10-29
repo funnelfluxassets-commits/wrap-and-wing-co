@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { isPayFastStaffTestMode, setPayFastStaffTestMode } from '../services/payment';
-import { LiveOrder, ReviewDrawEntry, OrderStatus } from '../types';
+import { LiveOrder, ReviewDrawEntry, OrderStatus, DriverProfile } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
 import {
   getTrafficSummary,
@@ -108,8 +108,8 @@ import {
   getDriverDisplayName,
   downloadCompletedAgreementPdf,
   exportDeliveryLedgerToCsv,
-  DriverProfile,
   getSafeOrderDate,
+  DEFAULT_DRIVERS,
 } from '../services/driverService';
 
 
@@ -868,10 +868,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
       if (deliverySearchQuery.trim()) {
         const q = deliverySearchQuery.toLowerCase();
         const matchesId = (order.orderId || '').toLowerCase().includes(q);
-        const matchesName = (order.customerName || order.customer?.customerName || '').toLowerCase().includes(q);
-        const matchesPhone = (order.customerPhone || order.customer?.phone || '').toLowerCase().includes(q);
-        const matchesSuburb = (order.deliverySuburb || order.customer?.suburb || '').toLowerCase().includes(q);
-        const matchesAddress = (order.deliveryAddress || order.customer?.address || '').toLowerCase().includes(q);
+        const matchesName = ((order as any).customerName || order.customer?.customerName || '').toLowerCase().includes(q);
+        const matchesPhone = ((order as any).customerPhone || order.customer?.phone || '').toLowerCase().includes(q);
+        const matchesSuburb = ((order as any).deliverySuburb || order.customer?.suburb || '').toLowerCase().includes(q);
+        const matchesAddress = ((order as any).deliveryAddress || order.customer?.address || '').toLowerCase().includes(q);
         if (!matchesId && !matchesName && !matchesPhone && !matchesSuburb && !matchesAddress) {
           return false;
         }
@@ -4063,8 +4063,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {[
-                { profile: registeredDrivers.find(d => d.id === 'DRV-01') || { id: 'DRV-01', driverNumber: 1, name: 'Driver #1', phone: '', pin: '1001', active: true }, metrics: driver1Metrics },
-                { profile: registeredDrivers.find(d => d.id === 'DRV-02') || { id: 'DRV-02', driverNumber: 2, name: 'Driver #2', phone: '', pin: '1002', active: true }, metrics: driver2Metrics }
+                { profile: registeredDrivers.find(d => d.id === 'DRV-01') || DEFAULT_DRIVERS[0], metrics: driver1Metrics },
+                { profile: registeredDrivers.find(d => d.id === 'DRV-02') || DEFAULT_DRIVERS[1], metrics: driver2Metrics }
               ].map(({ profile, metrics }) => {
                 const displayName = getDriverDisplayName(profile as DriverProfile);
                 const hasCompletedOnboarding = profile.onboardingCompleted || (profile.name && profile.name !== `Driver #${profile.driverNumber}`);
@@ -4265,10 +4265,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       const baseFee = typeof order.deliveryFee === 'number' && order.deliveryFee > 0 ? order.deliveryFee : 28;
                       const tip = typeof order.tip === 'number' ? order.tip : 0;
                       const driverTotal = baseFee + tip;
-                      const customerName = order.customerName || order.customer?.customerName || 'Customer';
-                      const customerPhone = order.customerPhone || order.customer?.phone || '';
-                      const suburb = order.deliverySuburb || order.customer?.suburb || 'Pinetown';
-                      const address = order.deliveryAddress || order.customer?.address || '';
+                      const customerName = (order as any).customerName || order.customer?.customerName || 'Customer';
+                      const customerPhone = (order as any).customerPhone || order.customer?.phone || '';
+                      const suburb = (order as any).deliverySuburb || order.customer?.suburb || 'Pinetown';
+                      const address = (order as any).deliveryAddress || order.customer?.address || '';
                       const mapsUrl = address ? generateGoogleMapsUrl(address, suburb) : '';
 
                       // Assigned driver label
@@ -4357,7 +4357,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           <td className="py-3 px-3.5 text-center">
                             <span
                               className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                order.status === 'delivered'
+                                order.status === 'completed' || (order.status as string) === 'delivered'
                                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                                   : order.status === 'dispatched'
                                   ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 animate-pulse'

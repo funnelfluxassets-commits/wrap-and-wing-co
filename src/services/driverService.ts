@@ -887,7 +887,7 @@ export function downloadCompletedAgreementPdf(driver: DriverProfile): void {
   doc.text(`Date:       ${driver.signedAgreementDate || new Date().toISOString().split('T')[0]}`, margin + signBoxWidth + 9, y + 27);
 
   // Footer on all pages
-  const totalPages = doc.internal.getNumberOfPages();
+  const totalPages = typeof (doc as any).getNumberOfPages === 'function' ? (doc as any).getNumberOfPages() : doc.internal.pages.length - 1;
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     doc.setFont('helvetica', 'normal');

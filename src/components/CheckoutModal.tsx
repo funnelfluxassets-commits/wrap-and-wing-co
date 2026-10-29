@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { DeliveryDetails, PaymentGatewayType } from '../types';
+import { DeliveryDetails, PaymentGatewayType, OrderMode } from '../types';
 import {
   openWhatsAppOrder,
   CheckoutPayload,
@@ -748,7 +748,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 via-rose-500 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black text-sm tracking-wide shadow-xl shadow-rose-950/40 hover:scale-[1.01] transition-all flex items-center justify-between cursor-pointer disabled:opacity-50"
                 >
                   <span>{isProcessing ? 'CONFIRMING ORDER...' : 'CONFIRM & PLACE ORDER'}</span>
-                  <span>R{grandTotal.toFixed(2)}</span>
+                  <span>R{calculatedGrandTotal.toFixed(2)}</span>
                 </button>
               );
             })()}

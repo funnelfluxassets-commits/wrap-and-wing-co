@@ -1,4 +1,4 @@
-import { LiveOrder, OrderStatus, OrderTimelineEvent } from '../types';
+import { LiveOrder, OrderStatus, OrderTimelineEvent, OrderMode } from '../types';
 import { CheckoutPayload, isPayFastStaffTestMode } from './payment';
 import { getStoreOperatingStatus } from './storeHours';
 import { STORES } from '../data/stores';

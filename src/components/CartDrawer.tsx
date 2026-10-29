@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { isItemOutOfStock } from '../services/stockService';
+import { getCdnThumbnailUrl } from '../utils/cdn';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Check, AlertCircle, Utensils, Clock } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
