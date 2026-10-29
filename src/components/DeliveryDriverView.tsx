@@ -43,6 +43,7 @@ import {
   downloadCompletedAgreementPdf,
 } from '../services/driverService';
 import { claimOrderDelivery } from '../services/orderService';
+import { saveOrderToFirestore } from '../services/firebase';
 import { DriverProfile } from '../types';
 import { User, DollarSign, Calendar, ChevronDown, Check, Shield, Hand, Sparkles, Flame, FileCheck } from 'lucide-react';
 
@@ -209,7 +210,13 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     const updated = claimOrderDelivery(orderId, activeDriver.id, activeDisplayName);
     if (updated) {
       setOrders((prev) => prev.map((o) => (o.orderId === orderId ? updated : o)));
+      try {
+        await saveOrderToFirestore(updated);
+      } catch (err) {
+        console.warn('Immediate Firestore claim sync warning:', err);
+      }
     } else {
+      alert(`⚠️ Order #${orderId} was already accepted by another driver!`);
       setOrders(getAllOrders());
     }
     if (soundEnabled) {
@@ -285,19 +292,38 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     });
   };
 
+  // Helper to determine if an order is claimed by THIS active driver
+  const isAssignedToMe = (o: LiveOrder): boolean => {
+    if (!o.driverId && !o.driverName) return false;
+    if (o.driverId && o.driverId === activeDriver.id) return true;
+    if (o.driverName && activeDisplayName && o.driverName.toLowerCase().includes(activeDisplayName.toLowerCase())) return true;
+    if (o.driverName && activeDriver.name && o.driverName.toLowerCase().includes(activeDriver.name.toLowerCase())) return true;
+    if ((activeDriver.id === 'DRV-01' || activeDriver.driverNumber === 1) && o.driverName && (o.driverName.toLowerCase().includes('vee') || o.driverName.toLowerCase().includes('vanessa'))) return true;
+    if ((activeDriver.id === 'DRV-02' || activeDriver.driverNumber === 2) && o.driverName && (o.driverName.toLowerCase().includes('zwell') || o.driverName.toLowerCase().includes('zwelisha'))) return true;
+    return false;
+  };
+
+  // Helper to determine if an order has been claimed by the OTHER driver
+  const isAssignedToOther = (o: LiveOrder): boolean => {
+    if (!o.driverId && !o.driverName) return false;
+    return !isAssignedToMe(o);
+  };
+
   const sortedAllDeliveryOrders = sortOrdersNewestFirst(deliveryOrders);
-  const kitchenOrders = sortedAllDeliveryOrders.filter(
+
+  // EXCLUSIVITY FILTER:
+  // 1. Unclaimed orders (!o.driverId && !o.driverName) are visible to BOTH drivers to accept
+  // 2. Once an order is claimed by Driver A, it is ONLY visible to Driver A.
+  // 3. Driver B cannot see the order or any customer details.
+  const myVisibleOrders = sortedAllDeliveryOrders.filter((o) => !isAssignedToOther(o));
+
+  const kitchenOrders = myVisibleOrders.filter(
     (o) => o.status === 'received' || o.status === 'cooking'
   );
-  const readyOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'ready');
-  const dispatchedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'dispatched');
-  const completedOrders = sortedAllDeliveryOrders.filter((o) => o.status === 'completed');
-  const myTripsOrders = sortedAllDeliveryOrders.filter(
-    (o) =>
-      o.driverId === activeDriver.id ||
-      o.driverName === activeDriver.name ||
-      o.driverName === activeDisplayName
-  );
+  const readyOrders = myVisibleOrders.filter((o) => o.status === 'ready');
+  const dispatchedOrders = myVisibleOrders.filter((o) => o.status === 'dispatched' && isAssignedToMe(o));
+  const completedOrders = myVisibleOrders.filter((o) => o.status === 'completed' && isAssignedToMe(o));
+  const myTripsOrders = myVisibleOrders.filter((o) => isAssignedToMe(o));
 
   const displayedOrders =
     filter === 'incoming'
@@ -310,7 +336,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       ? completedOrders
       : filter === 'my-trips'
       ? myTripsOrders
-      : sortedAllDeliveryOrders;
+      : myVisibleOrders;
 
   return (
     <div className="min-h-screen bg-[#0c0d12] text-zinc-100 flex flex-col font-sans pb-16">
@@ -643,10 +669,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               const items = Array.isArray(order.items) ? order.items : [];
               const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
               const isPaid = order.paymentStatus === 'paid';
-              const isClaimedByMe =
-                order.driverId === activeDriver.id ||
-                order.driverName === activeDisplayName ||
-                order.driverName === activeDriver.name;
+              const isClaimedByMe = isAssignedToMe(order);
+              const isClaimedByOther = isAssignedToOther(order);
 
               return (
                 <div
@@ -740,49 +764,63 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                     </div>
 
                     {/* Customer & Address Details */}
-                    <div className="pt-1 space-y-1">
-                      <div className="text-sm font-black text-white flex items-center justify-between">
-                        <span>{customer.customerName || 'Customer'}</span>
-                        <span className="text-xs text-zinc-400 font-mono">{customer.phone}</span>
+                    {isClaimedByOther ? (
+                      <div className="pt-2 pb-1 text-center bg-black/50 rounded-2xl p-4 border border-amber-500/20 space-y-1.5">
+                        <div className="flex items-center justify-center gap-1.5 text-xs font-black text-amber-300">
+                          <Shield className="w-4 h-4 text-amber-400" />
+                          <span>Accepted by {order.driverName || 'Another Driver'}</span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 leading-snug">
+                          Customer phone, delivery address, and order ticket are strictly private to the assigned driver.
+                        </p>
                       </div>
+                    ) : (
+                      <div className="pt-1 space-y-1">
+                        <div className="text-sm font-black text-white flex items-center justify-between">
+                          <span>{customer.customerName || 'Customer'}</span>
+                          <span className="text-xs text-zinc-400 font-mono">{customer.phone}</span>
+                        </div>
 
-                      <div className="flex items-start gap-1.5 text-xs text-zinc-200">
-                        <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                        <div>
-                          <div className="font-extrabold text-white leading-snug">
-                            {address}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 font-medium">
-                            {suburb}
-                            {customer.complexOrUnit && ` • Unit: ${customer.complexOrUnit}`}
-                          </div>
-                          {customer.latitude && customer.longitude && (
-                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-0.5">
-                              <Navigation className="w-3 h-3 text-emerald-400 shrink-0" />
-                              <span>Live GPS Coordinates Attached</span>
+                        <div className="flex items-start gap-1.5 text-xs text-zinc-200">
+                          <MapPin className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-extrabold text-white leading-snug">
+                              {address}
                             </div>
-                          )}
+                            <div className="text-[11px] text-zinc-400 font-medium">
+                              {suburb}
+                              {customer.complexOrUnit && ` • Unit: ${customer.complexOrUnit}`}
+                            </div>
+                            {customer.latitude && customer.longitude && (
+                              <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-0.5">
+                                <Navigation className="w-3 h-3 text-emerald-400 shrink-0" />
+                                <span>Live GPS Coordinates Attached</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
+
+                        {customer.gateCode && (
+                          <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 mt-1">
+                            <Key className="w-3.5 h-3.5 shrink-0" />
+                            <span>Gate / Intercom Code: <strong className="font-mono text-white">{customer.gateCode}</strong></span>
+                          </div>
+                        )}
+
+                        {customer.notes && (
+                          <div className="p-2 rounded-xl bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs flex items-start gap-1.5 mt-1">
+                            <span className="shrink-0 text-amber-400">📝</span>
+                            <span>Note: "{customer.notes}"</span>
+                          </div>
+                        )}
                       </div>
-
-                      {customer.gateCode && (
-                        <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 mt-1">
-                          <Key className="w-3.5 h-3.5 shrink-0" />
-                          <span>Gate / Intercom Code: <strong className="font-mono text-white">{customer.gateCode}</strong></span>
-                        </div>
-                      )}
-
-                      {customer.notes && (
-                        <div className="p-2 rounded-xl bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs flex items-start gap-1.5 mt-1">
-                          <span className="shrink-0 text-amber-400">📝</span>
-                          <span>Note: "{customer.notes}"</span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
 
-                  {/* 1-Tap Navigation & Contact Buttons */}
-                  <div className="p-3 bg-zinc-950/60 border-b border-white/10 space-y-2">
+                  {!isClaimedByOther && (
+                    <>
+                      {/* 1-Tap Navigation & Contact Buttons */}
+                      <div className="p-3 bg-zinc-950/60 border-b border-white/10 space-y-2">
                     {/* Primary: Navigate to Customer Delivery Address (Home / Work) */}
                     <div className="space-y-1">
                       <div className="flex items-center justify-between text-[11px] font-black uppercase text-amber-400">
@@ -936,6 +974,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                       {isPaid ? 'PAID ONLINE' : 'COLLECT CASH / SPEEDPOINT'}
                     </span>
                   </div>
+                </>
+              )}
 
                   {/* Action Buttons */}
                   <div className="p-3 bg-zinc-950/90 border-t border-white/10 space-y-2">

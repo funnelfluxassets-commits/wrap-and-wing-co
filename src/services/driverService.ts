@@ -3,6 +3,8 @@ import { DriverProfile, LiveOrder } from '../types';
 import { getSafeOrderDate, getOrderDateString, getLocalTodayDateString } from './orderService';
 import { saveDriverToFirestore, getDriversFromFirestore } from './firebase';
 
+export type DriverVehicleType = 'motorcycle' | 'light_vehicle' | 'car';
+
 export { getSafeOrderDate };
 
 const DRIVERS_STORAGE_KEY = 'wrap_wing_registered_drivers';
@@ -17,17 +19,19 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-01',
     driverNumber: 1,
-    name: 'Vee',
-    phone: '+27 68 886 3892',
+    name: 'Vanessa Mbhele (Vee)',
+    phone: '071 345 7687',
     pin: '1001',
-    vehicleType: 'motorcycle',
-    vehicleDetails: 'Motorcycle / Scooter',
-    vehicleReg: 'Pending Reg',
-    licenceCode: 'Code A / A1 (Motorcycle)',
-    bankName: 'Capitec Bank',
-    accountNumber: 'Pending',
-    accountHolder: 'Vee',
-    branchCode: '470010',
+    vehicleType: 'light_vehicle',
+    vehicleDetails: 'Grey Hyundai Grand i10',
+    vehicleReg: 'BW 55 TF ZN',
+    licenceCode: 'Code 8 / Code B (Light Vehicle)',
+    bankName: 'TymeBank',
+    accountNumber: '51143863273',
+    accountHolder: 'ISV MBHELE',
+    branchCode: '678910',
+    idOrPassportNumber: '9312210676086',
+    residentialAddress: '30 ujomela grove, Pinetown',
     active: true,
     onboardingCompleted: true,
     signedAgreementDate: '2026-10-29',
@@ -35,17 +39,19 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-02',
     driverNumber: 2,
-    name: 'Zwell',
+    name: 'Zwelisha (Zwell)',
     phone: '+27 68 886 3892',
     pin: '1002',
-    vehicleType: 'light_vehicle',
-    vehicleDetails: 'Light Vehicle',
-    vehicleReg: 'Pending Reg',
+    vehicleType: 'motorcycle',
+    vehicleDetails: 'White Honda Delivery Bike',
+    vehicleReg: 'ND 482-910',
     licenceCode: 'Code 8 / Code B (Light Vehicle)',
     bankName: 'Capitec Bank',
     accountNumber: 'Pending',
     accountHolder: 'Zwell',
     branchCode: '470010',
+    idOrPassportNumber: '9902225168085',
+    residentialAddress: '30 jomela grove, Pinetown',
     active: true,
     onboardingCompleted: true,
     signedAgreementDate: '2026-10-29',
@@ -53,16 +59,118 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
 ];
 
 /**
- * Get formatted driver display name (e.g. 'Driver - Sipho' if onboarded, or 'Driver #1')
+ * Get formatted driver display name (e.g. 'Driver - Vee' or 'Driver - Zwelisha')
  */
 export function getDriverDisplayName(driver: DriverProfile): string {
   if (driver.onboardingCompleted && driver.name) {
+    if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee';
+    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zwelisha';
     const rawName = driver.name.trim();
     const parts = rawName.split(/\s+/);
     const firstName = parts[0].toLowerCase() === 'driver' && parts[1] ? parts.slice(1).join(' ') : parts[0];
     return `Driver - ${firstName}`;
   }
   return `Driver #${driver.driverNumber}`;
+}
+
+export interface DriverVehicleDisplayInfo {
+  driverId: string;
+  driverNumber: number;
+  displayName: string;
+  vehicleText: string;
+  vehicleReg: string;
+  vehicleType: DriverVehicleType;
+  phone: string;
+  cleanPhone: string;
+  cleanWaPhone: string;
+  callUrl: string;
+  whatsAppUrl: string;
+}
+
+/**
+ * Returns dynamic vehicle details, license plate, driver name, and direct phone link
+ * for the customer tracking screen (LiveDriverMap).
+ */
+export function getDriverVehicleInfo(
+  driverId?: string,
+  driverName?: string
+): DriverVehicleDisplayInfo {
+  const allDrivers = getRegisteredDrivers();
+  let matched: DriverProfile | null = null;
+
+  // 1. Match by driver ID
+  if (driverId) {
+    const cleanId = driverId.trim().toUpperCase();
+    matched = allDrivers.find((d) => d.id.toUpperCase() === cleanId || String(d.driverNumber) === cleanId) || null;
+  }
+
+  // 2. Match by driver name fallback
+  if (!matched && driverName) {
+    const cleanName = driverName.trim().toLowerCase();
+    matched = allDrivers.find((d) => {
+      const dName = (d.name || '').toLowerCase();
+      return (
+        dName.includes(cleanName) ||
+        cleanName.includes(dName) ||
+        (d.driverNumber === 1 && (cleanName.includes('vee') || cleanName.includes('vanessa') || cleanName.includes('drv-01') || cleanName.includes('driver 1') || cleanName.includes('driver #1'))) ||
+        (d.driverNumber === 2 && (cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
+      );
+    }) || null;
+  }
+
+  // Determine driver 1 vs driver 2
+  const isDriver1 = matched
+    ? (matched.id === 'DRV-01' || matched.driverNumber === 1)
+    : (!driverName || driverName.toLowerCase().includes('vee') || driverName.toLowerCase().includes('vanessa'));
+
+  const resolved = matched || (isDriver1 ? allDrivers[0] || DEFAULT_DRIVERS[0] : allDrivers[1] || DEFAULT_DRIVERS[1]);
+  const isD1 = resolved.id === 'DRV-01' || resolved.driverNumber === 1;
+
+  // Real vehicle details:
+  // Driver #1: Vanessa Mbhele -> Grey Hyundai Grand i10 • BW 55 TF ZN
+  // Driver #2: Zwelisha -> White Honda Delivery Bike • ND 482-910
+  const vehicleText = isD1
+    ? (resolved.vehicleDetails && resolved.vehicleDetails !== 'Motorcycle / Scooter' && resolved.vehicleDetails !== 'Pending Reg'
+        ? resolved.vehicleDetails
+        : 'Grey Hyundai Grand i10')
+    : (resolved.vehicleDetails && resolved.vehicleDetails !== 'Light Vehicle' && resolved.vehicleDetails !== 'Pending Reg'
+        ? resolved.vehicleDetails
+        : 'White Honda Delivery Bike');
+
+  const vehicleReg = isD1
+    ? (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' ? resolved.vehicleReg : 'BW 55 TF ZN')
+    : (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' ? resolved.vehicleReg : 'ND 482-910');
+
+  const vehicleType: DriverVehicleType = isD1
+    ? 'light_vehicle'
+    : (resolved.vehicleType || 'motorcycle');
+
+  const displayName = isD1
+    ? 'Driver - Vee (Vanessa)'
+    : 'Driver - Zwelisha';
+
+  const rawPhone = isD1
+    ? (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '071 345 7687')
+    : (resolved.phone || '+27 68 886 3892');
+
+  const cleanPhone = rawPhone.replace(/[^0-9+]/g, '');
+  const cleanWaPhone = cleanPhone.startsWith('0')
+    ? `27${cleanPhone.slice(1)}`
+    : cleanPhone.replace('+', '');
+
+  return {
+    driverId: resolved.id,
+    driverNumber: resolved.driverNumber,
+    displayName: driverName || displayName,
+    vehicleText,
+    vehicleReg,
+    vehicleType,
+    phone: rawPhone,
+    cleanPhone,
+    cleanWaPhone,
+    callUrl: `tel:${cleanPhone}`,
+    whatsAppUrl: `https://wa.me/${cleanWaPhone}`,
+  };
 }
 
 /**
@@ -133,27 +241,53 @@ export function getRegisteredDrivers(): DriverProfile[] {
       return DEFAULT_DRIVERS;
     }
 
-    // Ensure Driver #1 is designated as Vee and marked onboarded
+    // Ensure Driver #1 is designated as Vee and marked onboarded with real vehicle details
     let hasUpdates = false;
     const d1 = parsed.find((d) => d.id === 'DRV-01' || d.driverNumber === 1);
-    if (d1 && (!d1.name || d1.name === 'Driver 1')) {
-      d1.name = 'Vee';
-      d1.accountHolder = d1.accountHolder === 'Driver 1' ? 'Vee' : d1.accountHolder;
-      d1.onboardingCompleted = true;
-      if (!d1.signedAgreementDate) d1.signedAgreementDate = '2026-10-29';
-      hasUpdates = true;
-      saveDriverToFirestore(d1);
+    if (d1) {
+      if (!d1.name || d1.name === 'Driver 1' || d1.name === 'Vee') {
+        d1.name = 'Vanessa Mbhele (Vee)';
+        d1.accountHolder = 'ISV MBHELE';
+        d1.bankName = 'TymeBank';
+        d1.accountNumber = '51143863273';
+        d1.branchCode = '678910';
+        d1.onboardingCompleted = true;
+        if (!d1.signedAgreementDate) d1.signedAgreementDate = '2026-10-29';
+        hasUpdates = true;
+      }
+      if (!d1.vehicleReg || d1.vehicleReg === 'Pending Reg') {
+        d1.vehicleDetails = 'Grey Hyundai Grand i10';
+        d1.vehicleReg = 'BW 55 TF ZN';
+        d1.vehicleType = 'light_vehicle';
+        hasUpdates = true;
+      }
+      if (!d1.phone || d1.phone === '+27 68 886 3892') {
+        d1.phone = '071 345 7687';
+        hasUpdates = true;
+      }
+      if (hasUpdates) {
+        saveDriverToFirestore(d1);
+      }
     }
 
-    // Ensure Driver #2 is designated as Zwell and marked onboarded
+    // Ensure Driver #2 is designated as Zwell and marked onboarded with vehicle details
     const d2 = parsed.find((d) => d.id === 'DRV-02' || d.driverNumber === 2);
-    if (d2 && (!d2.name || d2.name === 'Driver 2')) {
-      d2.name = 'Zwell';
-      d2.accountHolder = d2.accountHolder === 'Driver 2' ? 'Zwell' : d2.accountHolder;
-      d2.onboardingCompleted = true;
-      if (!d2.signedAgreementDate) d2.signedAgreementDate = '2026-10-29';
-      hasUpdates = true;
-      saveDriverToFirestore(d2);
+    if (d2) {
+      if (!d2.name || d2.name === 'Driver 2' || d2.name === 'Zwell') {
+        d2.name = 'Zwelisha (Zwell)';
+        d2.accountHolder = 'Zwell';
+        d2.onboardingCompleted = true;
+        if (!d2.signedAgreementDate) d2.signedAgreementDate = '2026-10-29';
+        hasUpdates = true;
+      }
+      if (!d2.vehicleReg || d2.vehicleReg === 'Pending Reg') {
+        d2.vehicleDetails = 'White Honda Delivery Bike';
+        d2.vehicleReg = 'ND 482-910';
+        hasUpdates = true;
+      }
+      if (hasUpdates) {
+        saveDriverToFirestore(d2);
+      }
     }
 
     if (hasUpdates) {

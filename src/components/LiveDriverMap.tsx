@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LiveOrder } from '../types';
 import {
   Truck,
+  Car,
   Phone,
   MessageSquare,
   Navigation,
@@ -14,6 +15,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
+import { getDriverVehicleInfo } from '../services/driverService';
 
 interface LiveDriverMapProps {
   order: LiveOrder;
@@ -293,10 +295,10 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
     mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
   };
 
-  const assignedDriverName = order.driverName || 'Driver';
-  const cleanDriverPhone = '0832763273';
+  const driverDisplay = getDriverVehicleInfo(order.driverId, order.driverName);
+  const assignedDriverName = order.driverName || driverDisplay.displayName;
   const cleanCustomerAddress = `${order.customer.address}, ${order.customer.suburb}`;
-  const whatsAppDriverUrl = `https://wa.me/27832763273?text=${encodeURIComponent(
+  const whatsAppDriverUrl = `https://wa.me/${driverDisplay.cleanWaPhone}?text=${encodeURIComponent(
     `Hi ${assignedDriverName} (Wrap & Wings Driver), I am tracking Order #${order.orderId} to ${cleanCustomerAddress}.${
       order.customer.gateCode ? ` Gate Code: ${order.customer.gateCode}.` : ''
     }`
@@ -309,7 +311,11 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
       <div className="p-4 bg-zinc-950 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-base">
-            <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
+            {driverDisplay.vehicleType === 'light_vehicle' ? (
+              <Car className="w-5 h-5 text-amber-400" />
+            ) : (
+              <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
+            )}
           </div>
           <div>
             <div className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
@@ -374,7 +380,11 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         <div className="flex items-center gap-3.5">
           <div className="relative shrink-0">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center font-black text-white shadow-lg shadow-rose-950/60">
-              <DeliveryMotorbikeIcon className="w-6 h-6 text-white" />
+              {driverDisplay.vehicleType === 'light_vehicle' ? (
+                <Car className="w-6 h-6 text-white" />
+              ) : (
+                <DeliveryMotorbikeIcon className="w-6 h-6 text-white" />
+              )}
             </div>
             <span className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-emerald-500 text-zinc-950 text-[10px]">
               <CheckCircle2 className="w-3.5 h-3.5 fill-emerald-400 text-zinc-950" />
@@ -383,13 +393,13 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
 
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-sm sm:text-base font-extrabold text-white">{order.driverName || 'Fleet Driver'}</h4>
+              <h4 className="text-sm sm:text-base font-extrabold text-white">{assignedDriverName}</h4>
               <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 4.9 ⭐ (1,240 drops)
               </span>
             </div>
             <div className="text-xs text-zinc-300 mt-0.5">
-              White Honda Delivery Bike • <span className="font-mono text-zinc-400">ND 482-910</span>
+              {driverDisplay.vehicleText} • <span className="font-mono text-zinc-400">{driverDisplay.vehicleReg}</span>
             </div>
           </div>
         </div>
@@ -397,7 +407,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         {/* Direct Call / WhatsApp Buttons */}
         <div className="flex items-center gap-2.5 shrink-0">
           <a
-            href={`tel:${cleanDriverPhone}`}
+            href={driverDisplay.callUrl}
             className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 border border-white/10 transition-colors cursor-pointer"
           >
             <Phone className="w-3.5 h-3.5 text-emerald-400" />
