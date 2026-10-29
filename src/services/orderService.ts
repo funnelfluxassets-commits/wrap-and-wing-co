@@ -292,6 +292,19 @@ export const TEST_ORDER_IDS = new Set([
   '#C-1501',
   '#D-1501',
   '#C-1502',
+  'D-2901',
+  'D-2902',
+  'D-2903',
+  'D-2904',
+  'D-2905',
+  '#D-2901',
+  '#D-2902',
+  '#D-2903',
+  '#D-2904',
+  '#D-2905',
+  'TEST-01',
+  'TEST_UNDEF_2',
+  'ping',
 ]);
 
 export function isTestOrder(order: Partial<LiveOrder> | null | undefined): boolean {
@@ -304,8 +317,11 @@ export function isTestOrder(order: Partial<LiveOrder> | null | undefined): boole
   const custName = (order.customer?.customerName || '').trim().toLowerCase();
   if (
     (custName === 'john doe' || custName.includes('john doe')) &&
-    (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502' || cleanId.startsWith('C-15') || cleanId.startsWith('D-15'))
+    (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502' || cleanId.startsWith('C-15') || cleanId.startsWith('D-15') || cleanId.startsWith('D-29'))
   ) {
+    return true;
+  }
+  if (cleanId.startsWith('D-29') && (custName === 'john doe' || custName.includes('john doe') || !custName || custName === 'customer')) {
     return true;
   }
   return false;
@@ -313,13 +329,34 @@ export function isTestOrder(order: Partial<LiveOrder> | null | undefined): boole
 
 export function purgeKnownTestOrdersFromCloud(): void {
   if (typeof window === 'undefined') return;
-  const testIds = ['C-1501', 'D-1501', 'C-1502', '#C-1501', '#D-1501', '#C-1502'];
+  const testIds = [
+    'C-1501', 'D-1501', 'C-1502', '#C-1501', '#D-1501', '#C-1502',
+    'D-2901', 'D-2902', 'D-2903', 'D-2904', 'D-2905',
+    '#D-2901', '#D-2902', '#D-2903', '#D-2904', '#D-2905',
+    'TEST-01', 'TEST_UNDEF_2', 'ping'
+  ];
   for (const id of testIds) {
     if (isFirebaseConfigured) {
       deleteOrderFromFirestore(id).catch(() => {});
     }
     fetch(`/api/orders?orderId=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
   }
+  // Also clean browser storage immediately
+  try {
+    const cur = localStorage.getItem(CURRENT_ORDER_KEY);
+    if (cur && (TEST_ORDER_IDS.has(cur) || TEST_ORDER_IDS.has(cur.replace('#', '')) || cur.startsWith('D-29'))) {
+      localStorage.removeItem(CURRENT_ORDER_KEY);
+    }
+    localStorage.removeItem('wrap_wing_seq_D_29');
+    localStorage.removeItem('wrap_wing_pending_payfast_order');
+
+    const placedRaw = localStorage.getItem(MY_PLACED_ORDERS_KEY);
+    if (placedRaw) {
+      const placedList: string[] = JSON.parse(placedRaw);
+      const filteredList = placedList.filter(id => !TEST_ORDER_IDS.has(id) && !id.startsWith('D-29'));
+      localStorage.setItem(MY_PLACED_ORDERS_KEY, JSON.stringify(filteredList));
+    }
+  } catch {}
 }
 
 // Local Storage helpers with full schema sanitization and no auto-mock generation
@@ -468,6 +505,7 @@ export function isMyPlacedOrder(orderId: string): boolean {
   if (typeof window === 'undefined' || !orderId) return false;
   try {
     const clean = normalizeOrderId(orderId);
+    if (TEST_ORDER_IDS.has(clean) || clean.startsWith('D-29')) return false;
     const existingRaw = localStorage.getItem(MY_PLACED_ORDERS_KEY);
     if (!existingRaw) return false;
     const list: string[] = JSON.parse(existingRaw);
@@ -484,6 +522,12 @@ export function getCurrentOrderId(): string | null {
 
   const clean = direct.replace('#', '').trim();
 
+  // Safeguard: Purge any test order or today's delivery test order from customer screen immediately
+  if (TEST_ORDER_IDS.has(direct) || TEST_ORDER_IDS.has(clean) || clean.startsWith('D-29')) {
+    localStorage.removeItem(CURRENT_ORDER_KEY);
+    return null;
+  }
+
   // Safeguard: Order C-2402 was placed by customer 'Sne'.
   // If this device did not explicitly place C-2402, purge it immediately so it never shows on other devices.
   if (clean === 'C-2402' || clean === '2402') {
@@ -499,7 +543,7 @@ export function getCurrentOrderId(): string | null {
   );
 
   // If order has finished (completed, cancelled, or from past days/expired), remove it from active customer tracker
-  if (!order || order.status === 'completed' || order.status === 'cancelled' || isOrderStaleOrExpired(order)) {
+  if (!order || order.status === 'completed' || order.status === 'cancelled' || isOrderStaleOrExpired(order) || isTestOrder(order)) {
     localStorage.removeItem(CURRENT_ORDER_KEY);
     return null;
   }

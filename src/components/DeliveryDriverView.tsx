@@ -6,7 +6,8 @@ import {
   updateOrderStatus,
   playKitchenChime,
   unlockAudio,
-  syncOrdersFromCloud
+  syncOrdersFromCloud,
+  isTestOrder
 } from '../services/orderService';
 import {
   generateGoogleMapsUrl,
@@ -281,6 +282,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   // Strictly excludes collection orders (C-), dine-in table orders (T-), and pre-launch legacy history
   const deliveryOrders = orders.filter((o): o is LiveOrder => {
     if (!o || typeof o !== 'object' || !o.orderId) return false;
+    // Exclude test orders and delivery test tickets
+    if (isTestOrder(o)) return false;
 
     const cleanId = String(o.orderId || '').replace('#', '').trim().toUpperCase();
 

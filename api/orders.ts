@@ -16,7 +16,27 @@ const DEMO_NAMES = new Set(['Sipho Khumalo', 'Thabo Mbeki', 'Sarah Jenkins']);
 
 const DEFAULT_INITIAL_ORDERS: any[] = [];
 
-const TEST_IDS = new Set(['C-1501', 'D-1501', 'C-1502', '#C-1501', '#D-1501', '#C-1502']);
+const TEST_IDS = new Set([
+  'C-1501',
+  'D-1501',
+  'C-1502',
+  '#C-1501',
+  '#D-1501',
+  '#C-1502',
+  'D-2901',
+  'D-2902',
+  'D-2903',
+  'D-2904',
+  'D-2905',
+  '#D-2901',
+  '#D-2902',
+  '#D-2903',
+  '#D-2904',
+  '#D-2905',
+  'TEST-01',
+  'TEST_UNDEF_2',
+  'ping',
+]);
 
 function getStore(): any[] {
   if (!(global as any).__wrap_wing_orders || !Array.isArray((global as any).__wrap_wing_orders)) {
@@ -27,10 +47,11 @@ function getStore(): any[] {
     if (!o || typeof o !== 'object') return false;
     const cleanId = String(o.orderId || '').replace('#', '').trim().toUpperCase();
     if (TEST_IDS.has(cleanId) || TEST_IDS.has(String(o.orderId || '').trim())) return false;
+    if (cleanId.startsWith('D-29')) return false;
     const name = (o.customer?.customerName || '').trim().toLowerCase();
     const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => name.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some((id) => String(o.orderId).includes(id));
     if (isLegacyDemo) return false;
-    if (name === 'john doe' && (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502')) return false;
+    if (name === 'john doe' && (cleanId === 'C-1501' || cleanId === 'D-1501' || cleanId === 'C-1502' || cleanId.startsWith('C-15') || cleanId.startsWith('D-15') || cleanId.startsWith('D-29'))) return false;
     return true;
   });
   return (global as any).__wrap_wing_orders;

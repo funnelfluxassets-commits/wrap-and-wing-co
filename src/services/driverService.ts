@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import { DriverProfile, LiveOrder } from '../types';
-import { getSafeOrderDate, getOrderDateString, getLocalTodayDateString } from './orderService';
+import { getSafeOrderDate, getOrderDateString, getLocalTodayDateString, isTestOrder } from './orderService';
 import { saveDriverToFirestore, getDriversFromFirestore } from './firebase';
 
 export type DriverVehicleType = 'motorcycle' | 'light_vehicle' | 'car';
@@ -525,8 +525,9 @@ export function calculateDriverMetrics(driverId: string, orders: LiveOrder[]): D
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
 
-  // Filter orders that belong to this driver (by driverId, or by driverName match)
+  // Filter orders that belong to this driver (by driverId, or by driverName match), excluding test tickets
   const driverOrders = orders.filter((o) => {
+    if (!o || isTestOrder(o)) return false;
     if (o.orderMode !== 'delivery') return false;
     // Match by ID, name, or driver number
     if (o.driverId && o.driverId === driverId) return true;
