@@ -104,6 +104,7 @@ import {
   calculateAllDeliveriesMetrics,
   calculateDriverMetrics,
   getRegisteredDrivers,
+  syncDriversFromCloud,
   getDriverDisplayName,
   downloadCompletedAgreementPdf,
   exportDeliveryLedgerToCsv,
@@ -784,9 +785,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setTimeout(() => setWebhookSavedFeedback(false), 2500);
   };
 
-  // --- Delivery KPI & Driver Roster Memoized Computations ---
-  const registeredDrivers = useMemo<DriverProfile[]>(() => {
-    return getRegisteredDrivers();
+  // --- Delivery KPI & Driver Roster State & Cloud Sync ---
+  const [registeredDrivers, setRegisteredDrivers] = useState<DriverProfile[]>(() => getRegisteredDrivers());
+
+  useEffect(() => {
+    setRegisteredDrivers(getRegisteredDrivers());
+    syncDriversFromCloud().then((fresh) => {
+      if (Array.isArray(fresh) && fresh.length > 0) {
+        setRegisteredDrivers([...fresh]);
+      }
+    });
   }, [activeTab]);
 
   const deliveryMetrics = useMemo(() => {

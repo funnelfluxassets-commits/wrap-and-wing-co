@@ -149,6 +149,47 @@ export function saveRegisteredDrivers(drivers: DriverProfile[]): void {
 }
 
 /**
+ * Synchronize registered drivers with Firestore cloud
+ */
+export async function syncDriversFromCloud(): Promise<DriverProfile[]> {
+  try {
+    const cloudDrivers = await getDriversFromFirestore();
+    if (Array.isArray(cloudDrivers) && cloudDrivers.length > 0) {
+      const current = getRegisteredDrivers();
+      let changed = false;
+
+      cloudDrivers.forEach((cd) => {
+        const idx = current.findIndex((d) => d.id === cd.id || d.driverNumber === cd.driverNumber);
+        if (idx >= 0) {
+          const local = current[idx];
+          const hasCloudDetails =
+            (cd.accountNumber && cd.accountNumber !== 'Pending') ||
+            (cd.vehicleReg && cd.vehicleReg !== 'Pending Reg') ||
+            (cd.idOrPassportNumber && cd.idOrPassportNumber !== 'Verified Onboarding') ||
+            (cd.phone && cd.phone !== '+27 68 886 3892');
+
+          if (hasCloudDetails || !local.onboardingCompleted) {
+            current[idx] = { ...local, ...cd };
+            changed = true;
+          }
+        } else {
+          current.push(cd);
+          changed = true;
+        }
+      });
+
+      if (changed && typeof window !== 'undefined') {
+        localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(current));
+      }
+      return current;
+    }
+  } catch (err) {
+    console.warn('Could not sync drivers from cloud:', err);
+  }
+  return getRegisteredDrivers();
+}
+
+/**
  * Get driver by ID
  */
 export function getDriverById(driverId: string): DriverProfile | null {
