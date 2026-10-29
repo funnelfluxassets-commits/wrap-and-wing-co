@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { DriverProfile, LiveOrder } from '../types';
 import { getSafeOrderDate, getOrderDateString, getLocalTodayDateString } from './orderService';
+import { saveDriverToFirestore, getDriversFromFirestore } from './firebase';
 
 export { getSafeOrderDate };
 
@@ -16,7 +17,7 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-01',
     driverNumber: 1,
-    name: 'Driver 1',
+    name: 'Vee',
     phone: '+27 68 886 3892',
     pin: '1001',
     vehicleType: 'motorcycle',
@@ -25,10 +26,11 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
     licenceCode: 'Code A / A1 (Motorcycle)',
     bankName: 'Capitec Bank',
     accountNumber: 'Pending',
-    accountHolder: 'Driver 1',
+    accountHolder: 'Vee',
     branchCode: '470010',
     active: true,
-    onboardingCompleted: false,
+    onboardingCompleted: true,
+    signedAgreementDate: '2026-10-29',
   },
   {
     id: 'DRV-02',
@@ -87,13 +89,27 @@ export function getRegisteredDrivers(): DriverProfile[] {
     const raw = localStorage.getItem(DRIVERS_STORAGE_KEY);
     if (!raw) {
       localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(DEFAULT_DRIVERS));
+      DEFAULT_DRIVERS.forEach((d) => saveDriverToFirestore(d));
       return DEFAULT_DRIVERS;
     }
     const parsed: DriverProfile[] = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
       localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(DEFAULT_DRIVERS));
+      DEFAULT_DRIVERS.forEach((d) => saveDriverToFirestore(d));
       return DEFAULT_DRIVERS;
     }
+
+    // Ensure Driver #1 is designated as Vee and marked onboarded
+    const d1 = parsed.find((d) => d.id === 'DRV-01' || d.driverNumber === 1);
+    if (d1 && (!d1.name || d1.name === 'Driver 1')) {
+      d1.name = 'Vee';
+      d1.accountHolder = d1.accountHolder === 'Driver 1' ? 'Vee' : d1.accountHolder;
+      d1.onboardingCompleted = true;
+      if (!d1.signedAgreementDate) d1.signedAgreementDate = '2026-10-29';
+      localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(parsed));
+      saveDriverToFirestore(d1);
+    }
+
     return parsed;
   } catch {
     return DEFAULT_DRIVERS;
@@ -107,6 +123,9 @@ export function saveRegisteredDrivers(drivers: DriverProfile[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(drivers));
+    drivers.forEach((d) => {
+      saveDriverToFirestore(d);
+    });
   } catch (err) {
     console.error('Failed to save drivers:', err);
   }

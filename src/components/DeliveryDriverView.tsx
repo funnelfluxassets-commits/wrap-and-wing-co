@@ -48,6 +48,55 @@ interface DeliveryDriverViewProps {
   onOpenAgreement?: () => void;
 }
 
+// Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
+const extractOrderSequence = (orderId: string): number => {
+  const cleanId = String(orderId || '').replace('#', '').trim();
+  const match = cleanId.match(/^[A-Za-z]*-?(\d{2})(\d{2,})$/);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const counter = parseInt(match[2], 10);
+    const currentDay = new Date().getDate();
+    const effectiveDay = day > currentDay ? day - 31 : day;
+    return effectiveDay * 10000 + counter;
+  }
+  const num = parseInt(cleanId.replace(/[^0-9]/g, ''), 10);
+  return isNaN(num) ? 0 : num;
+};
+
+const getOrderCompletionEpoch = (order: LiveOrder): number => {
+  if (typeof order.completedAt === 'number' && order.completedAt > 0) {
+    return order.completedAt;
+  }
+  const completedEvent = order.timeline?.slice().reverse().find((t) => t.status === 'completed');
+  if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 0) {
+    return completedEvent.epochTime;
+  }
+  const lastEvent = order.timeline?.[order.timeline.length - 1];
+  if (typeof lastEvent?.epochTime === 'number' && lastEvent.epochTime > 0) {
+    return lastEvent.epochTime;
+  }
+  const firstEvent = order.timeline?.[0];
+  if (typeof firstEvent?.epochTime === 'number' && firstEvent.epochTime > 0) {
+    return firstEvent.epochTime;
+  }
+  if (completedEvent?.timestamp) {
+    const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
+    if (match) {
+      const d = new Date();
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      if (/pm/i.test(completedEvent.timestamp) && hours < 12) hours += 12;
+      if (/am/i.test(completedEvent.timestamp) && hours === 12) hours = 0;
+      d.setHours(hours, minutes, 0, 0);
+      if (d.getTime() > Date.now()) {
+        d.setDate(d.getDate() - 1);
+      }
+      return d.getTime();
+    }
+  }
+  return 0;
+};
+
 export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   onBackToMenu,
   onLogout,
@@ -198,55 +247,6 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       ? driverMetrics.thisWeek
       : driverMetrics.thisMonth;
   
-  // Helper to extract numeric order sequence (e.g. "D-0903" -> 90003, "D-0810" -> 80010)
-  const extractOrderSequence = (orderId: string): number => {
-    const cleanId = String(orderId || '').replace('#', '').trim();
-    const match = cleanId.match(/^[A-Za-z]*-?(\d{2})(\d{2,})$/);
-    if (match) {
-      const day = parseInt(match[1], 10);
-      const counter = parseInt(match[2], 10);
-      const currentDay = new Date().getDate();
-      const effectiveDay = day > currentDay ? day - 31 : day;
-      return effectiveDay * 10000 + counter;
-    }
-    const num = parseInt(cleanId.replace(/[^0-9]/g, ''), 10);
-    return isNaN(num) ? 0 : num;
-  };
-
-  const getOrderCompletionEpoch = (order: LiveOrder): number => {
-    if (typeof order.completedAt === 'number' && order.completedAt > 0) {
-      return order.completedAt;
-    }
-    const completedEvent = order.timeline?.slice().reverse().find((t) => t.status === 'completed');
-    if (typeof completedEvent?.epochTime === 'number' && completedEvent.epochTime > 0) {
-      return completedEvent.epochTime;
-    }
-    const lastEvent = order.timeline?.[order.timeline.length - 1];
-    if (typeof lastEvent?.epochTime === 'number' && lastEvent.epochTime > 0) {
-      return lastEvent.epochTime;
-    }
-    const firstEvent = order.timeline?.[0];
-    if (typeof firstEvent?.epochTime === 'number' && firstEvent.epochTime > 0) {
-      return firstEvent.epochTime;
-    }
-    if (completedEvent?.timestamp) {
-      const match = completedEvent.timestamp.match(/(\d{1,2}):(\d{2})/);
-      if (match) {
-        const d = new Date();
-        let hours = parseInt(match[1], 10);
-        const minutes = parseInt(match[2], 10);
-        if (/pm/i.test(completedEvent.timestamp) && hours < 12) hours += 12;
-        if (/am/i.test(completedEvent.timestamp) && hours === 12) hours = 0;
-        d.setHours(hours, minutes, 0, 0);
-        if (d.getTime() > Date.now()) {
-          d.setDate(d.getDate() - 1);
-        }
-        return d.getTime();
-      }
-    }
-    return 0;
-  };
-
   // Universal helper to sort any delivery order list newest-first (top-left) descending to oldest
   const sortOrdersNewestFirst = (orderList: LiveOrder[]): LiveOrder[] => {
     return [...orderList].sort((a, b) => {

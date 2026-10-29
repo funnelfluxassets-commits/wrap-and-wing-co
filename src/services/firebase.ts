@@ -13,7 +13,7 @@ import {
   arrayUnion,
   Firestore
 } from 'firebase/firestore';
-import { LiveOrder, OrderStatus, OrderTimelineEvent } from '../types';
+import { LiveOrder, OrderStatus, OrderTimelineEvent, DriverProfile } from '../types';
 
 // Firebase configuration with environment fallback
 const firebaseConfig = {
@@ -281,5 +281,46 @@ export async function deleteOrderFromFirestore(orderId: string): Promise<void> {
     await deleteDoc(docRef);
   } catch (err) {
     console.error('Error deleting order from Firestore:', err);
+  }
+}
+
+const DRIVERS_COLLECTION = 'drivers';
+
+/**
+ * Save driver profile / onboarding to Firestore cloud so it is synced across all devices
+ */
+export async function saveDriverToFirestore(driver: DriverProfile): Promise<void> {
+  if (!db || !driver || !driver.id) return;
+  try {
+    const docRef = doc(db, DRIVERS_COLLECTION, driver.id);
+    const sanitized = cleanDocData({
+      ...driver,
+      updatedAt: Date.now(),
+    });
+    await setDoc(docRef, sanitized, { merge: true });
+  } catch (err) {
+    console.warn('Error saving driver to Firestore:', err);
+  }
+}
+
+/**
+ * Retrieve all registered drivers from Firestore cloud
+ */
+export async function getDriversFromFirestore(): Promise<DriverProfile[]> {
+  if (!db) return [];
+  try {
+    const driversRef = collection(db, DRIVERS_COLLECTION);
+    const snapshot = await getDocs(query(driversRef));
+    const drivers: DriverProfile[] = [];
+    snapshot.forEach((snap) => {
+      const data = snap.data() as DriverProfile;
+      if (data && data.id) {
+        drivers.push(data);
+      }
+    });
+    return drivers;
+  } catch (err) {
+    console.warn('Error fetching drivers from Firestore:', err);
+    return [];
   }
 }
