@@ -293,10 +293,11 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
     mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
   };
 
+  const assignedDriverName = order.driverName || 'Driver';
   const cleanDriverPhone = '0832763273';
   const cleanCustomerAddress = `${order.customer.address}, ${order.customer.suburb}`;
   const whatsAppDriverUrl = `https://wa.me/27832763273?text=${encodeURIComponent(
-    `Hi Sipho (Wrap & Wings Driver), I am tracking Order #${order.orderId} to ${cleanCustomerAddress}.${
+    `Hi ${assignedDriverName} (Wrap & Wings Driver), I am tracking Order #${order.orderId} to ${cleanCustomerAddress}.${
       order.customer.gateCode ? ` Gate Code: ${order.customer.gateCode}.` : ''
     }`
   )}`;
@@ -382,7 +383,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
 
           <div>
             <div className="flex items-center gap-2">
-              <h4 className="text-sm sm:text-base font-extrabold text-white">Sipho M.</h4>
+              <h4 className="text-sm sm:text-base font-extrabold text-white">{order.driverName || 'Fleet Driver'}</h4>
               <span className="text-[10px] font-black px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                 4.9 ⭐ (1,240 drops)
               </span>

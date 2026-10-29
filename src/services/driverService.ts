@@ -35,7 +35,7 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-02',
     driverNumber: 2,
-    name: 'Driver 2',
+    name: 'Zwell',
     phone: '+27 68 886 3892',
     pin: '1002',
     vehicleType: 'light_vehicle',
@@ -44,10 +44,11 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
     licenceCode: 'Code 8 / Code B (Light Vehicle)',
     bankName: 'Capitec Bank',
     accountNumber: 'Pending',
-    accountHolder: 'Driver 2',
+    accountHolder: 'Zwell',
     branchCode: '470010',
     active: true,
-    onboardingCompleted: false,
+    onboardingCompleted: true,
+    signedAgreementDate: '2026-10-29',
   },
 ];
 
@@ -100,14 +101,30 @@ export function getRegisteredDrivers(): DriverProfile[] {
     }
 
     // Ensure Driver #1 is designated as Vee and marked onboarded
+    let hasUpdates = false;
     const d1 = parsed.find((d) => d.id === 'DRV-01' || d.driverNumber === 1);
     if (d1 && (!d1.name || d1.name === 'Driver 1')) {
       d1.name = 'Vee';
       d1.accountHolder = d1.accountHolder === 'Driver 1' ? 'Vee' : d1.accountHolder;
       d1.onboardingCompleted = true;
       if (!d1.signedAgreementDate) d1.signedAgreementDate = '2026-10-29';
-      localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(parsed));
+      hasUpdates = true;
       saveDriverToFirestore(d1);
+    }
+
+    // Ensure Driver #2 is designated as Zwell and marked onboarded
+    const d2 = parsed.find((d) => d.id === 'DRV-02' || d.driverNumber === 2);
+    if (d2 && (!d2.name || d2.name === 'Driver 2')) {
+      d2.name = 'Zwell';
+      d2.accountHolder = d2.accountHolder === 'Driver 2' ? 'Zwell' : d2.accountHolder;
+      d2.onboardingCompleted = true;
+      if (!d2.signedAgreementDate) d2.signedAgreementDate = '2026-10-29';
+      hasUpdates = true;
+      saveDriverToFirestore(d2);
+    }
+
+    if (hasUpdates) {
+      localStorage.setItem(DRIVERS_STORAGE_KEY, JSON.stringify(parsed));
     }
 
     return parsed;

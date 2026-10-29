@@ -4199,8 +4199,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   <option value="all">All Drivers</option>
-                  <option value="DRV-01">Driver #1 (Sipho)</option>
-                  <option value="DRV-02">Driver #2</option>
+                  <option value="DRV-01">Driver #1 (Vee)</option>
+                  <option value="DRV-02">Driver #2 (Zwell)</option>
                   <option value="unassigned">Unassigned</option>
                 </select>
 
