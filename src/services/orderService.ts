@@ -6,6 +6,7 @@ import {
   isFirebaseConfigured,
   saveOrderToFirestore,
   updateOrderStatusInFirestore,
+  updateDriverLocationInFirestore,
   deleteOrderFromFirestore,
   subscribeToFirestoreOrders,
   subscribeToSingleFirestoreOrder,
@@ -1539,6 +1540,69 @@ export function claimOrderDelivery(orderId: string, driverId: string, driverName
   }
 
   return updatedOrder;
+}
+
+/**
+ * Broadcast live GPS coordinates from driver's mobile device to active dispatched orders
+ */
+export function updateDriverLiveLocation(
+  driverId: string,
+  latitude: number,
+  longitude: number,
+  heading?: number,
+  speed?: number
+): void {
+  const orders = getAllOrders();
+  const now = Date.now();
+  const driverLoc = {
+    latitude,
+    longitude,
+    heading,
+    speed,
+    updatedAt: now,
+  };
+
+  // Find all active delivery runs assigned to this driver that are ready or on the road
+  const activeOrders = orders.filter(
+    (o) =>
+      o.orderMode === 'delivery' &&
+      (o.status === 'dispatched' || o.status === 'ready') &&
+      o.driverId === driverId
+  );
+
+  if (activeOrders.length === 0) return;
+
+  let hasChanged = false;
+  activeOrders.forEach((target) => {
+    target.driverLocation = driverLoc;
+    hasChanged = true;
+
+    if (isFirebaseConfigured) {
+      updateDriverLocationInFirestore(target.orderId, driverLoc).catch(() => {});
+    }
+
+    publishCloudEvent({
+      type: 'ORDER_UPDATED',
+      orderId: target.orderId,
+      order: target,
+      timestamp: now,
+    }).catch(() => {});
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('wrap_wing_driver_location_updated', {
+          detail: {
+            orderId: target.orderId,
+            driverLocation: driverLoc,
+          },
+        })
+      );
+    }
+  });
+
+  if (hasChanged) {
+    saveOrders(orders, false);
+  }
 }
 
 export function subscribeToOrders(callback: (orders: LiveOrder[]) => void): () => void {

@@ -42,7 +42,7 @@ import {
   getDriverDisplayName,
   downloadCompletedAgreementPdf,
 } from '../services/driverService';
-import { claimOrderDelivery } from '../services/orderService';
+import { claimOrderDelivery, updateDriverLiveLocation } from '../services/orderService';
 import { saveOrderToFirestore } from '../services/firebase';
 import { DriverProfile } from '../types';
 import { User, DollarSign, Calendar, ChevronDown, Check, Shield, Hand, Sparkles, Flame, FileCheck } from 'lucide-react';
@@ -118,6 +118,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const [currentTime, setCurrentTime] = useState<string>(() => new Date().toLocaleTimeString());
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedTicketOrder, setSelectedTicketOrder] = useState<LiveOrder | null>(null);
+  const [gpsActive, setGpsActive] = useState(false);
 
   const activeDisplayName = getDriverDisplayName(activeDriver);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -173,6 +174,58 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       clearInterval(radarTimer);
     };
   }, [soundEnabled]);
+
+  // Live driver phone GPS transmission for real-time customer tracking
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.geolocation) return;
+
+    let watchId: number | null = null;
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null;
+
+    const onPosition = (pos: GeolocationPosition) => {
+      setGpsActive(true);
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const heading = typeof pos.coords.heading === 'number' && !isNaN(pos.coords.heading) ? pos.coords.heading : undefined;
+      const speedKmh = typeof pos.coords.speed === 'number' && !isNaN(pos.coords.speed) && pos.coords.speed >= 0
+        ? Math.round(pos.coords.speed * 3.6)
+        : undefined;
+
+      updateDriverLiveLocation(activeDriver.id, lat, lng, heading, speedKmh);
+    };
+
+    const onError = (err: GeolocationPositionError) => {
+      console.warn('Driver GPS watch notification:', err.message);
+    };
+
+    try {
+      watchId = navigator.geolocation.watchPosition(onPosition, onError, {
+        enableHighAccuracy: true,
+        maximumAge: 4000,
+        timeout: 12000,
+      });
+
+      // Periodic backup capture every 8 seconds
+      fallbackInterval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(onPosition, onError, {
+          enableHighAccuracy: true,
+          maximumAge: 4000,
+          timeout: 8000,
+        });
+      }, 8000);
+    } catch (err) {
+      console.warn('Geolocation activation warning:', err);
+    }
+
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
+    };
+  }, [activeDriver.id]);
 
   const handleStatusChange = (orderId: string, nextStatus: OrderStatus) => {
     const updated = updateOrderStatus(orderId, nextStatus);
@@ -354,6 +407,13 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Customer Menu</span>
             </button>
+
+            {gpsActive && (
+              <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-400 font-bold shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                <span>Live GPS Transmitting</span>
+              </div>
+            )}
 
             {/* Utility Controls: Sound Toggle, Clock, Logout */}
             <div className="flex items-center gap-2 shrink-0">

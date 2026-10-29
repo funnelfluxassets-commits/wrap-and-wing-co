@@ -102,6 +102,36 @@ export async function saveOrderToFirestore(order: LiveOrder): Promise<void> {
 }
 
 /**
+ * Update live driver location coordinates on an active order in Firestore
+ */
+export async function updateDriverLocationInFirestore(
+  orderId: string,
+  driverLocation: {
+    latitude: number;
+    longitude: number;
+    heading?: number;
+    speed?: number;
+    updatedAt: number;
+  }
+): Promise<void> {
+  if (!db || !orderId) return;
+  try {
+    const cleanId = normalizeOrderId(orderId);
+    const docRef = doc(db, ORDERS_COLLECTION, cleanId);
+    await setDoc(
+      docRef,
+      {
+        driverLocation: cleanDocData(driverLocation),
+        updatedAt: Date.now(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn('Error updating driver location in Firestore:', err);
+  }
+}
+
+/**
  * Update an order's status and timeline atomically in Firestore
  */
 export async function updateOrderStatusInFirestore(

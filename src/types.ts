@@ -129,6 +129,13 @@ export interface LiveOrder {
   driverId?: string;
   driverName?: string;
   driverAcceptedAt?: number;
+  driverLocation?: {
+    latitude: number;
+    longitude: number;
+    heading?: number;
+    speed?: number;
+    updatedAt: number;
+  };
 }
 
 export interface DriverProfile {

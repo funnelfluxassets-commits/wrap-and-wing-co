@@ -21,34 +21,204 @@ interface LiveDriverMapProps {
   order: LiveOrder;
 }
 
-// Suburb GPS coordinates around Pinetown / Greater Durban
+// Comprehensive GPS coordinates for Pinetown & Upper Highway delivery zones
 const SUBURB_COORDINATES: Record<string, [number, number]> = {
-  Pinetown: [-29.825, 30.865],
-  'New Germany': [-29.805, 30.875],
-  Westville: [-29.833, 30.933],
-  'Cowies Hill': [-29.83, 30.89],
-  Kloof: [-29.785, 30.825],
-  Sarnia: [-29.845, 30.865],
-  Moseley: [-29.849, 30.88],
-  Hatton: [-29.832, 30.855],
-  Cleremont: [-29.795, 30.895],
-  Durban: [-29.858, 31.021],
+  // Zone 1: Pinetown Central & immediate surroundings (0–3 km)
+  pinetown: [-29.8156, 30.8544],
+  'hatton estate': [-29.8315, 30.8532],
+  hatton: [-29.8315, 30.8532],
+  ashley: [-29.8360, 30.8420],
+  manors: [-29.8090, 30.8510],
+  'the wolds': [-29.7995, 30.8610],
+  wolds: [-29.7995, 30.8610],
+  'farningham ridge': [-29.8410, 30.8350],
+  'highland hills': [-29.8480, 30.8440],
+
+  // Zone 2: Near suburbs (3–6 km)
+  'new germany': [-29.8050, 30.8750],
+  sarnia: [-29.8450, 30.8650],
+  'cowies hill': [-29.8320, 30.8920],
+  cowies: [-29.8320, 30.8920],
+  'paradise valley': [-29.8420, 30.8870],
+  'padfield park': [-29.8120, 30.8320],
+  moseley: [-29.8490, 30.8800],
+  cleremont: [-29.7950, 30.8950],
+
+  // Zone 3: Intermediate Upper Highway & Westville (6–10 km)
+  westville: [-29.8290, 30.9288],
+  kloof: [-29.7865, 30.8327],
+  wyebank: [-29.7820, 30.8790],
+  mariannhill: [-29.8650, 30.8350],
+  'chiltern hills': [-29.8180, 30.9150],
+
+  // Zone 4: Hillcrest, Waterfall & Upper Highway (10–14 km)
+  hillcrest: [-29.7788, 30.7634],
+  waterfall: [-29.7485, 30.8122],
+  gillitts: [-29.7995, 30.7788],
+  'winston park': [-29.8055, 30.7938],
+  winston: [-29.8055, 30.7938],
+  assagay: [-29.7891, 30.7421],
+  'bothas hill': [-29.7523, 30.7381],
+  botha: [-29.7523, 30.7381],
+  everton: [-29.7820, 30.7980],
+  'forest hills': [-29.7610, 30.8250],
+  crestholme: [-29.7350, 30.8320],
+  durban: [-29.8580, 31.0210],
 };
 
-// Shop 1, Uniland Centre, Pinetown
+// Shop 1, Uniland Centre, 24 Anderson Rd, Pinetown
 const RESTAURANT_COORDS: [number, number] = [-29.8156, 30.8544];
+
+function resolveDestinationCoords(
+  suburb?: string,
+  address?: string,
+  lat?: number,
+  lng?: number
+): [number, number] {
+  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0) {
+    return [lat, lng];
+  }
+
+  const query = `${suburb || ''} ${address || ''}`.toLowerCase();
+  const keys = Object.keys(SUBURB_COORDINATES).sort((a, b) => b.length - a.length);
+  for (const k of keys) {
+    if (query.includes(k)) {
+      return SUBURB_COORDINATES[k];
+    }
+  }
+
+  return SUBURB_COORDINATES['pinetown'];
+}
+
+function computeHaversineRoadKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const straight = R * c;
+  // Road curvature factor for highway/arterial road routes in Durban Upper Highway
+  return straight * 1.34;
+}
+
+function computeEtaMinutes(distanceKm: number, speedKmh = 42): number {
+  if (distanceKm <= 0.3) return 1;
+  const drivingMinutes = (distanceKm / speedKmh) * 60;
+  return Math.max(1, Math.round(drivingMinutes + 2));
+}
+
+function generateRealisticRoutePoints(
+  start: [number, number],
+  end: [number, number]
+): [number, number][] {
+  const isWestUpperHighway = end[1] < 30.840;
+  const isFarWest = end[1] < 30.790; // Gillitts, Hillcrest, Assagay, Bothas Hill
+
+  const waypoints: [number, number][] = [start];
+
+  if (isFarWest) {
+    // M13 Highway corridor through Fields Hill -> Kloof -> Gillitts -> Hillcrest
+    waypoints.push(
+      [-29.8115, 30.8490], // Josiah Gumede / M13 onramp
+      [-29.8040, 30.8380], // Fields Hill M13
+      [-29.7890, 30.8280], // Kloof Pioneer Rd M13
+      [-29.7960, 30.7850], // Gillitts M13
+      [-29.7840, 30.7720]  // Old Main Rd Hillcrest offramp
+    );
+  } else if (isWestUpperHighway) {
+    // Kloof / Wyebank
+    waypoints.push(
+      [-29.8115, 30.8490],
+      [-29.8040, 30.8380],
+      [-29.7890, 30.8280]
+    );
+  }
+
+  waypoints.push(end);
+
+  const fullRoute: [number, number][] = [];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const p1 = waypoints[i];
+    const p2 = waypoints[i + 1];
+    const steps = 8;
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      fullRoute.push([
+        p1[0] + (p2[0] - p1[0]) * t,
+        p1[1] + (p2[1] - p1[1]) * t,
+      ]);
+    }
+  }
+  fullRoute.push(end);
+  return fullRoute;
+}
+
+function getDynamicRoadDescription(
+  remainingKm: number,
+  suburbName: string
+): string {
+  if (remainingKm <= 0.8) {
+    return `Turning into your street • Approaching gate in ${suburbName}`;
+  }
+  if (remainingKm <= 2.0) {
+    return `Arriving in ${suburbName} • 2 mins away`;
+  }
+
+  const sub = suburbName.toLowerCase();
+  if (sub.includes('hillcrest') || sub.includes('assagay') || sub.includes('botha')) {
+    if (remainingKm > 9.0) {
+      return 'M13 Highway • Climbing Fields Hill towards Kloof';
+    }
+    if (remainingKm > 4.5) {
+      return 'M13 Highway • Cruising through Kloof & Gillitts';
+    }
+    return 'Old Main Road • Entering Hillcrest';
+  }
+
+  if (sub.includes('waterfall') || sub.includes('crestholme') || sub.includes('forest hills')) {
+    if (remainingKm > 8.0) {
+      return 'M13 Highway / Inanda Road towards Waterfall';
+    }
+    return `Inanda Road • Entering ${suburbName}`;
+  }
+
+  if (sub.includes('kloof')) {
+    if (remainingKm > 4.0) {
+      return 'M13 Highway • Ascending Fields Hill';
+    }
+    return 'Old Main Road / Village Road, Kloof';
+  }
+
+  if (sub.includes('westville')) {
+    return 'M13 Highway East towards Westville';
+  }
+
+  if (sub.includes('new germany')) {
+    return 'Qashana Khuzwayo / Shepstone Road, New Germany';
+  }
+
+  if (sub.includes('cowies') || sub.includes('sarnia')) {
+    return `En route to ${suburbName} via arterial road`;
+  }
+
+  return `En route to ${suburbName} (${remainingKm.toFixed(1)} km away)`;
+}
 
 export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const routePolylineRef = useRef<any>(null);
-
-  const [driverProgress, setDriverProgress] = useState(0.35); // 0.0 to 1.0 along the route
-  const [distanceKm, setDistanceKm] = useState('2.4 km');
-  const [etaMins, setEtaMins] = useState(12);
-  const [driverCurrentRoad, setDriverCurrentRoad] = useState('Josiah Gumede Road, Pinetown');
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
 
   const customer = order.customer || {
     customerName: 'Customer',
@@ -57,28 +227,33 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
     suburb: 'Pinetown',
   };
   const suburbName = customer.suburb || 'Pinetown';
-  const destCoords: [number, number] =
-    SUBURB_COORDINATES[suburbName] || SUBURB_COORDINATES['Pinetown'];
 
-  // Interpolate route points between Shop and Customer
-  const generateRoutePoints = (
-    start: [number, number],
-    end: [number, number],
-    steps = 25
-  ): [number, number][] => {
-    const points: [number, number][] = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      // Add slight road curvature variation
-      const curve = Math.sin(t * Math.PI) * 0.003;
-      const lat = start[0] + (end[0] - start[0]) * t + curve;
-      const lng = start[1] + (end[1] - start[1]) * t - curve * 0.5;
-      points.push([lat, lng]);
-    }
-    return points;
-  };
+  const destCoords: [number, number] = resolveDestinationCoords(
+    customer.suburb,
+    customer.address,
+    customer.latitude,
+    customer.longitude
+  );
 
-  const routePoints = generateRoutePoints(RESTAURANT_COORDS, destCoords);
+  const totalDistanceKm = computeHaversineRoadKm(
+    RESTAURANT_COORDS[0],
+    RESTAURANT_COORDS[1],
+    destCoords[0],
+    destCoords[1]
+  );
+  const initialEta = computeEtaMinutes(totalDistanceKm, 42);
+
+  const [driverProgress, setDriverProgress] = useState(0.05);
+  const [distanceKm, setDistanceKm] = useState<string>(() => `${totalDistanceKm.toFixed(1)} km`);
+  const [etaMins, setEtaMins] = useState<number>(() => initialEta);
+  const [driverCurrentRoad, setDriverCurrentRoad] = useState<string>(() =>
+    getDynamicRoadDescription(totalDistanceKm, suburbName)
+  );
+  const [currentSpeedKmh, setCurrentSpeedKmh] = useState<number>(38);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
+
+  const routePoints = generateRealisticRoutePoints(RESTAURANT_COORDS, destCoords);
+  const driverDisplay = getDriverVehicleInfo(order.driverId, order.driverName);
 
   // Initialize Leaflet Map with CartoDB Dark Tiles
   useEffect(() => {
@@ -130,7 +305,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
 
       mapInstanceRef.current = map;
 
-      // High-performance Dark Basemap (Esri World Dark Gray Base - No API key required, no watermarks)
+      // High-performance Dark Basemap (Esri World Dark Gray Base - No API key required)
       L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
         {
@@ -163,9 +338,22 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         iconAnchor: [17, 17],
       });
 
-      const driverIcon = L.divIcon({
-        className: 'custom-driver-icon',
-        html: `
+      const isCar = driverDisplay.vehicleType === 'light_vehicle';
+      const driverIconHtml = isCar
+        ? `
+          <div style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;">
+            <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(239,68,68,0.35);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
+            <div style="background:linear-gradient(135deg, #f59e0b, #ef4444);color:white;border-radius:50%;width:36px;height:36px;border:3px solid white;box-shadow:0 4px 15px rgba(245,158,11,0.8);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;">
+                <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.5 2.8C1.4 11.2 1 12 1 13v3c0 .6.4 1 1 1h2"/>
+                <circle cx="7" cy="17" r="2"/>
+                <path d="M9 17h6"/>
+                <circle cx="17" cy="17" r="2"/>
+              </svg>
+            </div>
+          </div>
+        `
+        : `
           <div style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;">
             <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:rgba(239,68,68,0.35);animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></div>
             <div style="background:linear-gradient(135deg, #f59e0b, #ef4444);color:white;border-radius:50%;width:36px;height:36px;border:3px solid white;box-shadow:0 4px 15px rgba(245,158,11,0.8);display:flex;align-items:center;justify-content:center;position:relative;z-index:2;">
@@ -183,7 +371,11 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
               </svg>
             </div>
           </div>
-        `,
+        `;
+
+      const driverIcon = L.divIcon({
+        className: 'custom-driver-icon',
+        html: driverIconHtml,
         iconSize: [44, 44],
         iconAnchor: [22, 22],
       });
@@ -209,9 +401,15 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
 
       routePolylineRef.current = polyline;
 
-      // Initial Driver Position
-      const initialIdx = Math.floor(driverProgress * (routePoints.length - 1));
-      const initialPos = routePoints[initialIdx];
+      // Initial Driver Position: check if real GPS exists on order, otherwise use route start
+      const hasLiveGps =
+        order.driverLocation &&
+        typeof order.driverLocation.latitude === 'number' &&
+        typeof order.driverLocation.longitude === 'number';
+
+      const initialPos = hasLiveGps
+        ? [order.driverLocation!.latitude, order.driverLocation!.longitude]
+        : routePoints[0];
 
       const driverMarker = L.marker(initialPos, { icon: driverIcon }).addTo(map);
       driverMarkerRef.current = driverMarker;
@@ -238,18 +436,46 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         mapInstanceRef.current = null;
       }
     };
-  }, [suburbName]);
+  }, [suburbName, destCoords[0], destCoords[1], driverDisplay.vehicleType]);
 
-  // Live Driver Movement Animation Simulation
+  // LIVE GPS UPDATE: React immediately when live driver GPS updates from Firestore / device
   useEffect(() => {
-    // If order is dispatched, smoothly advance the driver position
+    if (!order.driverLocation) return;
+    const { latitude, longitude, speed } = order.driverLocation;
+    if (typeof latitude !== 'number' || typeof longitude !== 'number') return;
+
+    const currentPos: [number, number] = [latitude, longitude];
+
+    if (driverMarkerRef.current) {
+      driverMarkerRef.current.setLatLng(currentPos);
+    }
+
+    const remainingKm = computeHaversineRoadKm(
+      latitude,
+      longitude,
+      destCoords[0],
+      destCoords[1]
+    );
+
+    const speedVal = typeof speed === 'number' && speed > 0 ? speed : 42;
+    setCurrentSpeedKmh(speedVal);
+
+    const eta = computeEtaMinutes(remainingKm, speedVal);
+    setDistanceKm(`${remainingKm.toFixed(1)} km`);
+    setEtaMins(eta);
+    setDriverCurrentRoad(getDynamicRoadDescription(remainingKm, suburbName));
+  }, [order.driverLocation, destCoords, suburbName]);
+
+  // Continuous movement telemetry fallback (while awaiting GPS or between pings)
+  useEffect(() => {
     if (order.status !== 'dispatched' && order.status !== 'ready') return;
+    // If live GPS is already fresh (< 15 seconds old), let live GPS drive the marker
+    if (order.driverLocation && Date.now() - order.driverLocation.updatedAt < 15000) return;
 
     const interval = setInterval(() => {
       setDriverProgress((prev) => {
-        const next = prev >= 0.95 ? 0.95 : prev + 0.015;
+        const next = prev >= 0.95 ? 0.95 : prev + 0.012;
 
-        // Update driver marker on Leaflet map
         if (driverMarkerRef.current && routePoints.length > 0) {
           const idx = Math.min(
             Math.floor(next * (routePoints.length - 1)),
@@ -259,28 +485,20 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
           driverMarkerRef.current.setLatLng(newPos);
         }
 
-        // Calculate realistic remaining telemetry
-        const remainingFraction = 1.0 - next;
-        const remainingKm = (remainingFraction * 3.8).toFixed(1);
-        const remainingMinutes = Math.max(2, Math.round(remainingFraction * 18));
+        const remainingFraction = Math.max(0.04, 1.0 - next);
+        const remainingKm = Math.max(0.2, remainingFraction * totalDistanceKm);
+        const remainingMinutes = computeEtaMinutes(remainingKm, 42);
 
-        setDistanceKm(`${remainingKm} km`);
+        setDistanceKm(`${remainingKm.toFixed(1)} km`);
         setEtaMins(remainingMinutes);
-
-        if (next > 0.8) {
-          setDriverCurrentRoad('Turning into your street • Approaching gate');
-        } else if (next > 0.5) {
-          setDriverCurrentRoad(`Entering ${suburbName} • Moving at 42 km/h`);
-        } else {
-          setDriverCurrentRoad('Josiah Gumede Road, Pinetown');
-        }
+        setDriverCurrentRoad(getDynamicRoadDescription(remainingKm, suburbName));
 
         return next;
       });
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [order.status, routePoints, suburbName]);
+  }, [order.status, order.driverLocation, routePoints, suburbName, totalDistanceKm]);
 
   const handleCenterDriver = () => {
     if (!mapInstanceRef.current || !driverMarkerRef.current) return;
@@ -295,7 +513,6 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
     mapInstanceRef.current.fitBounds(bounds, { padding: [40, 40], animate: true });
   };
 
-  const driverDisplay = getDriverVehicleInfo(order.driverId, order.driverName);
   const assignedDriverName = order.driverName || driverDisplay.displayName;
   const cleanCustomerAddress = `${order.customer.address}, ${order.customer.suburb}`;
   const whatsAppDriverUrl = `https://wa.me/${driverDisplay.cleanWaPhone}?text=${encodeURIComponent(
@@ -363,7 +580,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
         {/* Live Speed & Sensor Overlay */}
         <div className="absolute bottom-3 left-3 z-10 px-3 py-1.5 rounded-xl bg-black/80 border border-white/15 backdrop-blur-md flex items-center gap-2 text-[10px] text-zinc-300">
           <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-          <span>Vehicle Speed: <strong className="text-white">38 km/h</strong></span>
+          <span>Vehicle Speed: <strong className="text-white">{currentSpeedKmh} km/h</strong></span>
           <span>•</span>
           <span className="text-amber-300">🔥 Hot Bag Sealed (72°C)</span>
         </div>
