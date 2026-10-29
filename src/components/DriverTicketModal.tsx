@@ -12,8 +12,18 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
   if (!order) return null;
 
   const isDelivery = order.orderMode === 'delivery';
-  const googleMapsUrl = generateGoogleMapsUrl(order.customer.address, order.customer.suburb);
-  const wazeUrl = generateWazeUrl(order.customer.address, order.customer.suburb);
+  const googleMapsUrl = generateGoogleMapsUrl(
+    order.customer.address,
+    order.customer.suburb,
+    order.customer.latitude,
+    order.customer.longitude
+  );
+  const wazeUrl = generateWazeUrl(
+    order.customer.address,
+    order.customer.suburb,
+    order.customer.latitude,
+    order.customer.longitude
+  );
   const cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
   const customerPhoneInternational = cleanPhone.startsWith('0') ? `27${cleanPhone.slice(1)}` : cleanPhone;
 
@@ -73,6 +83,12 @@ export const DriverTicketModal: React.FC<DriverTicketModalProps> = ({ order, onC
                 )}
                 {order.customer.notes && (
                   <div className="italic text-zinc-200 pt-1">"{order.customer.notes}"</div>
+                )}
+                {order.customer.latitude && order.customer.longitude && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold pt-1">
+                    <Navigation className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Live GPS Pinpoint Attached: {order.customer.latitude.toFixed(5)}, {order.customer.longitude.toFixed(5)}</span>
+                  </div>
                 )}
               </div>
 

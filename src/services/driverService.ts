@@ -67,18 +67,51 @@ export function getDriverDisplayName(driver: DriverProfile): string {
 
 /**
  * Distance Tiers / Basting Fee according to driver agreement:
- * Zone 1 (0–3 km): R28.00 (Pinetown CBD, Hatton Estate)
- * Zone 2 (3–6 km): R40.00 (New Germany, Sarnia, Cowies Hill)
- * Zone 3 (6–10 km): R58.00 (Westville, Kloof)
- * Zone 4 (10–14 km): R75.00 (Hillcrest, Waterfall)
+ * Zone 1 (0–3 km): R28.00 (Pinetown Central, Hatton Estate, Ashley, Manors, The Wolds, Farningham Ridge, Highland Hills)
+ * Zone 2 (3–6 km): R40.00 (New Germany, Sarnia, Cowies Hill, Paradise Valley, Padfield Park, Moseley)
+ * Zone 3 (6–10 km): R58.00 (Westville, Kloof, Wyebank, Mariannhill, Chiltern Hills)
+ * Zone 4 (10–14 km): R75.00 (Hillcrest, Waterfall, Gillitts, Winston Park, Everton, Bothas Hill, Crestholme, Forest Hills, Assagay)
  */
 export function getDeliveryFeeForSuburb(suburb?: string): number {
   if (!suburb) return 28;
   const s = suburb.toLowerCase().trim();
-  if (s.includes('hillcrest') || s.includes('waterfall')) return 75;
-  if (s.includes('westville') || s.includes('kloof')) return 58;
-  if (s.includes('new germany') || s.includes('sarnia') || s.includes('cowies')) return 40;
-  return 28; // Default Zone 1 (Pinetown / Hatton Estate)
+  // Zone 4 (10–14 km): R75.00 (Hillcrest, Waterfall & Upper Highway)
+  if (
+    s.includes('hillcrest') ||
+    s.includes('waterfall') ||
+    s.includes('gillitts') ||
+    s.includes('winston') ||
+    s.includes('everton') ||
+    s.includes('botha') ||
+    s.includes('crestholme') ||
+    s.includes('forest hills') ||
+    s.includes('assagay')
+  ) {
+    return 75;
+  }
+  // Zone 3 (6–10 km): R58.00 (Westville, Kloof & surrounding)
+  if (
+    s.includes('westville') ||
+    s.includes('kloof') ||
+    s.includes('wyebank') ||
+    s.includes('mariann') ||
+    s.includes('chiltern')
+  ) {
+    return 58;
+  }
+  // Zone 2 (3–6 km): R40.00 (New Germany, Sarnia, Cowies Hill, Paradise Valley)
+  if (
+    s.includes('new germany') ||
+    s.includes('sarnia') ||
+    s.includes('cowies') ||
+    s.includes('paradise') ||
+    s.includes('padfield') ||
+    s.includes('moseley')
+  ) {
+    return 40;
+  }
+  // Zone 1 (0–3 km): R28.00 (Pinetown Central & immediate surroundings)
+  return 28;
 }
 
 /**

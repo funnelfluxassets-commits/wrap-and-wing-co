@@ -90,6 +90,8 @@ export interface DeliveryDetails {
   preferredTime?: string;
   createdAt?: string;
   tableNumber?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export type PaymentGatewayType = 'payfast' | 'yoco' | 'whatsapp' | 'cod';

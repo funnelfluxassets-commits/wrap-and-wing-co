@@ -187,7 +187,20 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     setActiveDriverSession(drv);
   };
 
-  const handleClaimOrder = (orderId: string) => {
+  const handleClaimOrder = async (orderId: string) => {
+    // 1. Fetch freshest orders from Firestore to prevent race conditions
+    const freshOrders = await syncOrdersFromCloud();
+    const cleanId = orderId.replace('#', '').trim();
+    const latest = freshOrders.find(
+      (o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId
+    );
+
+    if (latest && latest.driverId && latest.driverId !== activeDriver.id) {
+      alert(`⚠️ Order #${orderId} was just accepted by ${latest.driverName || 'another driver'}!`);
+      setOrders(freshOrders);
+      return;
+    }
+
     const updated = claimOrderDelivery(orderId, activeDriver.id, activeDisplayName);
     if (updated) {
       setOrders((prev) => prev.map((o) => (o.orderId === orderId ? updated : o)));
@@ -617,8 +630,8 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
               const waNumber = cleanPhone.startsWith('0')
                 ? `27${cleanPhone.slice(1)}`
                 : cleanPhone.replace('+', '');
-              const googleMapsUrl = generateGoogleMapsUrl(address, suburb);
-              const wazeUrl = generateWazeUrl(address, suburb);
+              const googleMapsUrl = generateGoogleMapsUrl(address, suburb, customer.latitude, customer.longitude);
+              const wazeUrl = generateWazeUrl(address, suburb, customer.latitude, customer.longitude);
               const items = Array.isArray(order.items) ? order.items : [];
               const grandTotal = typeof order.grandTotal === 'number' ? order.grandTotal : 0;
               const isPaid = order.paymentStatus === 'paid';
@@ -735,6 +748,12 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
                             {suburb}
                             {customer.complexOrUnit && ` • Unit: ${customer.complexOrUnit}`}
                           </div>
+                          {customer.latitude && customer.longitude && (
+                            <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold mt-0.5">
+                              <Navigation className="w-3 h-3 text-emerald-400 shrink-0" />
+                              <span>Live GPS Coordinates Attached</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

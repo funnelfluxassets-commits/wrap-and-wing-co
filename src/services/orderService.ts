@@ -1475,6 +1475,13 @@ export function claimOrderDelivery(orderId: string, driverId: string, driverName
   if (index === -1) return null;
 
   const current = orders[index];
+
+  // FIRST DRIVER TO ACCEPT WINS: If already claimed by another driver, reject claim
+  if (current.driverId && current.driverId !== driverId) {
+    console.warn(`Order ${orderId} is already claimed by ${current.driverName || current.driverId}`);
+    return null;
+  }
+
   const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const timelineEvent: OrderTimelineEvent = {

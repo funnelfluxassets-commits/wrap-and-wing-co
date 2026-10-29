@@ -26,21 +26,24 @@ export function formatFullDeliveryAddress(address: string, suburb: string): stri
   if (cleanSub && !cleanAddr.toLowerCase().includes(cleanSub.toLowerCase())) {
     parts.push(cleanSub);
   }
-  if (!cleanAddr.toLowerCase().includes('durban') && !cleanSub.toLowerCase().includes('durban')) {
-    parts.push('Durban');
-  }
-  if (!cleanAddr.toLowerCase().includes('south africa')) {
-    parts.push('South Africa');
+  if (!cleanAddr.toLowerCase().includes('south africa') && !cleanSub.toLowerCase().includes('south africa')) {
+    parts.push('KwaZulu-Natal, South Africa');
   }
   return parts.filter(Boolean).join(', ');
 }
 
-export function generateGoogleMapsUrl(address: string, suburb: string): string {
+export function generateGoogleMapsUrl(address: string, suburb: string, lat?: number, lng?: number): string {
+  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  }
   const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(fullAddress)}`;
 }
 
-export function generateWazeUrl(address: string, suburb: string): string {
+export function generateWazeUrl(address: string, suburb: string, lat?: number, lng?: number): string {
+  if (typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+    return `https://waze.com/ul?ll=${lat},${lng}&navigate=yes`;
+  }
   const fullAddress = formatFullDeliveryAddress(address, suburb);
   return `https://waze.com/ul?q=${encodeURIComponent(fullAddress)}&navigate=yes`;
 }

@@ -16,6 +16,49 @@ import { getDeliveryFeeForSuburb } from '../services/driverService';
 import { X, CheckCircle, ShieldCheck, MapPin, Phone, CreditCard, Send, Navigation, ArrowRight, Clock, MessageSquare, ShoppingBag, AlertCircle, Utensils } from 'lucide-react';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 
+export interface DeliverySuburbOption {
+  name: string;
+  zone: string;
+  fee: number;
+}
+
+export const DELIVERY_SUBURBS: DeliverySuburbOption[] = [
+  // Zone 1: Pinetown Central & Immediate Surroundings (R28.00)
+  { name: 'Pinetown Central', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'Hatton Estate', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'Ashley', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'Manors', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'The Wolds', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'Farningham Ridge', zone: 'Zone 1 (0–3 km)', fee: 28 },
+  { name: 'Highland Hills', zone: 'Zone 1 (0–3 km)', fee: 28 },
+
+  // Zone 2: Mid Suburbs (R40.00)
+  { name: 'New Germany', zone: 'Zone 2 (3–6 km)', fee: 40 },
+  { name: 'Sarnia', zone: 'Zone 2 (3–6 km)', fee: 40 },
+  { name: 'Cowies Hill', zone: 'Zone 2 (3–6 km)', fee: 40 },
+  { name: 'Paradise Valley', zone: 'Zone 2 (3–6 km)', fee: 40 },
+  { name: 'Padfield Park', zone: 'Zone 2 (3–6 km)', fee: 40 },
+  { name: 'Moseley', zone: 'Zone 2 (3–6 km)', fee: 40 },
+
+  // Zone 3: Kloof & Westville (R58.00)
+  { name: 'Kloof', zone: 'Zone 3 (6–10 km)', fee: 58 },
+  { name: 'Westville', zone: 'Zone 3 (6–10 km)', fee: 58 },
+  { name: 'Wyebank', zone: 'Zone 3 (6–10 km)', fee: 58 },
+  { name: 'Mariannhill', zone: 'Zone 3 (6–10 km)', fee: 58 },
+  { name: 'Chiltern Hills', zone: 'Zone 3 (6–10 km)', fee: 58 },
+
+  // Zone 4: Upper Highway to Hillcrest & Waterfall (R75.00)
+  { name: 'Hillcrest', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Waterfall', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Gillitts', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Winston Park', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Everton', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Bothas Hill', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Crestholme', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Forest Hills', zone: 'Zone 4 (10–14 km)', fee: 75 },
+  { name: 'Assagay', zone: 'Zone 4 (10–14 km)', fee: 75 },
+];
+
 interface SavedCustomerProfile {
   customerName?: string;
   phone?: string;
@@ -24,6 +67,8 @@ interface SavedCustomerProfile {
   complexOrUnit?: string;
   gateCode?: string;
   notes?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const SAVED_PROFILE_KEY = 'wrap_wing_saved_customer_profile';
@@ -58,7 +103,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [customerName, setCustomerName] = useState(() => savedProfile.customerName || '');
   const [phone, setPhone] = useState(() => savedProfile.phone || '');
   const [address, setAddress] = useState(() => savedProfile.address || '');
-  const [suburb, setSuburb] = useState(() => savedProfile.suburb || 'Pinetown');
+  const [suburb, setSuburb] = useState(() => savedProfile.suburb || 'Pinetown Central');
   const [complexOrUnit, setComplexOrUnit] = useState(() => savedProfile.complexOrUnit || '');
   const [gateCode, setGateCode] = useState(() => savedProfile.gateCode || '');
   const [notes, setNotes] = useState(() => savedProfile.notes || '');
@@ -66,8 +111,69 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
   const [paymentMethod, setPaymentMethod] = useState<PaymentGatewayType>('payfast');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStaffTest, setIsStaffTest] = useState(() => isPayFastStaffTestMode());
+  const [isLocating, setIsLocating] = useState(false);
+  const [gpsCoordinates, setGpsCoordinates] = useState<{ lat: number; lng: number } | null>(
+    () => (savedProfile.latitude && savedProfile.longitude ? { lat: savedProfile.latitude, lng: savedProfile.longitude } : null)
+  );
   const storeStatus = useStoreOperatingStatus();
   const deliveryStatus = useDeliveryOperatingStatus();
+
+  const handleUseCurrentLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      alert('Geolocation is not supported by your mobile browser.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setGpsCoordinates({ lat, lng });
+        setIsLocating(false);
+
+        // Attempt reverse geocoding to auto-fill street and suburb
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.address) {
+              const road = data.address.road || data.address.street || data.address.pedestrian || '';
+              const houseNumber = data.address.house_number || '';
+              const detected = [houseNumber, road].filter(Boolean).join(' ');
+              if (detected) {
+                setAddress(detected);
+              }
+              const areaString = (
+                data.address.suburb ||
+                data.address.neighbourhood ||
+                data.address.town ||
+                data.address.village ||
+                data.address.city_district ||
+                ''
+              ).toLowerCase();
+
+              const matched = DELIVERY_SUBURBS.find((s) =>
+                areaString.includes(s.name.toLowerCase()) || s.name.toLowerCase().includes(areaString)
+              );
+              if (matched) {
+                setSuburb(matched.name);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Reverse geocode error:', e);
+        }
+      },
+      (err) => {
+        setIsLocating(false);
+        console.warn('GPS location error:', err);
+        alert('Could not determine exact location automatically. Please enter your address manually.');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
 
   // Dynamic delivery fee calculation based on delivery distance tier for the selected suburb
   const calculatedDeliveryFee = orderMode === 'delivery' ? getDeliveryFeeForSuburb(suburb) : 0;
@@ -89,10 +195,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
     setCustomerName('');
     setPhone('');
     setAddress('');
-    setSuburb('Pinetown');
+    setSuburb('Pinetown Central');
     setComplexOrUnit('');
     setGateCode('');
     setNotes('');
+    setGpsCoordinates(null);
     setHasAutofilled(false);
   };
 
@@ -154,6 +261,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       complexOrUnit: complexOrUnit.trim() || undefined,
       gateCode: gateCode.trim() || undefined,
       notes: notes.trim() || undefined,
+      latitude: gpsCoordinates?.lat,
+      longitude: gpsCoordinates?.lng,
     });
 
     const activeOrderMode: OrderMode = orderMode;
@@ -172,6 +281,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
         : preferredTime,
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       tableNumber: activeOrderMode === 'dine-in' ? tableNumber : undefined,
+      latitude: activeOrderMode === 'delivery' ? gpsCoordinates?.lat : undefined,
+      longitude: activeOrderMode === 'delivery' ? gpsCoordinates?.lng : undefined,
     };
 
     const payload: CheckoutPayload = {
@@ -403,12 +514,27 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
           {/* Delivery Address (If delivery mode) */}
           {orderMode === 'delivery' && (
             <div className="space-y-3 pt-3 border-t border-white/10">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                   <MapPin className="w-4 h-4 text-amber-400" />
                   <span>2. Delivery Address</span>
                 </h3>
-                <span className="text-[11px] text-zinc-200">Connected to Driver GPS</span>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={isLocating}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                  title="Capture live GPS coordinates from your device to guide the driver"
+                >
+                  <Navigation className={`w-3.5 h-3.5 text-amber-400 ${isLocating ? 'animate-spin' : ''}`} />
+                  <span>
+                    {isLocating
+                      ? 'Acquiring GPS...'
+                      : gpsCoordinates
+                      ? '✓ Live GPS Attached'
+                      : '📍 Use Current Location'}
+                  </span>
+                </button>
               </div>
 
               <div>
@@ -420,26 +546,60 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
                   required
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. 14 Josiah Gumede Road"
+                  placeholder="e.g. 14 Josiah Gumede Road or 34 Inanda Road"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-rose-500"
                 />
+                {gpsCoordinates && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1.5 rounded-lg mt-1.5">
+                    <Navigation className="w-3.5 h-3.5 shrink-0" />
+                    <span>Live GPS Pinpoint Attached ({gpsCoordinates.lat.toFixed(5)}, {gpsCoordinates.lng.toFixed(5)})</span>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Suburb / Area</label>
+                  <label className="text-[11px] font-bold text-zinc-200 block mb-1">Suburb / Delivery Area</label>
                   <select
                     value={suburb}
                     onChange={(e) => setSuburb(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white focus:outline-none focus:border-rose-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white focus:outline-none focus:border-rose-500 font-semibold"
                   >
-                    <option value="Pinetown">Pinetown Central</option>
-                    <option value="New Germany">New Germany</option>
-                    <option value="Westville">Westville</option>
-                    <option value="Sarnia">Sarnia</option>
-                    <option value="Cowies Hill">Cowies Hill</option>
-                    <option value="Hatton Estate">Hatton Estate</option>
-                    <option value="Kloof">Kloof</option>
+                    <optgroup label="Zone 1 (0–3 km) — R28.00 Pinetown Central" className="bg-zinc-950 text-zinc-300">
+                      <option value="Pinetown Central">Pinetown Central (R28.00)</option>
+                      <option value="Hatton Estate">Hatton Estate (R28.00)</option>
+                      <option value="Ashley">Ashley (R28.00)</option>
+                      <option value="Manors">Manors (R28.00)</option>
+                      <option value="The Wolds">The Wolds (R28.00)</option>
+                      <option value="Farningham Ridge">Farningham Ridge (R28.00)</option>
+                      <option value="Highland Hills">Highland Hills (R28.00)</option>
+                    </optgroup>
+                    <optgroup label="Zone 2 (3–6 km) — R40.00 Mid Suburbs" className="bg-zinc-950 text-zinc-300">
+                      <option value="New Germany">New Germany (R40.00)</option>
+                      <option value="Sarnia">Sarnia (R40.00)</option>
+                      <option value="Cowies Hill">Cowies Hill (R40.00)</option>
+                      <option value="Paradise Valley">Paradise Valley (R40.00)</option>
+                      <option value="Padfield Park">Padfield Park (R40.00)</option>
+                      <option value="Moseley">Moseley (R40.00)</option>
+                    </optgroup>
+                    <optgroup label="Zone 3 (6–10 km) — R58.00 Kloof & Westville" className="bg-zinc-950 text-zinc-300">
+                      <option value="Kloof">Kloof (R58.00)</option>
+                      <option value="Westville">Westville (R58.00)</option>
+                      <option value="Wyebank">Wyebank (R58.00)</option>
+                      <option value="Mariannhill">Mariannhill (R58.00)</option>
+                      <option value="Chiltern Hills">Chiltern Hills (R58.00)</option>
+                    </optgroup>
+                    <optgroup label="Zone 4 (10–14 km) — R75.00 Hillcrest, Waterfall & Upper Highway" className="bg-zinc-950 text-zinc-300">
+                      <option value="Hillcrest">Hillcrest (R75.00)</option>
+                      <option value="Waterfall">Waterfall (R75.00)</option>
+                      <option value="Gillitts">Gillitts (R75.00)</option>
+                      <option value="Winston Park">Winston Park (R75.00)</option>
+                      <option value="Everton">Everton (R75.00)</option>
+                      <option value="Bothas Hill">Bothas Hill (R75.00)</option>
+                      <option value="Crestholme">Crestholme (R75.00)</option>
+                      <option value="Forest Hills">Forest Hills (R75.00)</option>
+                      <option value="Assagay">Assagay (R75.00)</option>
+                    </optgroup>
                   </select>
                 </div>
                 <div>
