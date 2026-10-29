@@ -39,19 +39,19 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-02',
     driverNumber: 2,
-    name: 'Zwelisha (Zwell)',
-    phone: '+27 68 886 3892',
+    name: 'Zwelisha Mkhize (Zwali)',
+    phone: '081 732 4759',
     pin: '1002',
-    vehicleType: 'motorcycle',
-    vehicleDetails: 'White Honda Delivery Bike',
-    vehicleReg: 'ND 482-910',
+    vehicleType: 'light_vehicle',
+    vehicleDetails: 'Silver Suzuki Dzire',
+    vehicleReg: 'DF 33 JB ZN',
     licenceCode: 'Code 8 / Code B (Light Vehicle)',
-    bankName: 'Capitec Bank',
-    accountNumber: 'Pending',
-    accountHolder: 'Zwell',
+    bankName: 'TymeBank',
+    accountNumber: '51009333559',
+    accountHolder: 'Zwelisha Mkhize',
     branchCode: '470010',
     idOrPassportNumber: '9902225168085',
-    residentialAddress: '30 jomela grove, Pinetown',
+    residentialAddress: '30 jomela grove',
     active: true,
     onboardingCompleted: true,
     signedAgreementDate: '2026-10-29',
@@ -64,7 +64,7 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
 export function getDriverDisplayName(driver: DriverProfile): string {
   if (driver.onboardingCompleted && driver.name) {
     if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee';
-    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zwelisha';
+    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zwali';
     const rawName = driver.name.trim();
     const parts = rawName.split(/\s+/);
     const firstName = parts[0].toLowerCase() === 'driver' && parts[1] ? parts.slice(1).join(' ') : parts[0];
@@ -113,7 +113,7 @@ export function getDriverVehicleInfo(
         dName.includes(cleanName) ||
         cleanName.includes(dName) ||
         (d.driverNumber === 1 && (cleanName.includes('vee') || cleanName.includes('vanessa') || cleanName.includes('drv-01') || cleanName.includes('driver 1') || cleanName.includes('driver #1'))) ||
-        (d.driverNumber === 2 && (cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
+        (d.driverNumber === 2 && (cleanName.includes('zwali') || cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('mkhize') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
       );
     }) || null;
   }
@@ -127,31 +127,32 @@ export function getDriverVehicleInfo(
   const isD1 = resolved.id === 'DRV-01' || resolved.driverNumber === 1;
 
   // Real vehicle details:
-  // Driver #1: Vanessa Mbhele -> Grey Hyundai Grand i10 • BW 55 TF ZN
-  // Driver #2: Zwelisha -> White Honda Delivery Bike • ND 482-910
+  // Driver #1: Vanessa Mbhele (Vee) -> Grey Hyundai Grand i10 • BW 55 TF ZN (071 345 7687)
+  // Driver #2: Zwelisha Mkhize (Zwali) -> Silver Suzuki Dzire • DF 33 JB ZN (081 732 4759)
   const vehicleText = isD1
     ? (resolved.vehicleDetails && resolved.vehicleDetails !== 'Motorcycle / Scooter' && resolved.vehicleDetails !== 'Pending Reg'
         ? resolved.vehicleDetails
         : 'Grey Hyundai Grand i10')
-    : (resolved.vehicleDetails && resolved.vehicleDetails !== 'Light Vehicle' && resolved.vehicleDetails !== 'Pending Reg'
+    : (resolved.vehicleDetails && resolved.vehicleDetails !== 'Light Vehicle' && resolved.vehicleDetails !== 'Pending Reg' && resolved.vehicleDetails !== 'White Honda Delivery Bike'
         ? resolved.vehicleDetails
-        : 'White Honda Delivery Bike');
+        : 'Silver Suzuki Dzire');
 
   const vehicleReg = isD1
     ? (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' ? resolved.vehicleReg : 'BW 55 TF ZN')
-    : (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' ? resolved.vehicleReg : 'ND 482-910');
+    : (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' && resolved.vehicleReg !== 'ND 482-910'
+        ? resolved.vehicleReg
+        : 'DF 33 JB ZN');
 
-  const vehicleType: DriverVehicleType = isD1
-    ? 'light_vehicle'
-    : (resolved.vehicleType || 'motorcycle');
+  // Both drivers deliver in cars (Light Vehicle)
+  const vehicleType: DriverVehicleType = 'light_vehicle';
 
   const displayName = isD1
     ? 'Driver - Vee (Vanessa)'
-    : 'Driver - Zwelisha';
+    : 'Driver - Zwali (Zwelisha)';
 
   const rawPhone = isD1
     ? (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '071 345 7687')
-    : (resolved.phone || '+27 68 886 3892');
+    : (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '081 732 4759');
 
   const cleanPhone = rawPhone.replace(/[^0-9+]/g, '');
   const cleanWaPhone = cleanPhone.startsWith('0')
@@ -270,19 +271,29 @@ export function getRegisteredDrivers(): DriverProfile[] {
       }
     }
 
-    // Ensure Driver #2 is designated as Zwell and marked onboarded with vehicle details
+    // Ensure Driver #2 is designated as Zwali (Zwelisha Mkhize) and marked onboarded with vehicle details
     const d2 = parsed.find((d) => d.id === 'DRV-02' || d.driverNumber === 2);
     if (d2) {
-      if (!d2.name || d2.name === 'Driver 2' || d2.name === 'Zwell') {
-        d2.name = 'Zwelisha (Zwell)';
-        d2.accountHolder = 'Zwell';
+      if (!d2.name || d2.name === 'Driver 2' || d2.name === 'Zwell' || d2.name === 'Zwelisha (Zwell)') {
+        d2.name = 'Zwelisha Mkhize (Zwali)';
+        d2.accountHolder = 'Zwelisha Mkhize';
+        d2.bankName = 'TymeBank';
+        d2.accountNumber = '51009333559';
+        d2.branchCode = '470010';
+        d2.idOrPassportNumber = '9902225168085';
+        d2.residentialAddress = '30 jomela grove';
         d2.onboardingCompleted = true;
         if (!d2.signedAgreementDate) d2.signedAgreementDate = '2026-10-29';
         hasUpdates = true;
       }
-      if (!d2.vehicleReg || d2.vehicleReg === 'Pending Reg') {
-        d2.vehicleDetails = 'White Honda Delivery Bike';
-        d2.vehicleReg = 'ND 482-910';
+      if (!d2.vehicleReg || d2.vehicleReg === 'Pending Reg' || d2.vehicleReg === 'ND 482-910') {
+        d2.vehicleDetails = 'Silver Suzuki Dzire';
+        d2.vehicleReg = 'DF 33 JB ZN';
+        d2.vehicleType = 'light_vehicle';
+        hasUpdates = true;
+      }
+      if (!d2.phone || d2.phone === '+27 68 886 3892') {
+        d2.phone = '081 732 4759';
         hasUpdates = true;
       }
       if (hasUpdates) {

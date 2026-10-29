@@ -311,11 +311,7 @@ export const LiveDriverMap: React.FC<LiveDriverMapProps> = ({ order }) => {
       <div className="p-4 bg-zinc-950 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold text-base">
-            {driverDisplay.vehicleType === 'light_vehicle' ? (
-              <Car className="w-5 h-5 text-amber-400" />
-            ) : (
-              <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
-            )}
+            <DeliveryMotorbikeIcon className="w-5 h-5 text-amber-400" />
           </div>
           <div>
             <div className="text-xs font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
