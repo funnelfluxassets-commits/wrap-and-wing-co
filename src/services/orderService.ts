@@ -15,6 +15,8 @@ import {
   normalizeOrderId,
 } from './firebase';
 
+export { normalizeOrderId };
+
 const STORAGE_KEY = 'wrap_wing_live_orders';
 const CURRENT_ORDER_KEY = 'wrap_wing_current_order_id';
 const CHANNEL_NAME = 'wrap_wing_orders_channel';
@@ -802,11 +804,6 @@ function handleIncomingCloudEvent(event: CloudOrderEvent, isRealtimePush = false
       // New order discovered from cloud!
       const updated = [event.order, ...currentOrders];
       saveOrders(updated, true);
-
-      // Play chime
-      if (isRealtimePush && event.senderDeviceId !== DEVICE_ID) {
-        playKitchenChime();
-      }
     } else {
       // If cloud order is more up to date, merge without regressing status
       const existing = currentOrders[existingIndex];
@@ -1097,9 +1094,10 @@ export function initCloudSyncListener() {
   syncOrdersFromCloud();
 
   // Initialize Server-Sent Events (SSE) for sub-second push across all devices
+  // Use ?since=now so that ntfy does NOT replay cached historical events from past hours upon connect/reconnect
   if (!cloudEventSource && typeof EventSource !== 'undefined') {
     try {
-      cloudEventSource = new EventSource(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/sse`);
+      cloudEventSource = new EventSource(`${NTFY_BASE_URL}/${CLOUD_TOPIC}/sse?since=now`);
 
       cloudEventSource.onmessage = (e) => {
         try {

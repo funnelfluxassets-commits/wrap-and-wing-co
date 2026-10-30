@@ -16,6 +16,8 @@ import {
   formatToLocalDateString,
   getOrderDateString,
   isTestOrder,
+  isOrderStaleOrExpired,
+  normalizeOrderId,
 } from '../services/orderService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
@@ -107,6 +109,28 @@ function formatDisplayDate(date: Date = new Date()): string {
   return `${day}/${month}/${year}`;
 }
 
+// Helper to determine if an order is a genuine new incoming order awaiting kitchen acceptance
+function isEligibleForKitchenIncomingChime(order: LiveOrder): boolean {
+  if (!order || typeof order !== 'object' || !order.orderId) return false;
+  if (isTestOrder(order)) return false;
+  // ONLY newly placed received orders waiting for kitchen acceptance
+  if (order.status !== 'received') return false;
+  // Must not be expired, cancelled, or from previous days
+  if (isOrderStaleOrExpired(order)) return false;
+  // Must be paid if PayFast, or COD
+  if (order.paymentMethod === 'payfast' && order.paymentStatus !== 'paid') return false;
+  // Must be placed today
+  const todayStr = getLocalTodayDateString();
+  const orderDate = getOrderDateString(order);
+  if (orderDate && orderDate !== todayStr) return false;
+  // If order has a parsed createdAt timestamp, ensure it is not older than 15 minutes
+  if (order.createdAt) {
+    const parsed = Date.parse(order.createdAt);
+    if (!isNaN(parsed) && Date.now() - parsed > 15 * 60 * 1000) return false;
+  }
+  return true;
+}
+
 export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   onBackToMenu,
   onViewOrderTracker,
@@ -124,7 +148,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [outOfStockIds, setOutOfStockIds] = useState<string[]>(() => getOutOfStockItemIds());
 
   // Track known order IDs to immediately chime on brand new incoming orders
-  const knownOrderIdsRef = useRef<Set<string>>(new Set(getAllOrders().filter((o) => !isTestOrder(o)).map((o) => o.orderId)));
+  const knownOrderIdsRef = useRef<Set<string>>(
+    new Set(
+      getAllOrders()
+        .filter((o) => !isTestOrder(o))
+        .flatMap((o) => [o.orderId, normalizeOrderId(o.orderId)])
+    )
+  );
   const isInitializedRef = useRef<boolean>(false);
 
   // Subscribe to real-time stock updates
@@ -142,7 +172,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     window.addEventListener('touchstart', handleGesture, { passive: true });
     const initTimer = setTimeout(() => {
       isInitializedRef.current = true;
-    }, 1000);
+    }, 1500);
     return () => {
       window.removeEventListener('click', handleGesture);
       window.removeEventListener('touchstart', handleGesture);
@@ -155,17 +185,18 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       const cleanOrders = newOrders.filter((o) => !isTestOrder(o));
       const currentKnown = knownOrderIdsRef.current;
       const newIncoming = cleanOrders.filter((o) => {
-        if (currentKnown.has(o.orderId)) return false;
-        if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
-        return true;
+        const id = o.orderId;
+        const cleanId = normalizeOrderId(id);
+        if (currentKnown.has(id) || currentKnown.has(cleanId)) return false;
+        return isEligibleForKitchenIncomingChime(o);
       });
       if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
         playKitchenChime();
       }
       cleanOrders.forEach((o) => {
-        // Only mark known if it was eligible to chime (or paid)
-        if (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid') {
+        if (o.orderId) {
           currentKnown.add(o.orderId);
+          currentKnown.add(normalizeOrderId(o.orderId));
         }
       });
       setOrders(cleanOrders);
@@ -181,16 +212,19 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
         // 1. Unaccepted Incoming Orders (Ring continuously every 3 seconds until staff accept & start grilling)
         const hasUnacceptedOrder = currentOrders.some((order) => {
-          if (order.status !== 'received') return false;
-          if (order.paymentMethod === 'payfast' && order.paymentStatus !== 'paid') return false;
-          if (silencedAlarms.has(order.orderId)) return false;
+          if (!isEligibleForKitchenIncomingChime(order)) return false;
+          const cleanId = normalizeOrderId(order.orderId);
+          if (silencedAlarms.has(order.orderId) || silencedAlarms.has(cleanId)) return false;
           return true;
         });
 
         // 2. Overdue Cooking Alarm: pulse alert chime every 4 seconds when cooking order exceeds 10 minutes
         const hasOverdueCookingOrder = currentOrders.some((order) => {
           if (order.status !== 'cooking') return false;
-          if (silencedAlarms.has(order.orderId)) return false;
+          if (isTestOrder(order)) return false;
+          if (isOrderStaleOrExpired(order)) return false;
+          const cleanId = normalizeOrderId(order.orderId);
+          if (silencedAlarms.has(order.orderId) || silencedAlarms.has(cleanId)) return false;
           const startedAt = getOrderCookingStartTime(order);
           const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
           return elapsedSeconds >= 600; // 10 minutes reached
@@ -210,26 +244,28 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       }
     }, 1000);
 
-    // Active 2-second live kitchen radar to guarantee instant detection across devices
+    // Active 4-second live kitchen radar to guarantee instant detection across devices without false alarms
     const radarTimer = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
       const cleanOrders = freshOrders.filter((o) => !isTestOrder(o));
       const currentKnown = knownOrderIdsRef.current;
       const newIncoming = cleanOrders.filter((o) => {
-        if (currentKnown.has(o.orderId)) return false;
-        if (o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid') return false;
-        return true;
+        const id = o.orderId;
+        const cleanId = normalizeOrderId(id);
+        if (currentKnown.has(id) || currentKnown.has(cleanId)) return false;
+        return isEligibleForKitchenIncomingChime(o);
       });
       if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
         playKitchenChime();
       }
       cleanOrders.forEach((o) => {
-        if (o.paymentMethod !== 'payfast' || o.paymentStatus === 'paid') {
+        if (o.orderId) {
           currentKnown.add(o.orderId);
+          currentKnown.add(normalizeOrderId(o.orderId));
         }
       });
       setOrders(cleanOrders);
-    }, 2000);
+    }, 4000);
 
     return () => {
       unsubscribe();

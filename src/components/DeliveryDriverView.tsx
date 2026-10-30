@@ -7,7 +7,9 @@ import {
   playKitchenChime,
   unlockAudio,
   syncOrdersFromCloud,
-  isTestOrder
+  isTestOrder,
+  isOrderStaleOrExpired,
+  normalizeOrderId,
 } from '../services/orderService';
 import {
   generateGoogleMapsUrl,
@@ -146,16 +148,24 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
       const currentKnown = knownOrderIdsRef.current;
       const incomingDeliveries = newOrders.filter(
         (o) =>
+          !isTestOrder(o) &&
+          !isOrderStaleOrExpired(o) &&
           o.orderMode === 'delivery' &&
           (o.status === 'received' || o.status === 'cooking' || o.status === 'ready') &&
-          !currentKnown.has(o.orderId)
+          !currentKnown.has(o.orderId) &&
+          !currentKnown.has(normalizeOrderId(o.orderId))
       );
 
       if (isInitializedRef.current && incomingDeliveries.length > 0 && soundEnabled) {
         playKitchenChime();
       }
 
-      newOrders.forEach((o) => currentKnown.add(o.orderId));
+      newOrders.forEach((o) => {
+        if (o.orderId) {
+          currentKnown.add(o.orderId);
+          currentKnown.add(normalizeOrderId(o.orderId));
+        }
+      });
       setOrders(newOrders);
     });
 
