@@ -244,20 +244,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
       }
     }, 1000);
 
-    // Active 4-second live kitchen radar to guarantee instant detection across devices without false alarms
+    // Background sync radar to keep screen updated without triggering duplicate audio alarms
     const radarTimer = setInterval(async () => {
       const freshOrders = await syncOrdersFromCloud();
       const cleanOrders = freshOrders.filter((o) => !isTestOrder(o));
       const currentKnown = knownOrderIdsRef.current;
-      const newIncoming = cleanOrders.filter((o) => {
-        const id = o.orderId;
-        const cleanId = normalizeOrderId(id);
-        if (currentKnown.has(id) || currentKnown.has(cleanId)) return false;
-        return isEligibleForKitchenIncomingChime(o);
-      });
-      if (isInitializedRef.current && newIncoming.length > 0 && soundEnabled) {
-        playKitchenChime();
-      }
       cleanOrders.forEach((o) => {
         if (o.orderId) {
           currentKnown.add(o.orderId);
@@ -265,7 +256,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
         }
       });
       setOrders(cleanOrders);
-    }, 4000);
+    }, 6000);
 
     return () => {
       unsubscribe();

@@ -124,7 +124,13 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const [gpsActive, setGpsActive] = useState(false);
 
   const activeDisplayName = getDriverDisplayName(activeDriver);
-  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const knownOrderIdsRef = useRef<Set<string>>(
+    new Set(
+      getAllOrders()
+        .filter((o) => !isTestOrder(o))
+        .flatMap((o) => [o.orderId, normalizeOrderId(o.orderId)])
+    )
+  );
   const isInitializedRef = useRef(false);
 
   // Audio unlock on user tap
@@ -151,7 +157,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
           !isTestOrder(o) &&
           !isOrderStaleOrExpired(o) &&
           o.orderMode === 'delivery' &&
-          (o.status === 'received' || o.status === 'cooking' || o.status === 'ready') &&
+          o.status === 'received' &&
           !currentKnown.has(o.orderId) &&
           !currentKnown.has(normalizeOrderId(o.orderId))
       );

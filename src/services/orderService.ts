@@ -358,6 +358,17 @@ export function purgeKnownTestOrdersFromCloud(): void {
       const filteredList = placedList.filter(id => !TEST_ORDER_IDS.has(id) && !id.startsWith('D-29'));
       localStorage.setItem(MY_PLACED_ORDERS_KEY, JSON.stringify(filteredList));
     }
+
+    const rawOrders = localStorage.getItem(STORAGE_KEY);
+    if (rawOrders) {
+      const parsedOrders = JSON.parse(rawOrders);
+      if (Array.isArray(parsedOrders)) {
+        const cleanedOrders = parsedOrders.filter((o: any) => o && !isTestOrder(o) && !TEST_ORDER_IDS.has(String(o.orderId || '').replace('#', '').trim()));
+        if (cleanedOrders.length !== parsedOrders.length) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanedOrders));
+        }
+      }
+    }
   } catch {}
 }
 
@@ -1044,15 +1055,15 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
         );
 
         if (!cloudMatch) {
-          // New order created locally that cloud hasn't received yet
-          if (isFirebaseConfigured) {
+          // Sync genuine active new orders to Firestore without re-broadcasting network events
+          if (
+            isFirebaseConfigured &&
+            !isTestOrder(local) &&
+            !isOrderStaleOrExpired(local) &&
+            local.status === 'received'
+          ) {
             saveOrderToFirestore(local).catch(() => {});
           }
-          publishCloudEvent({
-            type: 'ORDER_CREATED',
-            order: local,
-            timestamp: Date.now(),
-          });
         } else {
           // Order exists in cloud. If local status has advanced ahead of cloud, push to Firestore immediately!
           const localRank = STATUS_RANK[local.status] || 0;
@@ -1073,7 +1084,7 @@ export async function syncOrdersFromCloud(): Promise<LiveOrder[]> {
       }
 
       const combined = Array.from(mergedMap.values());
-      saveOrders(combined, true);
+      saveOrders(combined, false);
       return combined;
     }
   } catch (err) {
@@ -1622,13 +1633,6 @@ export function updateDriverLiveLocation(
     if (isFirebaseConfigured) {
       updateDriverLocationInFirestore(target.orderId, driverLoc).catch(() => {});
     }
-
-    publishCloudEvent({
-      type: 'ORDER_UPDATED',
-      orderId: target.orderId,
-      order: target,
-      timestamp: now,
-    }).catch(() => {});
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
