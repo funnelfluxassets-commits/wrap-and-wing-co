@@ -1,5 +1,5 @@
-// Cloudflare Pages Function: Direct Hostinger SMTP Order Email Notification
-import { sendHostingerEmail } from '../utils/smtp';
+// Cloudflare Pages Function: Automated Order Email Notification
+import { sendTransactionalEmail } from '../utils/smtp';
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -335,7 +335,7 @@ export async function onRequestPost(context: any) {
       order.orderMode === 'collection' ? 'COLLECTION' : 'DELIVERY'
     } - ${customerName} (${grandTotal})`;
 
-    await sendHostingerEmail(
+    const sent = await sendTransactionalEmail(
       {
         fromName: 'Wrap & Wings Co Orders',
         fromEmail: 'orders@wrapandwings.co.za',
@@ -348,8 +348,8 @@ export async function onRequestPost(context: any) {
     );
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Email sent successfully via Hostinger SMTP' }),
-      { status: 200, headers: corsHeaders }
+      JSON.stringify({ success: sent, message: sent ? 'Email sent successfully via Resend' : 'Email dispatch notice' }),
+      { status: sent ? 200 : 500, headers: corsHeaders }
     );
   } catch (err: any) {
     console.error('Error sending order email via Hostinger SMTP:', err);

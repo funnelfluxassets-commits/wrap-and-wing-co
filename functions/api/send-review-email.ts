@@ -1,5 +1,5 @@
-// Cloudflare Pages Function: Direct Hostinger SMTP Weekly Review Draw Notification
-import { sendHostingerEmail } from '../utils/smtp';
+// Cloudflare Pages Function: Automated Review Draw Email Notification
+import { sendTransactionalEmail } from '../utils/smtp';
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -185,7 +185,7 @@ export async function onRequestPost(context: any) {
 
     const subject = `🍗 [MEAL DRAW ENTRY] ${fullName} (Slip #${receiptNumber}) - ${rating || 5}★ Review`;
 
-    await sendHostingerEmail(
+    const sent = await sendTransactionalEmail(
       {
         fromName: 'Wrap & Wings Co',
         fromEmail: 'orders@wrapandwings.co.za',
@@ -198,8 +198,8 @@ export async function onRequestPost(context: any) {
     );
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Review entry email sent successfully via Hostinger SMTP' }),
-      { status: 200, headers: corsHeaders }
+      JSON.stringify({ success: sent, message: sent ? 'Review entry email sent successfully via Resend' : 'Review email dispatch notice' }),
+      { status: sent ? 200 : 500, headers: corsHeaders }
     );
   } catch (err: any) {
     console.error('Error sending review email via Hostinger SMTP:', err);

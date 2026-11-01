@@ -1,5 +1,5 @@
-// Cloudflare Pages Function: Direct Hostinger SMTP Contact Form Email Notification
-import { sendHostingerEmail } from '../utils/smtp';
+// Cloudflare Pages Function: Automated Contact Form Email Notification
+import { sendTransactionalEmail } from '../utils/smtp';
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -141,7 +141,7 @@ export async function onRequestPost(context: any) {
 
     const subject = `✉️ [NEW INQUIRY] ${fullName} - Website Contact Form`;
 
-    await sendHostingerEmail(
+    const sent = await sendTransactionalEmail(
       {
         fromName: 'Wrap & Wings Co Website',
         fromEmail: 'orders@wrapandwings.co.za',
@@ -154,8 +154,8 @@ export async function onRequestPost(context: any) {
     );
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Contact email sent successfully via Hostinger SMTP' }),
-      { status: 200, headers: corsHeaders }
+      JSON.stringify({ success: sent, message: sent ? 'Contact email sent successfully via Resend' : 'Contact email dispatch notice' }),
+      { status: sent ? 200 : 500, headers: corsHeaders }
     );
   } catch (err: any) {
     console.error('Error sending contact email via Hostinger SMTP:', err);
