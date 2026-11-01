@@ -1900,7 +1900,27 @@ export async function sendOrderEmailNotification(order: LiveOrder): Promise<bool
       }
     }
   } catch (apiErr) {
-    console.warn('Primary Hostinger SMTP API notice, trying backup:', apiErr);
+    console.warn('Primary Hostinger SMTP API notice, trying PHP endpoint:', apiErr);
+  }
+
+  // 1b. Secondary: Hostinger Direct PHP SMTP endpoint (Clean custom branded email)
+  try {
+    const resPhp = await fetch('/api/send-order-email.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ order }),
+    });
+
+    if (resPhp.ok) {
+      const dataPhp = await resPhp.json().catch(() => ({}));
+      if (dataPhp.success) {
+        return true;
+      }
+    }
+  } catch (phpErr) {
+    console.warn('Hostinger PHP SMTP notice, trying backup:', phpErr);
   }
 
   // 2. Backup Fallback: FormSubmit AJAX Service

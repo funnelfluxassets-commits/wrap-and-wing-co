@@ -86,11 +86,25 @@ export async function saveReviewDrawEntry(
     })
       .then(async (res) => {
         if (!res.ok) {
-          console.warn('Hostinger review email status notice:', res.status);
+          console.warn('Hostinger review email status notice:', res.status, 'trying PHP fallback...');
+          return fetch('/api/send-review-email.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(entry),
+          });
         }
       })
       .catch((err) => {
-        console.warn('Direct SMTP review email notice:', err);
+        console.warn('Direct SMTP review email notice, trying PHP fallback:', err);
+        return fetch('/api/send-review-email.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(entry),
+        }).catch(() => null);
       });
   } catch (err) {
     console.warn('Error dispatching review email:', err);

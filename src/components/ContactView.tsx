@@ -120,7 +120,29 @@ export const ContactView: React.FC<ContactViewProps> = ({ onNavigate, onOpenStor
           }
         }
       } catch (primaryErr) {
-        console.warn('Primary Hostinger SMTP contact API notice, attempting backup:', primaryErr);
+        console.warn('Primary Hostinger SMTP contact API notice, attempting PHP fallback:', primaryErr);
+      }
+
+      // 1b. Secondary: Direct Hostinger PHP SMTP Endpoint
+      if (!sentSuccessfully) {
+        try {
+          const phpRes = await fetch('/api/send-contact-email.php', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+          });
+
+          if (phpRes.ok) {
+            const dataPhp = await phpRes.json().catch(() => ({}));
+            if (dataPhp.success) {
+              sentSuccessfully = true;
+            }
+          }
+        } catch (phpErr) {
+          console.warn('Hostinger PHP contact API notice:', phpErr);
+        }
       }
 
       if (sentSuccessfully) {
