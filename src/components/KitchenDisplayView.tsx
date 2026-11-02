@@ -18,7 +18,9 @@ import {
   isTestOrder,
   isOrderStaleOrExpired,
   normalizeOrderId,
+  assignOrderDriverByAdmin,
 } from '../services/orderService';
+import { getRegisteredDrivers, getDriverDisplayName } from '../services/driverService';
 import { generateGoogleMapsUrl, generateWazeUrl } from '../services/payment';
 import {
   Flame,
@@ -42,6 +44,7 @@ import {
   Bell,
   PackageX,
   Utensils,
+  X,
 } from 'lucide-react';
 import { ChickenWingIcon } from './icons/ChickenWingIcon';
 import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
@@ -144,6 +147,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [silencedAlarms, setSilencedAlarms] = useState<Set<string>>(new Set());
   const [viewingDriverOrder, setViewingDriverOrder] = useState<LiveOrder | null>(null);
+  const [driverModalOrder, setDriverModalOrder] = useState<LiveOrder | null>(null);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [outOfStockIds, setOutOfStockIds] = useState<string[]>(() => getOutOfStockItemIds());
 
@@ -308,6 +312,25 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     if (soundEnabled) {
       playCustomerUpdateChime();
     }
+  };
+
+  const handleHandToDriverClick = (order: LiveOrder) => {
+    if (order.driverId) {
+      handleStatusChange(order.orderId, 'dispatched');
+    } else {
+      setDriverModalOrder(order);
+    }
+  };
+
+  const handleAssignAndDispatch = (driverId: string | null, driverName: string | null) => {
+    if (!driverModalOrder) return;
+    const targetId = driverModalOrder.orderId;
+    if (driverId) {
+      assignOrderDriverByAdmin(targetId, driverId, driverName);
+    }
+    handleStatusChange(targetId, 'dispatched');
+    setDriverModalOrder(null);
+    setOrders(getAllOrders().filter((o) => !isTestOrder(o)));
   };
 
   const handlePrintSlip = (order: LiveOrder) => {
@@ -830,6 +853,15 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                             <>
                               <DeliveryMotorbikeIcon className="w-2.5 h-2.5 shrink-0" />
                               <span>DELIVERY</span>
+                              {order.driverName ? (
+                                <span className="ml-1 px-1.5 py-0.5 bg-black/40 text-white rounded text-[9px] font-black">
+                                  {order.driverName}
+                                </span>
+                              ) : (
+                                <span className="ml-1 px-1.5 py-0.5 bg-black/40 text-amber-200 rounded text-[9px] font-bold">
+                                  Unclaimed
+                                </span>
+                              )}
                             </>
                           ) : (
                             <>
@@ -1141,9 +1173,13 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     {order.status === 'ready' && (
                       <button
                         type="button"
-                        onClick={() =>
-                          handleStatusChange(order.orderId, isDelivery ? 'dispatched' : 'completed')
-                        }
+                        onClick={() => {
+                          if (isDelivery) {
+                            handleHandToDriverClick(order);
+                          } else {
+                            handleStatusChange(order.orderId, 'completed');
+                          }
+                        }}
                         className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
                           isDelivery
                             ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
@@ -1153,7 +1189,11 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                         {isDelivery ? (
                           <>
                             <Truck className="w-4 h-4 text-white" />
-                            <span>3. HAND TO DRIVER (OUT FOR DELIVERY)</span>
+                            <span>
+                              {order.driverName
+                                ? `3. HAND TO ${order.driverName.toUpperCase()} (OUT FOR DELIVERY)`
+                                : '3. HAND TO DRIVER (OUT FOR DELIVERY)'}
+                            </span>
                           </>
                         ) : order.orderMode === 'dine-in' ? (
                           <>
@@ -1235,6 +1275,100 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
           onClose={() => setIsStockModalOpen(false)}
           outOfStockIds={outOfStockIds}
         />
+      )}
+
+      {/* Hand to Driver Assignment Prompt Modal */}
+      {driverModalOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30">
+                  <Truck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white tracking-wide">
+                    Handing to which driver?
+                  </h3>
+                  <p className="text-xs text-zinc-400 font-medium">
+                    Order #{driverModalOrder.orderId} • Suburb: {driverModalOrder.customer?.suburb || 'Delivery'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDriverModalOrder(null)}
+                className="p-2 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-zinc-950/70 border border-white/5 rounded-2xl text-xs text-zinc-300 space-y-1">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Customer:</span>
+                <span className="font-bold text-white">{driverModalOrder.customer?.name || 'Customer'} ({driverModalOrder.customer?.phone || 'No cell'})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Delivery Fee (Driver Payout):</span>
+                <span className="font-bold text-emerald-400">R{(driverModalOrder.deliveryFee || 28).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Payment:</span>
+                <span className="font-bold text-zinc-300">{driverModalOrder.paymentMethod === 'cash' ? 'Cash on Delivery' : 'Paid Online'}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                Tap the driver taking this bag:
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {getRegisteredDrivers().map((drv) => {
+                  const driverShortName = drv.id === 'DRV-01' || drv.driverNumber === 1 ? 'Vee' : drv.id === 'DRV-02' || drv.driverNumber === 2 ? 'Zwali' : drv.name;
+                  return (
+                    <button
+                      key={drv.id}
+                      type="button"
+                      onClick={() => handleAssignAndDispatch(drv.id, driverShortName)}
+                      className="p-4 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 hover:from-amber-600 hover:to-amber-500 border border-amber-500/30 hover:border-amber-400 text-left transition-all hover:scale-[1.02] shadow-lg group cursor-pointer"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-black text-amber-400 group-hover:text-zinc-950 px-2 py-0.5 rounded-lg bg-black/40 group-hover:bg-white/30">
+                          #{drv.driverNumber}
+                        </span>
+                        <Truck className="w-4 h-4 text-zinc-400 group-hover:text-zinc-950" />
+                      </div>
+                      <div className="text-lg font-black text-white group-hover:text-zinc-950">
+                        {driverShortName}
+                      </div>
+                      <div className="text-[11px] text-zinc-400 group-hover:text-zinc-900 font-mono mt-0.5">
+                        {drv.cell}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => handleAssignAndDispatch(null, null)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 underline cursor-pointer"
+              >
+                Skip driver assignment (Dispatch unclaimed)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDriverModalOrder(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
