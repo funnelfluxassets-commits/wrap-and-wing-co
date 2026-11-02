@@ -87,8 +87,27 @@ export default async function handler(req: any, res: any) {
         body = req.body || {};
       }
 
-      // Handle PayFast Instant Payment Notification (IPN) ping
+      // Handle PayFast Instant Payment Notification (IPN / ITN)
       if (body.payment_status || body.pf_payment_id || (body.m_payment_id && !body.type)) {
+        const orderId = body.m_payment_id || body.custom_str1;
+        const status = (body.payment_status || '').toUpperCase();
+        if (orderId && (status === 'COMPLETE' || body.pf_payment_id)) {
+          const cleanId = String(orderId).replace('#', '').trim();
+          const existingIdx = store.findIndex(
+            (o) => o.orderId === orderId || String(o.orderId).replace('#', '').trim() === cleanId
+          );
+          if (existingIdx !== -1) {
+            store[existingIdx].paymentStatus = 'paid';
+            if (!store[existingIdx].timeline) store[existingIdx].timeline = [];
+            store[existingIdx].timeline.push({
+              status: store[existingIdx].status,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              label: 'PayFast Card Payment Approved (Server Webhook)',
+              note: `PayFast Transaction ID: ${body.pf_payment_id || 'Verified'}`,
+              epochTime: Date.now(),
+            });
+          }
+        }
         return res.status(200).send('OK');
       }
 
@@ -115,11 +134,6 @@ export default async function handler(req: any, res: any) {
           });
         }
 
-        // Enforce collection mode for all new orders while delivery is deactivated
-        if (order.orderMode === 'delivery') {
-          order.orderMode = 'collection';
-          order.deliveryFee = 0;
-        }
         const custName = (order.customer?.customerName || '').trim().toLowerCase();
         const isLegacyDemo = ['sipho khumalo', 'thabo mbeki', 'sarah jenkins'].some(n => custName.includes(n)) && ['D-1001', 'D-1002', 'C-1001'].some(id => String(order.orderId).includes(id));
         if (isLegacyDemo) {

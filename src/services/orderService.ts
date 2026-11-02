@@ -1303,14 +1303,14 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     customer: payload.customer,
     store: payload.store,
     paymentMethod: payload.paymentMethod,
-    paymentStatus: 'paid',
+    paymentStatus: payload.paymentStatus || (payload.paymentMethod === 'payfast' ? 'pending' : 'paid'),
     preferredTime: payload.preferredTime || (isDelivery ? 'ASAP (35–45 mins)' : (activeMode === 'dine-in' ? 'ASAP (To Table)' : 'ASAP (15–20 mins)')),
     createdAt: `${dateStr} ${timeStr}`,
     estimatedMinutes: isDelivery ? 40 : (activeMode === 'dine-in' ? 15 : 20),
     timeline: initialTimeline,
   };
 
-  const existing = getAllOrders();
+  const existing = getAllOrders().filter((o) => o.orderId !== newOrder.orderId);
   // Keep newest first
   saveOrders([newOrder, ...existing]);
   recordMyPlacedOrder(newOrder.orderId);
@@ -1324,11 +1324,11 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
     saveOrderToFirestore(newOrder).catch((e) => console.warn('Firestore order save error:', e));
   }
 
-  // Auto-sync to Google Sheets webhook if configured
-  sendOrderToGoogleSheets(newOrder).catch((e) => console.warn('Google Sheets auto-sync notice:', e));
-
-  // Auto-send instant email notification to orders@wrapandwings.co.za
-  sendOrderEmailNotification(newOrder).catch((e) => console.warn('Order email notification notice:', e));
+  // Auto-sync to Google Sheets & Email when paid or Pay on Handover
+  if (newOrder.paymentStatus === 'paid' || newOrder.paymentMethod !== 'payfast') {
+    sendOrderToGoogleSheets(newOrder).catch((e) => console.warn('Google Sheets auto-sync notice:', e));
+    sendOrderEmailNotification(newOrder).catch((e) => console.warn('Order email notification notice:', e));
+  }
 
   // Broadcast to cloud so Kitchen display on PC/counter tablet receives immediately!
   await publishCloudEvent({
@@ -1338,6 +1338,57 @@ export async function createLiveOrder(payload: CheckoutPayload): Promise<LiveOrd
   });
 
   return newOrder;
+}
+
+/**
+ * Marks an online card payment as confirmed/paid (e.g. via PayFast callback, webhook, or admin approval)
+ */
+export function markOrderAsPaid(orderId: string): LiveOrder | null {
+  const cleanId = orderId.replace('#', '').trim();
+  const orders = getAllOrders();
+  const index = orders.findIndex(
+    (o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId
+  );
+  if (index === -1) return null;
+
+  const current = orders[index];
+  if (current.paymentStatus === 'paid') {
+    return current;
+  }
+
+  const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const timelineEvent: OrderTimelineEvent = {
+    status: current.status,
+    timestamp: nowStr,
+    label: 'Online Card Payment Approved',
+    note: 'Payment verified via PayFast',
+    epochTime: Date.now(),
+  };
+
+  const updatedOrder: LiveOrder = {
+    ...current,
+    paymentStatus: 'paid',
+    timeline: [...(current.timeline || []), timelineEvent],
+  };
+
+  orders[index] = updatedOrder;
+  saveOrders(orders, true);
+
+  if (isFirebaseConfigured) {
+    saveOrderToFirestore(updatedOrder).catch((e) => console.warn('Firestore markOrderAsPaid error:', e));
+  }
+
+  publishCloudEvent({
+    type: 'ORDER_UPDATED',
+    orderId: updatedOrder.orderId,
+    newStatus: updatedOrder.status,
+    timestamp: Date.now(),
+  }).catch(() => {});
+
+  sendOrderEmailNotification(updatedOrder).catch(() => {});
+  sendOrderToGoogleSheets(updatedOrder).catch(() => {});
+
+  return updatedOrder;
 }
 
 /**

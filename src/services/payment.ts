@@ -13,6 +13,7 @@ export interface CheckoutPayload {
   customer: DeliveryDetails;
   store: StoreLocation;
   paymentMethod: 'payfast' | 'yoco' | 'whatsapp' | 'cod';
+  paymentStatus?: 'paid' | 'pending';
   preferredTime?: string;
   createdAt: string;
   tableNumber?: string;

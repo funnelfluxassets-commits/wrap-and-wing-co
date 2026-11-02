@@ -301,13 +301,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose, o
       tableNumber: activeOrderMode === 'dine-in' ? tableNumber : undefined,
     };
 
-    // If customer selected PayFast, store pending order in browser memory and forward to PayFast.
-    // The order will ONLY be dispatched to the kitchen once payment approval is confirmed!
+    // If customer selected PayFast, pre-save order as 'pending' payment in cloud, store in browser memory, and forward to PayFast.
+    // The order will be visible in Admin as 'Pending Card Payment' and will automatically dispatch to kitchen upon payment approval.
     if (paymentMethod === 'payfast') {
       try {
         localStorage.setItem('wrap_wing_pending_payfast_order', JSON.stringify(payload));
         sessionStorage.setItem('wrap_wing_pending_payfast_order', JSON.stringify(payload));
       } catch {}
+
+      // Pre-save order to cloud/local store with paymentStatus: 'pending'
+      createLiveOrder({
+        ...payload,
+        paymentStatus: 'pending',
+      }).catch((err) => console.warn('PayFast pre-save order notice:', err));
+
       setIsProcessing(false);
       clearCart();
       onClose();

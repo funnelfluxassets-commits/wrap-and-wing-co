@@ -94,6 +94,7 @@ import {
   generateWhatsAppDailyOrdersReportText,
   isTestOrder,
   assignOrderDriverByAdmin,
+  markOrderAsPaid,
 } from '../services/orderService';
 import { generateGoogleMapsUrl } from '../services/payment';
 import {
@@ -1716,6 +1717,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               >
                                 {(o.paymentMethod || 'cod').toUpperCase()}
                               </span>
+                              {o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid' && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Confirm payment received for Order #${o.orderId} and dispatch to kitchen display?`)) {
+                                      markOrderAsPaid(o.orderId);
+                                      setOrders(getAllOrders());
+                                    }
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black tracking-wide shadow transition-colors cursor-pointer"
+                                  title="Confirm Card Payment Approved and Send to Kitchen"
+                                >
+                                  ✓ Confirm Paid & Send
+                                </button>
+                              )}
                               {tip > 0 && <span className="text-yellow-400 text-[11px] font-bold">+R{tip} Tip</span>}
                             </div>
                             <div className="font-mono font-black text-amber-400 text-base">
@@ -1866,15 +1882,37 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                             {/* Payment */}
                             <td className="py-3.5 px-4 whitespace-nowrap">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                  o.paymentStatus === 'paid'
-                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                                    : 'bg-zinc-800 text-zinc-300 border border-white/5'
-                                }`}
-                              >
-                                {(o.paymentMethod || 'cod').toUpperCase()}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                                    o.paymentStatus === 'paid'
+                                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                      : 'bg-zinc-800 text-zinc-300 border border-white/5'
+                                  }`}
+                                >
+                                  {(o.paymentMethod || 'cod').toUpperCase()}
+                                  {o.paymentMethod === 'payfast' && (
+                                    <span className="ml-1 text-[9px] font-medium opacity-80">
+                                      ({o.paymentStatus === 'paid' ? 'Paid' : 'Pending'})
+                                    </span>
+                                  )}
+                                </span>
+                                {o.paymentMethod === 'payfast' && o.paymentStatus !== 'paid' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.confirm(`Confirm payment received for Order #${o.orderId} and dispatch to kitchen display?`)) {
+                                        markOrderAsPaid(o.orderId);
+                                        setOrders(getAllOrders());
+                                      }
+                                    }}
+                                    className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black tracking-wide shadow transition-colors cursor-pointer"
+                                    title="Confirm Card Payment Approved and Send to Kitchen"
+                                  >
+                                    ✓ Confirm Paid
+                                  </button>
+                                )}
+                              </div>
                             </td>
 
                             {/* Status */}

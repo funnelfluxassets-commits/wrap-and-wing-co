@@ -26,7 +26,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { MENU_ITEMS, CATEGORIES } from './data/menuData';
 import { CategoryId, MenuItem, PageView, LiveOrder, StaffRole } from './types';
 import { CheckoutPayload, isPayFastStaffTestMode, setPayFastStaffTestMode } from './services/payment';
-import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, recordMyPlacedOrder, createLiveOrder, recordCancelledOrder, isOrderStaleOrExpired } from './services/orderService';
+import { subscribeToOrders, getCurrentOrderId, setCurrentOrderId, recordMyPlacedOrder, createLiveOrder, recordCancelledOrder, isOrderStaleOrExpired, markOrderAsPaid } from './services/orderService';
 import { getOutOfStockItemIds, subscribeToStockStatus } from './services/stockService';
 import { logPageView, logItemView, fetchAndSyncClientIp, isAnalyticsExcluded, setDeviceAnalyticsExcluded } from './services/analyticsService';
 import { Search, ShoppingBag, ArrowRight, Flame, ShieldAlert, CheckCircle2, X } from 'lucide-react';
@@ -140,26 +140,32 @@ const MainContent: React.FC = () => {
       }
 
       if (pfStatus === 'success' && pfOrderId) {
-        // Retrieve the pending order payload from storage
-        let pendingPayload: CheckoutPayload | null = null;
-        try {
-          const raw = localStorage.getItem('wrap_wing_pending_payfast_order') ||
-                      sessionStorage.getItem('wrap_wing_pending_payfast_order');
-          if (raw) pendingPayload = JSON.parse(raw);
-        } catch {}
+        // First try to mark the pre-saved order as paid
+        const marked = markOrderAsPaid(pfOrderId);
 
-        if (pendingPayload) {
-          // NOW that PayFast has confirmed the payment, create the order and dispatch to kitchen!
-          createLiveOrder({
-            ...pendingPayload,
-            orderId: pfOrderId || pendingPayload.orderId,
-            paymentMethod: 'payfast',
-          });
+        // Fallback: If pre-saved order was not found, create it from pending storage payload
+        if (!marked) {
+          let pendingPayload: CheckoutPayload | null = null;
           try {
-            localStorage.removeItem('wrap_wing_pending_payfast_order');
-            sessionStorage.removeItem('wrap_wing_pending_payfast_order');
+            const raw = localStorage.getItem('wrap_wing_pending_payfast_order') ||
+                        sessionStorage.getItem('wrap_wing_pending_payfast_order');
+            if (raw) pendingPayload = JSON.parse(raw);
           } catch {}
+
+          if (pendingPayload) {
+            createLiveOrder({
+              ...pendingPayload,
+              orderId: pfOrderId || pendingPayload.orderId,
+              paymentMethod: 'payfast',
+              paymentStatus: 'paid',
+            });
+          }
         }
+
+        try {
+          localStorage.removeItem('wrap_wing_pending_payfast_order');
+          sessionStorage.removeItem('wrap_wing_pending_payfast_order');
+        } catch {}
 
         recordMyPlacedOrder(pfOrderId);
         setCurrentOrderId(pfOrderId);
