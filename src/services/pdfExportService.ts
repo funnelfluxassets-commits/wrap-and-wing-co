@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { LiveOrder, ReviewDrawEntry } from '../types';
+import { LiveOrder, ReviewDrawEntry, DriverProfile } from '../types';
 import { TrafficDailyDoc } from './analyticsService';
 import { getOrderDateString } from './orderService';
 
@@ -898,4 +898,404 @@ export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
   }
 
   doc.save('wrap-and-wings-review-entries.pdf');
+}
+
+/**
+ * ============================================================================
+ * EXPORT INDIVIDUAL DRIVER PAYOUT & RECONCILIATION SLIP TO PDF
+ * ============================================================================
+ */
+export function exportDriverReconciliationPdf(
+  driver: DriverProfile,
+  periodLabel: string,
+  orders: LiveOrder[]
+): void {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  let y = 18;
+
+  // Header Banner (Dark Charcoal #13131a)
+  doc.setFillColor(19, 19, 26);
+  doc.rect(0, 0, pageWidth, 28, 'F');
+
+  // Amber Accent Line
+  doc.setFillColor(245, 158, 11);
+  doc.rect(0, 28, pageWidth, 1.5, 'F');
+
+  // Brand Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('WRAP & WINGS CO.', margin, 11);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(212, 212, 216);
+  doc.text('Independent Driver Payout & Trip Reconciliation Slip', margin, 17);
+  doc.setFontSize(7.5);
+  doc.setTextColor(161, 161, 170);
+  doc.text('Shop 1, Uniland Centre, 24 Anderson Rd, Pinetown | EFT Weekly Remittance', margin, 23);
+
+  // Meta on Right
+  doc.setFontSize(8);
+  doc.setTextColor(245, 158, 11);
+  doc.text(`Period: ${periodLabel}`, pageWidth - margin, 11, { align: 'right' });
+  doc.setTextColor(161, 161, 170);
+  doc.text(`Generated: ${getNowFormatted()}`, pageWidth - margin, 17, { align: 'right' });
+  doc.setTextColor(52, 211, 153);
+  doc.text('Payout Due: Monday 12:00 PM via EFT', pageWidth - margin, 23, { align: 'right' });
+
+  y = 36;
+
+  // Driver Particulars Card (Light background)
+  doc.setFillColor(248, 248, 250);
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 25, 2, 2, 'F');
+  doc.setDrawColor(228, 228, 231);
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 25, 2, 2, 'S');
+
+  // Left Column: Driver Info
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('DRIVER NAME & NUMBER', margin + 4, y + 6);
+  doc.setFontSize(10.5);
+  doc.setTextColor(24, 24, 27);
+  doc.text(`${driver.name || `Driver #${driver.driverNumber}`} (Slot #${driver.driverNumber})`, margin + 4, y + 12);
+
+  doc.setFontSize(7.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('CELL / WHATSAPP:', margin + 4, y + 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(24, 24, 27);
+  doc.text(driver.phone || 'N/A', margin + 35, y + 18);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(113, 113, 122);
+  doc.text('VEHICLE REG:', margin + 4, y + 23);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(24, 24, 27);
+  doc.text(`${driver.vehicleReg || 'Pending'} (${driver.licenceCode || 'Code 8'})`, margin + 35, y + 23);
+
+  // Right Column: Banking Particulars
+  const col2X = margin + (pageWidth - margin * 2) / 2 + 5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('LINKED EFT BANK ACCOUNT', col2X, y + 6);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(24, 24, 27);
+  doc.text(`${driver.bankName || 'TymeBank'}`, col2X, y + 12);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(113, 113, 122);
+  doc.text('ACCOUNT NUMBER:', col2X, y + 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(24, 24, 27);
+  doc.text(driver.accountNumber || 'Pending Submission', col2X + 32, y + 18);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(113, 113, 122);
+  doc.text('AGREEMENT STATUS:', col2X, y + 23);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(16, 185, 129);
+  doc.text(driver.onboardingCompleted ? 'Signed & Verified' : 'Registered Driver', col2X + 35, y + 23);
+
+  y += 30;
+
+  // Calculate Financials
+  let totalBaseFees = 0;
+  let totalTips = 0;
+  let totalPayable = 0;
+
+  orders.forEach((o) => {
+    const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+    const tip = typeof o.tip === 'number' ? o.tip : 0;
+    const isPayable = o.status === 'completed' || o.status === 'dispatched';
+    if (isPayable) {
+      totalBaseFees += baseFee;
+      totalTips += tip;
+      totalPayable += baseFee + tip;
+    }
+  });
+
+  // KPI Summary Boxes (4 cards)
+  const cardWidth = (pageWidth - margin * 2 - 9) / 4;
+  const cardHeight = 17;
+
+  const kpis = [
+    { label: 'COMPLETED TRIPS', val: String(orders.length), color: [59, 130, 246] as [number, number, number] },
+    { label: 'BASE DELIVERY FEES', val: formatZAR(totalBaseFees), color: [245, 158, 11] as [number, number, number] },
+    { label: 'CUSTOMER TIPS (100%)', val: formatZAR(totalTips), color: [234, 179, 8] as [number, number, number] },
+    { label: 'TOTAL EFT PAYABLE', val: formatZAR(totalPayable), color: [16, 185, 129] as [number, number, number] },
+  ];
+
+  kpis.forEach((kpi, idx) => {
+    const x = margin + idx * (cardWidth + 3);
+    doc.setFillColor(248, 248, 250);
+    doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'F');
+    doc.setDrawColor(228, 228, 231);
+    doc.roundedRect(x, y, cardWidth, cardHeight, 2, 2, 'S');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(113, 113, 122);
+    doc.text(kpi.label, x + 3, y + 5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+    doc.text(kpi.val, x + cardWidth / 2, y + 12.5, { align: 'center' });
+  });
+
+  y += cardHeight + 8;
+
+  // Itemized Trips Section Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(24, 24, 27);
+  doc.text(`Itemized Delivery Trips (${orders.length})`, margin, y);
+  y += 5;
+
+  if (orders.length === 0) {
+    doc.setFillColor(250, 250, 250);
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 20, 2, 2, 'F');
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8.5);
+    doc.setTextColor(113, 113, 122);
+    doc.text(`No delivery trips assigned to this driver for period: ${periodLabel}.`, pageWidth / 2, y + 11, { align: 'center' });
+    y += 28;
+  } else {
+    // Columns:
+    // Order # | Date & Time | Customer | Suburb / Area | Order Total | Base Fee | Tip | Total
+    const colX = [
+      margin,             // 0: Order ID (w: 18)
+      margin + 18,        // 1: Date & Time (w: 28)
+      margin + 46,        // 2: Customer (w: 36)
+      margin + 82,        // 3: Suburb / Area (w: 36)
+      margin + 118,       // 4: Order Total (w: 20)
+      margin + 138,       // 5: Base Fee (w: 16)
+      margin + 154,       // 6: Tip (w: 14)
+      pageWidth - margin, // 7: Driver Total (right aligned)
+    ];
+
+    // Header Row
+    doc.setFillColor(244, 244, 245);
+    doc.rect(margin, y, pageWidth - margin * 2, 6.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.5);
+    doc.setTextColor(113, 113, 122);
+
+    doc.text('ORDER #', colX[0] + 2, y + 4.5);
+    doc.text('DATE & TIME', colX[1], y + 4.5);
+    doc.text('CUSTOMER', colX[2], y + 4.5);
+    doc.text('SUBURB', colX[3], y + 4.5);
+    doc.text('ORDER (R)', colX[4] + 16, y + 4.5, { align: 'right' });
+    doc.text('BASE (R)', colX[5] + 14, y + 4.5, { align: 'right' });
+    doc.text('TIP (R)', colX[6] + 12, y + 4.5, { align: 'right' });
+    doc.text('PAYABLE', colX[7] - 2, y + 4.5, { align: 'right' });
+
+    y += 7.5;
+
+    // Rows
+    orders.forEach((o, index) => {
+      if (y > pageHeight - 35) {
+        doc.addPage();
+        y = 16;
+        // repeat header
+        doc.setFillColor(244, 244, 245);
+        doc.rect(margin, y, pageWidth - margin * 2, 6.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.5);
+        doc.setTextColor(113, 113, 122);
+        doc.text('ORDER #', colX[0] + 2, y + 4.5);
+        doc.text('DATE & TIME', colX[1], y + 4.5);
+        doc.text('CUSTOMER', colX[2], y + 4.5);
+        doc.text('SUBURB', colX[3], y + 4.5);
+        doc.text('ORDER (R)', colX[4] + 16, y + 4.5, { align: 'right' });
+        doc.text('BASE (R)', colX[5] + 14, y + 4.5, { align: 'right' });
+        doc.text('TIP (R)', colX[6] + 12, y + 4.5, { align: 'right' });
+        doc.text('PAYABLE', colX[7] - 2, y + 4.5, { align: 'right' });
+        y += 7.5;
+      }
+
+      if (index % 2 === 1) {
+        doc.setFillColor(250, 250, 251);
+        doc.rect(margin, y - 1, pageWidth - margin * 2, 6.5, 'F');
+      }
+
+      const cleanId = String(o.orderId || '').replace('#', '');
+      const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+      const tip = typeof o.tip === 'number' ? o.tip : 0;
+      const earning = baseFee + tip;
+      const customerName = (o as any).customerName || o.customer?.customerName || 'Customer';
+      const suburb = (o as any).deliverySuburb || o.customer?.suburb || 'Pinetown';
+      const createdStr = typeof o.createdAt === 'string' ? o.createdAt.slice(0, 16).replace('T', ' ') : '-';
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(24, 24, 27);
+      doc.text(`#${cleanId}`, colX[0] + 2, y + 3.5);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(113, 113, 122);
+      doc.text(createdStr, colX[1], y + 3.5);
+
+      doc.setTextColor(24, 24, 27);
+      doc.text(customerName.slice(0, 18), colX[2], y + 3.5);
+
+      doc.setTextColor(113, 113, 122);
+      doc.text(suburb.slice(0, 18), colX[3], y + 3.5);
+
+      doc.text(formatZAR(o.grandTotal || 0), colX[4] + 16, y + 3.5, { align: 'right' });
+
+      doc.setTextColor(245, 158, 11);
+      doc.text(formatZAR(baseFee), colX[5] + 14, y + 3.5, { align: 'right' });
+
+      doc.setTextColor(113, 113, 122);
+      doc.text(formatZAR(tip), colX[6] + 12, y + 3.5, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(16, 185, 129);
+      doc.text(formatZAR(earning), colX[7] - 2, y + 3.5, { align: 'right' });
+
+      y += 6.5;
+    });
+
+    // Total summary row
+    doc.setDrawColor(228, 228, 231);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(24, 24, 27);
+    doc.text('TOTAL REMITTANCE PAYABLE VIA EFT:', colX[3], y);
+    doc.setFontSize(9.5);
+    doc.setTextColor(16, 185, 129);
+    doc.text(formatZAR(totalPayable), colX[7] - 2, y, { align: 'right' });
+    y += 8;
+  }
+
+  // Signatures Section at bottom
+  if (y > pageHeight - 35) {
+    doc.addPage();
+    y = 20;
+  } else {
+    y = Math.max(y + 6, pageHeight - 45);
+  }
+
+  doc.setFillColor(248, 248, 250);
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 2, 2, 'F');
+  doc.setDrawColor(228, 228, 231);
+  doc.roundedRect(margin, y, pageWidth - margin * 2, 28, 2, 2, 'S');
+
+  const halfWidth = (pageWidth - margin * 2) / 2;
+
+  // Manager Box
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(113, 113, 122);
+  doc.text('PREPARED & APPROVED BY (MANAGER):', margin + 4, y + 6);
+  doc.line(margin + 4, y + 17, margin + halfWidth - 8, y + 17);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Signature & Date', margin + 4, y + 22);
+
+  // Driver Box
+  doc.setFont('helvetica', 'bold');
+  doc.text('DRIVER ACKNOWLEDGMENT & RECEIPT:', margin + halfWidth + 4, y + 6);
+  doc.line(margin + halfWidth + 4, y + 17, pageWidth - margin - 4, y + 17);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Driver Signature & Date', margin + halfWidth + 4, y + 22);
+
+  // Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(228, 228, 231);
+    doc.line(margin, pageHeight - 10, pageWidth - margin, pageHeight - 10);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(113, 113, 122);
+    doc.text('Wrap & Wings Co. Pinetown • Official Driver Payroll Remittance • Clause 5.1 & 5.3', margin, pageHeight - 6);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+  }
+
+  const cleanDriver = (driver.name || `driver-${driver.driverNumber}`).toLowerCase().replace(/[^a-z0-9]/g, '-');
+  doc.save(`wrap-wings-driver-${cleanDriver}-reconciliation-${periodLabel.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+}
+
+/**
+ * ============================================================================
+ * EXPORT INDIVIDUAL DRIVER PAYOUT & RECONCILIATION TO CSV
+ * ============================================================================
+ */
+export function exportDriverReconciliationCsv(
+  driver: DriverProfile,
+  periodLabel: string,
+  orders: LiveOrder[]
+): void {
+  if (typeof window === 'undefined') return;
+
+  const headers = [
+    'Order ID',
+    'Created Date/Time',
+    'Driver Assigned',
+    'Customer Name',
+    'Customer Phone',
+    'Delivery Address',
+    'Suburb',
+    'Order Total (R)',
+    'Base Delivery Fee (R)',
+    'Driver Tip (R)',
+    'Total Driver Earning (R)',
+    'Payment Method',
+    'Payment Status',
+    'Order Status'
+  ];
+
+  const escapeCsv = (str: any) => `"${String(str ?? '').replace(/"/g, '""')}"`;
+
+  const rows = orders.map((o) => {
+    const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+    const tip = typeof o.tip === 'number' ? o.tip : 0;
+    const driverEarning = baseFee + tip;
+
+    return [
+      escapeCsv(o.orderId),
+      escapeCsv(o.createdAt || 'N/A'),
+      escapeCsv(driver.name || `Driver #${driver.driverNumber}`),
+      escapeCsv(o.customer?.customerName || (o as any).customerName || 'Customer'),
+      escapeCsv(o.customer?.phone || (o as any).customerPhone || ''),
+      escapeCsv(o.customer?.address || (o as any).deliveryAddress || ''),
+      escapeCsv(o.customer?.suburb || (o as any).deliverySuburb || 'Pinetown'),
+      escapeCsv((o.grandTotal || 0).toFixed(2)),
+      escapeCsv(baseFee.toFixed(2)),
+      escapeCsv(tip.toFixed(2)),
+      escapeCsv(driverEarning.toFixed(2)),
+      escapeCsv((o.paymentMethod || 'cod').toUpperCase()),
+      escapeCsv((o.paymentStatus || 'pending').toUpperCase()),
+      escapeCsv((o.status || 'received').toUpperCase()),
+    ];
+  });
+
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  const cleanDriver = (driver.name || `driver-${driver.driverNumber}`).toLowerCase().replace(/[^a-z0-9]/g, '-');
+  link.setAttribute('download', `wrap-wings-driver-${cleanDriver}-reconciliation-${periodLabel.replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

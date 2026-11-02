@@ -93,12 +93,15 @@ import {
   getOrderDateString,
   generateWhatsAppDailyOrdersReportText,
   isTestOrder,
+  assignOrderDriverByAdmin,
 } from '../services/orderService';
 import { generateGoogleMapsUrl } from '../services/payment';
 import {
   exportOrdersToPdf,
   exportTrafficToPdf,
-  exportReviewEntriesToPdf
+  exportReviewEntriesToPdf,
+  exportDriverReconciliationPdf,
+  exportDriverReconciliationCsv,
 } from '../services/pdfExportService';
 import {
   calculateAllDeliveriesMetrics,
@@ -799,6 +802,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     setGoogleSheetsWebhookUrl(webhookUrlInput);
     setWebhookSavedFeedback(true);
     setTimeout(() => setWebhookSavedFeedback(false), 2500);
+  };
+
+  const handleAssignOrderDriver = (orderId: string, driverId: string | null, driverName: string | null) => {
+    const updated = assignOrderDriverByAdmin(orderId, driverId, driverName);
+    if (updated) {
+      setOrders((prev) => prev.map((o) => (o.orderId === orderId ? updated : o)));
+    }
   };
 
   // --- Delivery KPI & Driver Roster State & Cloud Sync ---
@@ -4197,16 +4207,57 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         </div>
                       </div>
 
-                      {/* View Agreement PDF Action */}
-                      <button
-                        type="button"
-                        onClick={() => downloadCompletedAgreementPdf(profile as DriverProfile)}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                        title="Download / View signed Independent Driver Agreement PDF"
-                      >
-                        <FileText className="w-3.5 h-3.5 text-amber-400" />
-                        <span>View PDF</span>
-                      </button>
+                      {/* Driver Actions: Reconciliation PDF, CSV, and Agreement */}
+                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const driverOrders = filteredDeliveryOrders.filter(
+                              (o) => o.driverId === profile.id || o.driverName === profile.name || (profile.driverNumber && o.driverName?.includes(String(profile.driverNumber)))
+                            );
+                            const periodLabel = deliveryTimeframe === 'custom'
+                              ? `${deliveryStartDate} to ${deliveryEndDate}`
+                              : deliveryTimeframe === 'today'
+                              ? 'Today'
+                              : deliveryTimeframe === 'all'
+                              ? 'All-Time'
+                              : 'This Week (Mon–Sat)';
+                            exportDriverReconciliationPdf(profile as DriverProfile, periodLabel, driverOrders);
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer"
+                          title="Download official PDF Payout & Trip Reconciliation slip for this driver"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Reconciliation PDF</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const driverOrders = filteredDeliveryOrders.filter(
+                              (o) => o.driverId === profile.id || o.driverName === profile.name || (profile.driverNumber && o.driverName?.includes(String(profile.driverNumber)))
+                            );
+                            const periodLabel = deliveryTimeframe === 'custom'
+                              ? `${deliveryStartDate}_to_${deliveryEndDate}`
+                              : deliveryTimeframe.toUpperCase();
+                            exportDriverReconciliationCsv(profile as DriverProfile, periodLabel, driverOrders);
+                          }}
+                          className="px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Export CSV spreadsheet for this driver"
+                        >
+                          <Download className="w-3 h-3 text-emerald-400" />
+                          <span>CSV</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => downloadCompletedAgreementPdf(profile as DriverProfile)}
+                          className="px-2 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-xs font-bold text-zinc-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                          title="Download / View signed Independent Driver Agreement PDF"
+                        >
+                          <span>Agreement PDF</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Driver Particulars Grid */}
@@ -4416,18 +4467,30 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             )}
                           </td>
 
-                          {/* Assigned Driver */}
+                          {/* Assigned Driver (Interactive Assignment Selector) */}
                           <td className="py-3 px-3.5">
-                            {order.driverId ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/30 font-bold text-[11px]">
-                                <DeliveryMotorbikeIcon className="w-3 h-3" />
-                                <span>{driverLabel}</span>
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 text-[10px]">
-                                Unassigned
-                              </span>
-                            )}
+                            <select
+                              value={order.driverId || 'unassigned'}
+                              onChange={(e) => {
+                                const newId = e.target.value === 'unassigned' ? null : e.target.value;
+                                const target = registeredDrivers.find((d) => d.id === newId);
+                                const newName = target ? getDriverDisplayName(target) : null;
+                                handleAssignOrderDriver(order.orderId, newId, newName);
+                              }}
+                              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-colors cursor-pointer focus:outline-none ${
+                                order.driverId
+                                  ? 'bg-orange-500/20 text-orange-300 border-orange-500/40 focus:border-orange-400'
+                                  : 'bg-zinc-900 text-zinc-400 border-white/10 hover:border-white/20'
+                              }`}
+                              title="Assign or reassign this delivery to Driver #1 or Driver #2"
+                            >
+                              <option value="unassigned">⚠️ Unassigned</option>
+                              {registeredDrivers.map((d) => (
+                                <option key={d.id} value={d.id}>
+                                  #{d.driverNumber} - {getDriverDisplayName(d)}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* Base Fee */}

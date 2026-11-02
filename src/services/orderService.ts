@@ -1595,6 +1595,63 @@ export function claimOrderDelivery(orderId: string, driverId: string, driverName
   return updatedOrder;
 }
 
+export function assignOrderDriverByAdmin(orderId: string, driverId: string | null, driverName: string | null): LiveOrder | null {
+  const cleanId = orderId.replace('#', '').trim();
+  const orders = getAllOrders();
+  const index = orders.findIndex(
+    (o) => o.orderId === orderId || o.orderId?.replace('#', '').trim() === cleanId
+  );
+  if (index === -1) return null;
+
+  const current = orders[index];
+  const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const timelineEvent: OrderTimelineEvent = {
+    status: current.status,
+    timestamp: nowStr,
+    label: driverName ? `Assigned to ${driverName}` : 'Driver Unassigned',
+    note: driverName ? `Manager assigned delivery to ${driverName} (${driverId})` : 'Manager cleared driver assignment',
+    epochTime: Date.now(),
+  };
+
+  const updatedOrder: LiveOrder = {
+    ...current,
+    driverId: driverId || undefined,
+    driverName: driverName || undefined,
+    driverAcceptedAt: driverId ? (current.driverAcceptedAt || Date.now()) : undefined,
+    timeline: [...(current.timeline || []), timelineEvent],
+  };
+
+  orders[index] = updatedOrder;
+  saveOrders(orders, true);
+
+  if (isFirebaseConfigured) {
+    saveOrderToFirestore(updatedOrder).catch((e) =>
+      console.warn('Firestore assignOrderDriverByAdmin error:', e)
+    );
+  }
+
+  publishCloudEvent({
+    type: 'ORDER_UPDATED',
+    orderId: updatedOrder.orderId,
+    order: updatedOrder,
+    timestamp: Date.now(),
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('wrap_wing_order_status_updated', {
+        detail: {
+          orderId: updatedOrder.orderId,
+          order: updatedOrder,
+        },
+      })
+    );
+  }
+
+  return updatedOrder;
+}
+
 /**
  * Broadcast live GPS coordinates from driver's mobile device to active dispatched orders
  */
