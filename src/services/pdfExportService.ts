@@ -925,9 +925,9 @@ export function exportDriverReconciliationPdf(
   doc.setFillColor(19, 19, 26);
   doc.rect(0, 0, pageWidth, 28, 'F');
 
-  // Amber Accent Line
-  doc.setFillColor(245, 158, 11);
-  doc.rect(0, 28, pageWidth, 1.5, 'F');
+  // Neutral Accent Line
+  doc.setFillColor(39, 39, 42);
+  doc.rect(0, 28, pageWidth, 1, 'F');
 
   // Brand Title
   doc.setTextColor(255, 255, 255);
@@ -943,13 +943,16 @@ export function exportDriverReconciliationPdf(
   doc.setTextColor(161, 161, 170);
   doc.text('Shop 1, Uniland Centre, 24 Anderson Rd, Pinetown | EFT Weekly Remittance', margin, 23);
 
-  // Meta on Right
+  // Meta on Right (Monochrome)
   doc.setFontSize(8);
-  doc.setTextColor(245, 158, 11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
   doc.text(`Period: ${periodLabel}`, pageWidth - margin, 11, { align: 'right' });
-  doc.setTextColor(161, 161, 170);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(212, 212, 216);
   doc.text(`Generated: ${getNowFormatted()}`, pageWidth - margin, 17, { align: 'right' });
-  doc.setTextColor(52, 211, 153);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
   doc.text('Payout Due: Monday 12:00 PM via EFT', pageWidth - margin, 23, { align: 'right' });
 
   y = 36;
@@ -1007,7 +1010,7 @@ export function exportDriverReconciliationPdf(
   doc.setTextColor(113, 113, 122);
   doc.text('AGREEMENT STATUS:', col2X, y + 23);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(16, 185, 129);
+  doc.setTextColor(0, 0, 0);
   doc.text(driver.onboardingCompleted ? 'Signed & Verified' : 'Registered Driver', col2X + 35, y + 23);
 
   y += 30;
@@ -1028,15 +1031,15 @@ export function exportDriverReconciliationPdf(
     }
   });
 
-  // KPI Summary Boxes (4 cards)
+  // KPI Summary Boxes (4 cards - Monochrome Bold Black)
   const cardWidth = (pageWidth - margin * 2 - 9) / 4;
   const cardHeight = 17;
 
   const kpis = [
-    { label: 'COMPLETED TRIPS', val: String(orders.length), color: [59, 130, 246] as [number, number, number] },
-    { label: 'BASE DELIVERY FEES', val: formatZAR(totalBaseFees), color: [245, 158, 11] as [number, number, number] },
-    { label: 'CUSTOMER TIPS (100%)', val: formatZAR(totalTips), color: [234, 179, 8] as [number, number, number] },
-    { label: 'TOTAL EFT PAYABLE', val: formatZAR(totalPayable), color: [16, 185, 129] as [number, number, number] },
+    { label: 'COMPLETED TRIPS', val: String(orders.length) },
+    { label: 'BASE DELIVERY FEES', val: formatZAR(totalBaseFees) },
+    { label: 'CUSTOMER TIPS (100%)', val: formatZAR(totalTips) },
+    { label: 'TOTAL EFT PAYABLE', val: formatZAR(totalPayable) },
   ];
 
   kpis.forEach((kpi, idx) => {
@@ -1052,8 +1055,8 @@ export function exportDriverReconciliationPdf(
     doc.text(kpi.label, x + 3, y + 5);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(kpi.color[0], kpi.color[1], kpi.color[2]);
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
     doc.text(kpi.val, x + cardWidth / 2, y + 12.5, { align: 'center' });
   });
 
@@ -1159,14 +1162,16 @@ export function exportDriverReconciliationPdf(
 
       doc.text(formatZAR(o.grandTotal || 0), colX[4] + 16, y + 3.5, { align: 'right' });
 
-      doc.setTextColor(245, 158, 11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
       doc.text(formatZAR(baseFee), colX[5] + 14, y + 3.5, { align: 'right' });
 
-      doc.setTextColor(113, 113, 122);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
       doc.text(formatZAR(tip), colX[6] + 12, y + 3.5, { align: 'right' });
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(16, 185, 129);
+      doc.setTextColor(0, 0, 0);
       doc.text(formatZAR(earning), colX[7] - 2, y + 3.5, { align: 'right' });
 
       y += 6.5;
@@ -1177,11 +1182,11 @@ export function exportDriverReconciliationPdf(
     doc.line(margin, y, pageWidth - margin, y);
     y += 4;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(24, 24, 27);
+    doc.setFontSize(8.5);
+    doc.setTextColor(0, 0, 0);
     doc.text('TOTAL REMITTANCE PAYABLE VIA EFT:', colX[3], y);
-    doc.setFontSize(9.5);
-    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
     doc.text(formatZAR(totalPayable), colX[7] - 2, y, { align: 'right' });
     y += 8;
   }
