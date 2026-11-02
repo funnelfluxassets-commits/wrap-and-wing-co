@@ -130,7 +130,23 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [isPayFastTesting, setIsPayFastTesting] = useState(() => isPayFastStaffTestMode());
 
   // --- Delivery Records & Driver KPI State ---
-  const [deliveryTimeframe, setDeliveryTimeframe] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [deliveryTimeframe, setDeliveryTimeframe] = useState<'today' | 'week' | 'custom' | 'all'>('week');
+  const [deliveryStartDate, setDeliveryStartDate] = useState<string>(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diffToLastMonday = (day === 0 ? -6 : 1) - day - 7;
+    const lastMon = new Date(d);
+    lastMon.setDate(d.getDate() + diffToLastMonday);
+    return lastMon.toISOString().slice(0, 10);
+  });
+  const [deliveryEndDate, setDeliveryEndDate] = useState<string>(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diffToLastMonday = (day === 0 ? -6 : 1) - day - 7;
+    const lastSat = new Date(d);
+    lastSat.setDate(d.getDate() + diffToLastMonday + 5);
+    return lastSat.toISOString().slice(0, 10);
+  });
   const [selectedDriverFilter, setSelectedDriverFilter] = useState<string>('all');
   const [deliverySearchQuery, setDeliverySearchQuery] = useState<string>('');
 
@@ -809,26 +825,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return calculateDriverMetrics('DRV-02', orders);
   }, [orders]);
 
-  const currentDeliveryBucket = useMemo(() => {
-    switch (deliveryTimeframe) {
-      case 'today':
-        return { label: "Today's Deliveries", stats: deliveryMetrics.today };
-      case 'week':
-        return { label: "This Week's Deliveries (Mon–Sat)", stats: deliveryMetrics.thisWeek };
-      case 'month':
-        return { label: "This Month's Deliveries", stats: deliveryMetrics.thisMonth };
-      case 'all':
-      default:
-        return { label: "All-Time Deliveries", stats: deliveryMetrics.allTime };
-    }
-  }, [deliveryMetrics, deliveryTimeframe]);
-
   const filteredDeliveryOrders = useMemo(() => {
     const allDelivs = deliveryMetrics.orders;
     const now = new Date();
     const todayStr = getLocalTodayDateString();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
 
     const isThisMonSat = (d: Date) => {
       if (!d || isNaN(d.getTime())) return false;
@@ -852,10 +852,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         if (orderDateStr !== todayStr) return false;
       } else if (deliveryTimeframe === 'week') {
         if (!isThisMonSat(orderDate)) return false;
-      } else if (deliveryTimeframe === 'month') {
-        if (isNaN(orderDate.getTime()) || orderDate.getMonth() !== currentMonth || orderDate.getFullYear() !== currentYear) return false;
+      } else if (deliveryTimeframe === 'custom') {
+        if (deliveryStartDate && orderDateStr < deliveryStartDate) return false;
+        if (deliveryEndDate && orderDateStr > deliveryEndDate) return false;
       }
-
 
       if (selectedDriverFilter !== 'all') {
         if (selectedDriverFilter === 'unassigned') {
@@ -879,7 +879,37 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
       return true;
     });
-  }, [deliveryMetrics, deliveryTimeframe, selectedDriverFilter, deliverySearchQuery]);
+  }, [deliveryMetrics, deliveryTimeframe, deliveryStartDate, deliveryEndDate, selectedDriverFilter, deliverySearchQuery]);
+
+  const currentDeliveryBucket = useMemo(() => {
+    switch (deliveryTimeframe) {
+      case 'today':
+        return { label: "Today's Deliveries", stats: deliveryMetrics.today };
+      case 'week':
+        return { label: "This Week's Deliveries (Mon–Sat)", stats: deliveryMetrics.thisWeek };
+      case 'custom': {
+        const stats = filteredDeliveryOrders.reduce(
+          (acc, o) => {
+            const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+            const tip = typeof o.tip === 'number' ? o.tip : 0;
+            const isPayable = o.status === 'completed' || o.status === 'dispatched';
+            acc.deliveriesCount += 1;
+            if (isPayable) {
+              acc.baseFees += baseFee;
+              acc.tips += tip;
+              acc.totalEarnings += baseFee + tip;
+            }
+            return acc;
+          },
+          { deliveriesCount: 0, baseFees: 0, tips: 0, totalEarnings: 0 }
+        );
+        return { label: `Deliveries (${deliveryStartDate} to ${deliveryEndDate})`, stats };
+      }
+      case 'all':
+      default:
+        return { label: "All-Time Deliveries", stats: deliveryMetrics.allTime };
+    }
+  }, [deliveryMetrics, deliveryTimeframe, filteredDeliveryOrders, deliveryStartDate, deliveryEndDate]);
 
   return (
 
@@ -1062,7 +1092,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 type="button"
-                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe === 'custom' ? `${deliveryStartDate}_to_${deliveryEndDate}` : deliveryTimeframe.toUpperCase())}
                 disabled={filteredDeliveryOrders.length === 0}
                 className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
                 title="Download delivery trips & driver earnings ledger CSV"
@@ -3953,14 +3983,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setDeliveryTimeframe('month')}
+                onClick={() => setDeliveryTimeframe('custom')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                  deliveryTimeframe === 'month'
+                  deliveryTimeframe === 'custom'
                     ? 'bg-amber-500 text-zinc-950 shadow-md'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
-                This Month
+                Select Date Range
               </button>
 
               <button
@@ -3976,6 +4006,53 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Custom Date Range Selector Bar */}
+          {deliveryTimeframe === 'custom' && (
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 animate-fadeIn">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+                <Calendar className="w-4 h-4 text-amber-400" />
+                <span>Custom Payout Date Range:</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <div className="flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
+                  <span className="text-zinc-400 text-[11px] font-bold">From:</span>
+                  <input
+                    type="date"
+                    value={deliveryStartDate}
+                    onChange={(e) => setDeliveryStartDate(e.target.value)}
+                    className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
+                  <span className="text-zinc-400 text-[11px] font-bold">To:</span>
+                  <input
+                    type="date"
+                    value={deliveryEndDate}
+                    onChange={(e) => setDeliveryEndDate(e.target.value)}
+                    className="bg-transparent text-white font-mono text-xs focus:outline-none cursor-pointer"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    const day = d.getDay();
+                    const diffToLastMonday = (day === 0 ? -6 : 1) - day - 7;
+                    const lastMon = new Date(d);
+                    lastMon.setDate(d.getDate() + diffToLastMonday);
+                    const lastSat = new Date(d);
+                    lastSat.setDate(d.getDate() + diffToLastMonday + 5);
+                    setDeliveryStartDate(lastMon.toISOString().slice(0, 10));
+                    setDeliveryEndDate(lastSat.toISOString().slice(0, 10));
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all cursor-pointer"
+                >
+                  ⚡ Set Last Week (26–31 Oct)
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Timeframe Notice Banner for Weekly Payroll */}
           {deliveryTimeframe === 'week' && (
@@ -4068,7 +4145,27 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               ].map(({ profile, metrics }) => {
                 const displayName = getDriverDisplayName(profile as DriverProfile);
                 const hasCompletedOnboarding = profile.onboardingCompleted || (profile.name && profile.name !== `Driver #${profile.driverNumber}`);
-                const weeklyEarnings = metrics.thisWeek.totalEarnings;
+                const periodStats = deliveryTimeframe === 'custom'
+                  ? filteredDeliveryOrders
+                      .filter(o => o.driverId === profile.id || o.driverName === profile.name || (profile.driverNumber && o.driverName?.includes(String(profile.driverNumber))))
+                      .reduce((acc, o) => {
+                        const baseFee = typeof o.deliveryFee === 'number' && o.deliveryFee > 0 ? o.deliveryFee : 28;
+                        const tip = typeof o.tip === 'number' ? o.tip : 0;
+                        const isPayable = o.status === 'completed' || o.status === 'dispatched';
+                        acc.trips += 1;
+                        if (isPayable) {
+                          acc.baseFees += baseFee;
+                          acc.tips += tip;
+                          acc.earnings += baseFee + tip;
+                        }
+                        return acc;
+                      }, { trips: 0, baseFees: 0, tips: 0, earnings: 0 })
+                  : {
+                      trips: metrics.thisWeek.deliveriesCount,
+                      baseFees: metrics.thisWeek.baseFees,
+                      tips: metrics.thisWeek.tips,
+                      earnings: metrics.thisWeek.totalEarnings,
+                    };
 
                 return (
                   <div
@@ -4139,25 +4236,25 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-emerald-300 flex items-center gap-1.5">
                           <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Weekly EFT Payout (Mon–Sat Cycle)</span>
+                          <span>{deliveryTimeframe === 'custom' ? `EFT Payout (${deliveryStartDate} to ${deliveryEndDate})` : 'Weekly EFT Payout (Mon–Sat Cycle)'}</span>
                         </span>
                         <span className="font-mono font-black text-sm text-emerald-400">
-                          R{weeklyEarnings.toFixed(2)}
+                          R{periodStats.earnings.toFixed(2)}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-3 gap-2 text-center text-[11px] pt-1 border-t border-white/5">
                         <div>
                           <span className="text-zinc-400 block text-[10px]">Trips Done</span>
-                          <span className="font-mono font-bold text-white">{metrics.thisWeek.deliveriesCount}</span>
+                          <span className="font-mono font-bold text-white">{periodStats.trips}</span>
                         </div>
                         <div>
                           <span className="text-zinc-400 block text-[10px]">Base Fees</span>
-                          <span className="font-mono font-bold text-amber-400">R{metrics.thisWeek.baseFees.toFixed(0)}</span>
+                          <span className="font-mono font-bold text-amber-400">R{periodStats.baseFees.toFixed(0)}</span>
                         </div>
                         <div>
                           <span className="text-zinc-400 block text-[10px]">Tips</span>
-                          <span className="font-mono font-bold text-yellow-400">R{metrics.thisWeek.tips.toFixed(0)}</span>
+                          <span className="font-mono font-bold text-yellow-400">R{periodStats.tips.toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
@@ -4215,7 +4312,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* Export CSV Button */}
                 <button
                   type="button"
-                  onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                  onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe === 'custom' ? `${deliveryStartDate}_to_${deliveryEndDate}` : deliveryTimeframe.toUpperCase())}
                   disabled={filteredDeliveryOrders.length === 0}
                   className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
                 >
@@ -4385,7 +4482,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe.toUpperCase())}
+                onClick={() => exportDeliveryLedgerToCsv(filteredDeliveryOrders, deliveryTimeframe === 'custom' ? `${deliveryStartDate}_to_${deliveryEndDate}` : deliveryTimeframe.toUpperCase())}
                 disabled={filteredDeliveryOrders.length === 0}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
               >
