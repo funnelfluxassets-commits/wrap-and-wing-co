@@ -20,7 +20,9 @@ export const REVIEW_CAMPAIGNS: ReviewCampaignWeek[] = [
     prize: '3 Flame-Grilled Wings + A Regular Side Combo',
     startDate: '2026-10-26',
     endDate: '2026-11-01',
-    status: 'active',
+    status: 'completed',
+    winnerName: 'Philile Nkabinde',
+    winnerSlip: '48',
     bannerImage: '/images/menu/wings-3.webp',
   },
   {
@@ -30,8 +32,8 @@ export const REVIEW_CAMPAIGNS: ReviewCampaignWeek[] = [
     prize: 'Signature Flame-Grilled Burger + Crispy Fries Combo',
     startDate: '2026-11-02',
     endDate: '2026-11-08',
-    status: 'upcoming',
-    bannerImage: '/images/menu/burger-and-chips.webp',
+    status: 'active',
+    bannerImage: '/images/campaigns/week-3-burger-and-side.webp',
   },
   {
     id: 'week-4',
@@ -50,7 +52,7 @@ export const REVIEW_CAMPAIGNS: ReviewCampaignWeek[] = [
  */
 export function getCurrentCampaignWeek(): ReviewCampaignWeek {
   const active = REVIEW_CAMPAIGNS.find((c) => c.status === 'active');
-  return active || REVIEW_CAMPAIGNS[1]; // default to week-2
+  return active || REVIEW_CAMPAIGNS[2]; // default to week-3
 }
 
 /**

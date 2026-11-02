@@ -150,7 +150,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   const [webhookSavedFeedback, setWebhookSavedFeedback] = useState(false);
 
   // --- Reviews Draw State ---
-  const [selectedCampaignWeek, setSelectedCampaignWeek] = useState<string>('week-2');
+  const [selectedCampaignWeek, setSelectedCampaignWeek] = useState<string>(() => getCurrentCampaignWeek().id);
   const [entries, setEntries] = useState<ReviewDrawEntry[]>([]);
   const [reviewSearchQuery, setReviewSearchQuery] = useState('');
   const [reviewStatusFilter, setReviewStatusFilter] = useState<'all' | 'eligible' | 'uncompleted' | 'winner'>('all');

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PageView } from '../types';
 import { GOOGLE_REVIEW_URL } from '../data/stores';
+import { getCurrentCampaignWeek } from '../data/reviewCampaigns';
 import { saveReviewDrawEntry, updateReviewEntryStatus } from '../services/reviewService';
 
 interface ReviewDrawViewProps {
@@ -137,7 +138,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase leading-tight font-sans drop-shadow">
-            WIN A WINGS MEAL
+            WIN A BURGER &amp; SIDE
           </h1>
 
           <div className="text-xs sm:text-sm text-zinc-200 max-w-lg mx-auto font-medium space-y-1">
@@ -145,7 +146,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               Thank you for supporting our brand-new local spot!
             </p>
             <p className="text-zinc-300">
-              Complete this quick 30-second form to enter our weekly draw to win this week's featured prize: <strong className="text-white">3 Flame-Grilled Wings + A Regular Side Combo</strong>! Winners drawn randomly every Sunday evening!
+              Complete this quick 30-second form to enter our weekly draw to win this week's featured prize: <strong className="text-white">Signature Flame-Grilled Burger + Crispy Fries Combo</strong>! Winners drawn randomly every Sunday evening!
             </p>
           </div>
         </div>
@@ -157,13 +158,13 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
           /* ── STEP 1: The Digital Entry Form ── */
           <div className="p-5 sm:p-10 rounded-3xl bg-[#121217] border border-white/10 shadow-2xl space-y-8 animate-fadeIn">
             
-            {/* Featured Weekly Prize Spotlight Card with Wings Image */}
+            {/* Featured Weekly Prize Spotlight Card with Burger & Fries Image */}
             <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-4">
               <div className="relative shrink-0 pt-2.5">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border border-amber-500/40 shadow-lg bg-zinc-900">
                   <img
-                    src="/images/menu/wings-3.webp"
-                    alt="This Week's Featured Prize: 3 Flame-Grilled Chicken Wings + Side"
+                    src="/images/campaigns/week-3-burger-and-side.webp"
+                    alt="This Week's Featured Prize: Flame-Grilled Burger + Crispy Fries"
                     className="w-full h-full object-cover"
                     loading="lazy"
                   />
@@ -178,10 +179,10 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                   <span>Featured Weekly Prize</span>
                 </div>
                 <h3 className="text-base sm:text-lg font-black text-white leading-tight">
-                  3 Flame-Grilled Chicken Wings + A Regular Side
+                  Flame-Grilled Burger + Crispy Fries Combo
                 </h3>
                 <p className="text-xs text-zinc-300 leading-relaxed">
-                  3 plump, juicy flame-grilled chicken wings tossed in your choice of signature baste, paired with hot golden chips, savoury spicy rice, or fresh creamy slaw!
+                  Tender flame-grilled chicken fillet basted in your choice of bold signature sauce, topped with crisp fresh lettuce, tomato, and creamy mayo on a soft bakery roll, served with hot golden chips!
                 </p>
                 <div className="text-[11px] text-amber-300/90 font-medium pt-0.5">
                   🎁 Prizes change weekly — order &amp; enter every week to win!
@@ -451,7 +452,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </h2>
 
               <p className="text-sm sm:text-base text-zinc-300 font-medium leading-relaxed">
-                Thank you for posting your Google review! Your entry ticket is officially active for this Sunday's <strong className="text-amber-400">Wings Meal Draw</strong>.
+                Thank you for posting your Google review! Your entry ticket is officially active for this Sunday's <strong className="text-amber-400">Burger &amp; Side Meal Draw</strong>.
               </p>
             </div>
 
@@ -496,7 +497,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               <ul className="space-y-1.5 pl-6 list-disc text-zinc-300">
                 <li>Entries close Sunday midnight.</li>
                 <li>One lucky ticket is selected at random.</li>
-                <li>The winner is messaged directly on WhatsApp (<strong className="text-white">{phone}</strong>) with a digital coupon for a free <strong className="text-amber-400">3 Wings + Regular Side combo</strong>!</li>
+                <li>The winner is messaged directly on WhatsApp (<strong className="text-white">{phone}</strong>) with a digital coupon for a free <strong className="text-amber-400">Signature Flame-Grilled Burger + Crispy Fries combo</strong>!</li>
               </ul>
             </div>
 
