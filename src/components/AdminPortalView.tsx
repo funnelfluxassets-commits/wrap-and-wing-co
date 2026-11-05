@@ -1232,10 +1232,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
               <button
                 type="button"
-                onClick={() => exportEntriesToCsv(entries)}
-                disabled={entries.length === 0}
+                onClick={() =>
+                  exportEntriesToCsv(
+                    campaignEntries,
+                    selectedCampaignWeek === 'all' ? 'all-time' : selectedCampaignWeek
+                  )
+                }
+                disabled={campaignEntries.length === 0}
                 className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-emerald-950/40 transition-colors cursor-pointer disabled:opacity-40"
-                title="Download review entries in CSV format"
+                title={`Download ${selectedCampaignWeek === 'all' ? 'all-time' : (currentCampaign?.title || selectedCampaignWeek)} review entries in CSV format`}
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download CSV</span>
@@ -1243,10 +1248,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => exportReviewEntriesToPdf(entries)}
-                disabled={entries.length === 0}
+                onClick={() =>
+                  exportReviewEntriesToPdf(
+                    campaignEntries,
+                    selectedCampaignWeek === 'all'
+                      ? undefined
+                      : {
+                          weekTitle: currentCampaign ? `Week ${currentCampaign.weekNumber}: ${currentCampaign.title}` : undefined,
+                          dateRange: currentCampaign ? `${currentCampaign.startDate} to ${currentCampaign.endDate}` : undefined,
+                          prize: currentCampaign?.prize,
+                          weekId: selectedCampaignWeek,
+                        }
+                  )
+                }
+                disabled={campaignEntries.length === 0}
                 className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-rose-950/40 transition-colors cursor-pointer disabled:opacity-40"
-                title="Download review entries in PDF format"
+                title={`Download ${selectedCampaignWeek === 'all' ? 'all-time' : (currentCampaign?.title || selectedCampaignWeek)} review entries in PDF format`}
               >
                 <FileText className="w-3.5 h-3.5" />
                 <span>Download PDF</span>
@@ -2226,7 +2243,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* Export CSV Button */}
                 <button
                   type="button"
-                  onClick={() => exportEntriesToCsv(campaignEntries)}
+                  onClick={() =>
+                    exportEntriesToCsv(
+                      campaignEntries,
+                      selectedCampaignWeek === 'all' ? 'all-time' : selectedCampaignWeek
+                    )
+                  }
                   disabled={campaignEntries.length === 0}
                   className="py-3 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
                   title="Download entries for this campaign week into Excel / CSV"
@@ -2238,7 +2260,19 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* Export PDF Button */}
                 <button
                   type="button"
-                  onClick={() => exportReviewEntriesToPdf(campaignEntries)}
+                  onClick={() =>
+                    exportReviewEntriesToPdf(
+                      campaignEntries,
+                      selectedCampaignWeek === 'all'
+                        ? undefined
+                        : {
+                            weekTitle: currentCampaign ? `Week ${currentCampaign.weekNumber}: ${currentCampaign.title}` : undefined,
+                            dateRange: currentCampaign ? `${currentCampaign.startDate} to ${currentCampaign.endDate}` : undefined,
+                            prize: currentCampaign?.prize,
+                            weekId: selectedCampaignWeek,
+                          }
+                    )
+                  }
                   disabled={campaignEntries.length === 0}
                   className="py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50 shadow-md shadow-rose-950/40"
                   title="Download review entries in official PDF format"

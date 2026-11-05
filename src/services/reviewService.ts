@@ -233,7 +233,7 @@ export async function deleteReviewEntry(id: string): Promise<void> {
   }
 }
 
-export function exportEntriesToCsv(entries: ReviewDrawEntry[]): void {
+export function exportEntriesToCsv(entries: ReviewDrawEntry[], filenameSuffix?: string): void {
   if (!entries || entries.length === 0) return;
 
   const headers = [
@@ -271,9 +271,10 @@ export function exportEntriesToCsv(entries: ReviewDrawEntry[]): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
+  const suffix = filenameSuffix ? `-${filenameSuffix.toLowerCase().replace(/[^a-z0-9]/g, '-')}` : '';
   link.setAttribute(
     'download',
-    `wrap-and-wings-meal-draw-${new Date().toISOString().slice(0, 10)}.csv`
+    `wrap-and-wings-meal-draw${suffix}-${new Date().toISOString().slice(0, 10)}.csv`
   );
   document.body.appendChild(link);
   link.click();

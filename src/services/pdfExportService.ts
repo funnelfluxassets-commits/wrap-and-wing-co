@@ -786,7 +786,17 @@ export function exportTrafficToPdf(
  * EXPORT REVIEWS & MEAL COMPETITION ENTRIES TO PDF
  * ============================================================================
  */
-export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
+export interface ReviewCampaignPdfInfo {
+  weekTitle?: string;
+  dateRange?: string;
+  prize?: string;
+  weekId?: string;
+}
+
+export function exportReviewEntriesToPdf(
+  entries: ReviewDrawEntry[],
+  campaignInfo?: ReviewCampaignPdfInfo
+) {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -809,20 +819,42 @@ export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
   // Brand Title
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('WRAP & WINGS CO.', margin, 12);
+  doc.setFontSize(15);
+  doc.text('WRAP & WINGS CO.', margin, 11);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(212, 212, 216);
-  doc.text('Weekly Google Review Meal Contest Entries', margin, 18);
+
+  const isSpecificWeek = Boolean(campaignInfo && campaignInfo.weekId && campaignInfo.weekId !== 'all');
+  if (isSpecificWeek) {
+    doc.text(`Weekly Review Contest • ${campaignInfo!.weekTitle || 'Campaign Cohort'}`, margin, 17);
+    doc.setFontSize(7);
+    doc.setTextColor(161, 161, 170);
+    const dateText = campaignInfo!.dateRange ? `Dates: ${campaignInfo!.dateRange}` : '';
+    const prizeText = campaignInfo!.prize ? `Prize: ${campaignInfo!.prize}` : '';
+    const details = [dateText, prizeText].filter(Boolean).join(' • ');
+    doc.text(details.slice(0, 75), margin, 23);
+  } else {
+    doc.text('Weekly Google Review Meal Contest Entries (All-Time Register)', margin, 17);
+    doc.setFontSize(7.5);
+    doc.setTextColor(161, 161, 170);
+    doc.text('Shop 1, Uniland Centre, 24 Anderson Rd, Pinetown | Customer Feedback Register', margin, 23);
+  }
 
   // Meta on Right
   doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(245, 158, 11);
-  doc.text(`Total Entries: ${entries.length}`, pageWidth - margin, 12, { align: 'right' });
+  doc.text(`Total Entries: ${entries.length}`, pageWidth - margin, 11, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
   doc.setTextColor(161, 161, 170);
-  doc.text(`Generated: ${getNowFormatted()}`, pageWidth - margin, 18, { align: 'right' });
+  doc.text(`Generated: ${getNowFormatted()}`, pageWidth - margin, 17, { align: 'right' });
+  if (isSpecificWeek && campaignInfo!.prize) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('Weekly Sunday Prize Draw', pageWidth - margin, 23, { align: 'right' });
+  }
 
   y = 36;
 
@@ -886,6 +918,10 @@ export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
   });
 
   const totalPages = doc.getNumberOfPages();
+  const footerLabel = isSpecificWeek && campaignInfo?.weekTitle
+    ? `Wrap & Wings Co. • Google Review Draw — ${campaignInfo.weekTitle}`
+    : 'Wrap & Wings Co. • Weekly Google Review Draw Register (All-Time)';
+
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     doc.setDrawColor(228, 228, 231);
@@ -893,11 +929,16 @@ export function exportReviewEntriesToPdf(entries: ReviewDrawEntry[]) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(113, 113, 122);
-    doc.text('Wrap & Wings Co. • Weekly Google Review Draw Register', margin, pageHeight - 6);
+    doc.text(footerLabel, margin, pageHeight - 6);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
   }
 
-  doc.save('wrap-and-wings-review-entries.pdf');
+  if (isSpecificWeek && campaignInfo?.weekId) {
+    const cleanWeek = campaignInfo.weekId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    doc.save(`wrap-and-wings-review-entries-${cleanWeek}.pdf`);
+  } else {
+    doc.save('wrap-and-wings-review-entries-all-time.pdf');
+  }
 }
 
 /**
