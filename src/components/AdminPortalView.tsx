@@ -4216,14 +4216,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </h3>
               </div>
               <span className="text-xs text-zinc-400">
-                2 Registered Driver Slots • Mon–Sat Weekly Payout
+                1 Active Driver • Signed Contract Records on File
               </span>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {[
-                { profile: registeredDrivers.find(d => d.id === 'DRV-01') || DEFAULT_DRIVERS[0], metrics: driver1Metrics },
-                { profile: registeredDrivers.find(d => d.id === 'DRV-02') || DEFAULT_DRIVERS[1], metrics: driver2Metrics }
+                { profile: registeredDrivers.find(d => d.id === 'DRV-02') || DEFAULT_DRIVERS[1], metrics: driver2Metrics },
+                { profile: registeredDrivers.find(d => d.id === 'DRV-01') || DEFAULT_DRIVERS[0], metrics: driver1Metrics }
               ].map(({ profile, metrics }) => {
                 const displayName = getDriverDisplayName(profile as DriverProfile);
                 const hasCompletedOnboarding = profile.onboardingCompleted || (profile.name && profile.name !== `Driver #${profile.driverNumber}`);
@@ -4261,15 +4261,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           #{profile.driverNumber}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="text-base font-black text-white">{displayName}</h4>
-                            {hasCompletedOnboarding ? (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                                Agreement Signed
+                            {profile.active === false ? (
+                              <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 text-[10px] font-bold">
+                                Resigned / Inactive
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold">
-                                Ready for Onboarding
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                                Active Driver
+                              </span>
+                            )}
+                            {hasCompletedOnboarding && (
+                              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
+                                Contract on File
                               </span>
                             )}
                           </div>
@@ -4427,8 +4432,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-zinc-200 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
                   <option value="all">All Drivers</option>
-                  <option value="DRV-01">Driver #1 (Vee)</option>
-                  <option value="DRV-02">Driver #2 (Zwali)</option>
+                  <option value="DRV-02">Driver #2 (Zweli - Active)</option>
+                  <option value="DRV-01">Driver #1 (Vee - Resigned / Inactive)</option>
                   <option value="unassigned">Unassigned</option>
                 </select>
 

@@ -1321,33 +1321,35 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
 
             <div className="space-y-3">
               <div className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                Tap the driver taking this bag:
+                Confirm Handover to Driver:
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {getRegisteredDrivers().map((drv) => {
-                  const driverShortName = drv.id === 'DRV-01' || drv.driverNumber === 1 ? 'Vee' : drv.id === 'DRV-02' || drv.driverNumber === 2 ? 'Zwali' : drv.name;
-                  return (
-                    <button
-                      key={drv.id}
-                      type="button"
-                      onClick={() => handleAssignAndDispatch(drv.id, driverShortName)}
-                      className="p-4 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 hover:from-amber-600 hover:to-amber-500 border border-amber-500/30 hover:border-amber-400 text-left transition-all hover:scale-[1.02] shadow-lg group cursor-pointer"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-black text-amber-400 group-hover:text-zinc-950 px-2 py-0.5 rounded-lg bg-black/40 group-hover:bg-white/30">
-                          #{drv.driverNumber}
-                        </span>
-                        <Truck className="w-4 h-4 text-zinc-400 group-hover:text-zinc-950" />
-                      </div>
-                      <div className="text-lg font-black text-white group-hover:text-zinc-950">
-                        {driverShortName}
-                      </div>
-                      <div className="text-[11px] text-zinc-400 group-hover:text-zinc-900 font-mono mt-0.5">
-                        {drv.cell}
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="grid grid-cols-1 gap-3">
+                {getRegisteredDrivers()
+                  .filter((drv) => drv.active !== false)
+                  .map((drv) => {
+                    const driverShortName = drv.id === 'DRV-02' || drv.driverNumber === 2 ? 'Zweli' : drv.name;
+                    return (
+                      <button
+                        key={drv.id}
+                        type="button"
+                        onClick={() => handleAssignAndDispatch(drv.id, driverShortName)}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-zinc-950 font-black border border-amber-400 text-left transition-all hover:scale-[1.01] shadow-xl group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-black text-white px-2.5 py-0.5 rounded-lg bg-black/60 uppercase tracking-wide">
+                            #{drv.driverNumber} • Sole On-Duty Driver
+                          </span>
+                          <Truck className="w-5 h-5 text-zinc-950" />
+                        </div>
+                        <div className="text-xl font-black text-zinc-950">
+                          Hand Over &amp; Dispatch with {driverShortName}
+                        </div>
+                        <div className="text-xs text-zinc-900 font-mono mt-0.5">
+                          {drv.phone} • {drv.vehicleDetails || 'Silver Suzuki Dzire'} ({drv.vehicleReg || 'DF 33 JB ZN'})
+                        </div>
+                      </button>
+                    );
+                  })}
               </div>
             </div>
 

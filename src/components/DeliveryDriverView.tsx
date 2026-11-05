@@ -39,6 +39,7 @@ import { DeliveryMotorbikeIcon } from './icons/DeliveryMotorbikeIcon';
 import { DriverTicketModal } from './DriverTicketModal';
 import {
   getRegisteredDrivers,
+  getActiveDrivers,
   getActiveDriverSession,
   setActiveDriverSession,
   calculateDriverMetrics,
@@ -113,7 +114,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   onOpenAgreement,
 }) => {
   const [orders, setOrders] = useState<LiveOrder[]>(() => getAllOrders());
-  const [registeredDrivers, setRegisteredDrivers] = useState<DriverProfile[]>(() => getRegisteredDrivers());
+  const [registeredDrivers, setRegisteredDrivers] = useState<DriverProfile[]>(() => getActiveDrivers());
   const [activeDriver, setActiveDriver] = useState<DriverProfile>(() => getActiveDriverSession());
   const [metricsPeriod, setMetricsPeriod] = useState<'today' | 'week' | 'month'>('today');
   const [filter, setFilter] = useState<'incoming' | 'ready' | 'dispatched' | 'my-trips' | 'completed' | 'all'>('incoming');
@@ -122,6 +123,17 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedTicketOrder, setSelectedTicketOrder] = useState<LiveOrder | null>(null);
   const [gpsActive, setGpsActive] = useState(false);
+
+  // Auto-switch away from resigned driver (Vee) if cached session in browser was pointing to DRV-01
+  useEffect(() => {
+    if (activeDriver.active === false || activeDriver.id === 'DRV-01') {
+      const activeOnly = getActiveDrivers();
+      if (activeOnly[0]) {
+        setActiveDriver(activeOnly[0]);
+        setActiveDriverSession(activeOnly[0]);
+      }
+    }
+  }, [activeDriver]);
 
   const activeDisplayName = getDriverDisplayName(activeDriver);
   const knownOrderIdsRef = useRef<Set<string>>(
@@ -371,7 +383,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     if (o.driverName && activeDisplayName && o.driverName.toLowerCase().includes(activeDisplayName.toLowerCase())) return true;
     if (o.driverName && activeDriver.name && o.driverName.toLowerCase().includes(activeDriver.name.toLowerCase())) return true;
     if ((activeDriver.id === 'DRV-01' || activeDriver.driverNumber === 1) && o.driverName && (o.driverName.toLowerCase().includes('vee') || o.driverName.toLowerCase().includes('vanessa'))) return true;
-    if ((activeDriver.id === 'DRV-02' || activeDriver.driverNumber === 2) && o.driverName && (o.driverName.toLowerCase().includes('zwell') || o.driverName.toLowerCase().includes('zwelisha') || o.driverName.toLowerCase().includes('zwali') || o.driverName.toLowerCase().includes('mkhize'))) return true;
+    if ((activeDriver.id === 'DRV-02' || activeDriver.driverNumber === 2) && o.driverName && (o.driverName.toLowerCase().includes('zweli') || o.driverName.toLowerCase().includes('zwell') || o.driverName.toLowerCase().includes('zwelisha') || o.driverName.toLowerCase().includes('zwali') || o.driverName.toLowerCase().includes('mkhize'))) return true;
     return false;
   };
 
@@ -488,24 +500,26 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
           {/* Driver Switcher & Agreement Access */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase text-zinc-400">Active Driver:</span>
+              <span className="text-[11px] font-black uppercase text-zinc-400">On-Duty Driver:</span>
               <div className="flex items-center gap-1.5 bg-black/60 p-1 rounded-xl border border-white/10">
-                {registeredDrivers.map((drv) => (
-                  <button
-                    key={drv.id}
-                    type="button"
-                    onClick={() => handleSwitchDriver(drv)}
-                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                      activeDriver.id === drv.id
-                        ? 'bg-rose-600 text-white shadow-sm'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <User className="w-3 h-3" />
-                    <span>{getDriverDisplayName(drv)} (PIN: {drv.pin})</span>
-                    {activeDriver.id === drv.id && <Check className="w-3 h-3" />}
-                  </button>
-                ))}
+                {registeredDrivers
+                  .filter((drv) => drv.active !== false)
+                  .map((drv) => (
+                    <button
+                      key={drv.id}
+                      type="button"
+                      onClick={() => handleSwitchDriver(drv)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        activeDriver.id === drv.id
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <User className="w-3 h-3" />
+                      <span>{getDriverDisplayName(drv)} (PIN: {drv.pin})</span>
+                      {activeDriver.id === drv.id && <Check className="w-3 h-3" />}
+                    </button>
+                  ))}
               </div>
             </div>
 

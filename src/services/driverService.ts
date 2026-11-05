@@ -32,14 +32,14 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
     branchCode: '678910',
     idOrPassportNumber: '9312210676086',
     residentialAddress: '30 ujomela grove, Pinetown',
-    active: true,
+    active: false, // Inactive / Resigned (signed contract retained on record)
     onboardingCompleted: true,
     signedAgreementDate: '2026-10-29',
   },
   {
     id: 'DRV-02',
     driverNumber: 2,
-    name: 'Zwelisha Mkhize (Zwali)',
+    name: 'Zwelisha Mkhize (Zweli)',
     phone: '081 732 4759',
     pin: '1002',
     vehicleType: 'light_vehicle',
@@ -59,12 +59,12 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
 ];
 
 /**
- * Get formatted driver display name (e.g. 'Driver - Vee' or 'Driver - Zwelisha')
+ * Get formatted driver display name (e.g. 'Driver - Zweli' or 'Driver - Vee (Resigned)')
  */
 export function getDriverDisplayName(driver: DriverProfile): string {
   if (driver.onboardingCompleted && driver.name) {
-    if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee';
-    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zwali';
+    if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee (Resigned)';
+    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zweli';
     const rawName = driver.name.trim();
     const parts = rawName.split(/\s+/);
     const firstName = parts[0].toLowerCase() === 'driver' && parts[1] ? parts.slice(1).join(' ') : parts[0];
@@ -113,22 +113,22 @@ export function getDriverVehicleInfo(
         dName.includes(cleanName) ||
         cleanName.includes(dName) ||
         (d.driverNumber === 1 && (cleanName.includes('vee') || cleanName.includes('vanessa') || cleanName.includes('drv-01') || cleanName.includes('driver 1') || cleanName.includes('driver #1'))) ||
-        (d.driverNumber === 2 && (cleanName.includes('zwali') || cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('mkhize') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
+        (d.driverNumber === 2 && (cleanName.includes('zweli') || cleanName.includes('zwali') || cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('mkhize') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
       );
     }) || null;
   }
 
-  // Determine driver 1 vs driver 2
+  // Determine driver 1 vs driver 2 (default to on-duty driver Zweli when unassigned)
   const isDriver1 = matched
     ? (matched.id === 'DRV-01' || matched.driverNumber === 1)
-    : (!driverName || driverName.toLowerCase().includes('vee') || driverName.toLowerCase().includes('vanessa'));
+    : (driverName ? (driverName.toLowerCase().includes('vee') || driverName.toLowerCase().includes('vanessa')) : false);
 
-  const resolved = matched || (isDriver1 ? allDrivers[0] || DEFAULT_DRIVERS[0] : allDrivers[1] || DEFAULT_DRIVERS[1]);
+  const resolved = matched || (isDriver1 ? (allDrivers.find((d) => d.id === 'DRV-01') || DEFAULT_DRIVERS[0]) : (allDrivers.find((d) => d.id === 'DRV-02') || DEFAULT_DRIVERS[1]));
   const isD1 = resolved.id === 'DRV-01' || resolved.driverNumber === 1;
 
   // Real vehicle details:
-  // Driver #1: Vanessa Mbhele (Vee) -> Grey Hyundai Grand i10 • BW 55 TF ZN (071 345 7687)
-  // Driver #2: Zwelisha Mkhize (Zwali) -> Silver Suzuki Dzire • DF 33 JB ZN (081 732 4759)
+  // Driver #1: Vanessa Mbhele (Vee - Inactive) -> Grey Hyundai Grand i10 • BW 55 TF ZN (071 345 7687)
+  // Driver #2: Zwelisha Mkhize (Zweli - Active) -> Silver Suzuki Dzire • DF 33 JB ZN (081 732 4759)
   const vehicleText = isD1
     ? (resolved.vehicleDetails && resolved.vehicleDetails !== 'Motorcycle / Scooter' && resolved.vehicleDetails !== 'Pending Reg'
         ? resolved.vehicleDetails
@@ -147,8 +147,8 @@ export function getDriverVehicleInfo(
   const vehicleType: DriverVehicleType = 'light_vehicle';
 
   const displayName = isD1
-    ? 'Driver - Vee (Vanessa)'
-    : 'Driver - Zwali (Zwelisha)';
+    ? 'Driver - Vee (Resigned)'
+    : 'Driver - Zweli (Zwelisha)';
 
   const rawPhone = isD1
     ? (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '071 345 7687')
@@ -242,10 +242,14 @@ export function getRegisteredDrivers(): DriverProfile[] {
       return DEFAULT_DRIVERS;
     }
 
-    // Ensure Driver #1 is designated as Vee and marked onboarded with real vehicle details
+    // Ensure Driver #1 is marked as inactive (Vee resigned) while keeping all contract details strictly preserved
     let hasUpdates = false;
     const d1 = parsed.find((d) => d.id === 'DRV-01' || d.driverNumber === 1);
     if (d1) {
+      if (d1.active !== false) {
+        d1.active = false;
+        hasUpdates = true;
+      }
       if (!d1.name || d1.name === 'Driver 1' || d1.name === 'Vee') {
         d1.name = 'Vanessa Mbhele (Vee)';
         d1.accountHolder = 'ISV MBHELE';
@@ -271,11 +275,15 @@ export function getRegisteredDrivers(): DriverProfile[] {
       }
     }
 
-    // Ensure Driver #2 is designated as Zwali (Zwelisha Mkhize) and marked onboarded with vehicle details
+    // Ensure Driver #2 is designated as Zweli (Zwelisha Mkhize), active, with full vehicle and contract details
     const d2 = parsed.find((d) => d.id === 'DRV-02' || d.driverNumber === 2);
     if (d2) {
-      if (!d2.name || d2.name === 'Driver 2' || d2.name === 'Zwell' || d2.name === 'Zwelisha (Zwell)') {
-        d2.name = 'Zwelisha Mkhize (Zwali)';
+      if (d2.active !== true) {
+        d2.active = true;
+        hasUpdates = true;
+      }
+      if (!d2.name || d2.name === 'Driver 2' || d2.name === 'Zwell' || d2.name === 'Zwelisha (Zwell)' || d2.name === 'Zwelisha Mkhize (Zwali)') {
+        d2.name = 'Zwelisha Mkhize (Zweli)';
         d2.accountHolder = 'Zwelisha Mkhize';
         d2.bankName = 'TymeBank';
         d2.accountNumber = '51009333559';
@@ -312,6 +320,13 @@ export function getRegisteredDrivers(): DriverProfile[] {
 }
 
 /**
+ * Get all active on-duty drivers (excluding former/resigned drivers)
+ */
+export function getActiveDrivers(): DriverProfile[] {
+  return getRegisteredDrivers().filter((d) => d.active !== false);
+}
+
+/**
  * Save updated driver list
  */
 export function saveRegisteredDrivers(drivers: DriverProfile[]): void {
@@ -337,6 +352,11 @@ export async function syncDriversFromCloud(): Promise<DriverProfile[]> {
       let changed = false;
 
       cloudDrivers.forEach((cd) => {
+        // Enforce resigned status for Vee even if cloud has stale active flag
+        if (cd.id === 'DRV-01' || cd.driverNumber === 1) {
+          cd.active = false;
+        }
+
         const idx = current.findIndex((d) => d.id === cd.id || d.driverNumber === cd.driverNumber);
         if (idx >= 0) {
           const local = current[idx];
@@ -347,7 +367,7 @@ export async function syncDriversFromCloud(): Promise<DriverProfile[]> {
             (cd.phone && cd.phone !== '+27 68 886 3892');
 
           if (hasCloudDetails || !local.onboardingCompleted) {
-            current[idx] = { ...local, ...cd };
+            current[idx] = { ...local, ...cd, active: cd.id === 'DRV-01' ? false : local.active };
             changed = true;
           }
         } else {
@@ -376,32 +396,39 @@ export function getDriverById(driverId: string): DriverProfile | null {
 }
 
 /**
- * Authenticate driver by PIN or driver number
+ * Authenticate driver by PIN or driver number (only allows active on-duty drivers)
  */
 export function authenticateDriver(pinOrNum: string): DriverProfile | null {
   const clean = pinOrNum.trim();
-  const drivers = getRegisteredDrivers();
-  // Match by 4-digit PIN or Driver Number (1 or 2)
+  const drivers = getActiveDrivers();
+  // Match active driver by 4-digit PIN or Driver Number (e.g. 1002 or 2 for Zweli)
   return drivers.find((d) => d.pin === clean || String(d.driverNumber) === clean) || null;
 }
 
 /**
- * Active driver logged in on this device
+ * Active driver logged in on this device (always defaults to active driver Zweli)
  */
 export function getActiveDriverSession(): DriverProfile {
-  if (typeof window === 'undefined') return DEFAULT_DRIVERS[0];
+  const all = getRegisteredDrivers();
+  const activeOnly = all.filter((d) => d.active !== false);
+  const fallback = activeOnly[0] || all.find((d) => d.id === 'DRV-02') || DEFAULT_DRIVERS[1] || DEFAULT_DRIVERS[0];
+
+  if (typeof window === 'undefined') return fallback;
   try {
     const raw = localStorage.getItem(ACTIVE_DRIVER_KEY);
     if (raw) {
       const parsed: DriverProfile = JSON.parse(raw);
-      // Ensure driver still exists in registry
+      // Ensure driver still exists and is currently ACTIVE
       const existing = getDriverById(parsed.id);
-      if (existing) return existing;
+      if (existing && existing.active !== false) return existing;
     }
   } catch {}
-  // Default to Driver 1 if none set
-  const all = getRegisteredDrivers();
-  return all[0] || DEFAULT_DRIVERS[0];
+
+  // Auto-switch stored session to on-duty driver Zweli
+  try {
+    localStorage.setItem(ACTIVE_DRIVER_KEY, JSON.stringify(fallback));
+  } catch {}
+  return fallback;
 }
 
 export function setActiveDriverSession(driver: DriverProfile): void {
