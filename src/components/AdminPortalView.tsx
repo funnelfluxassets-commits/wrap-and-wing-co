@@ -1254,7 +1254,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     selectedCampaignWeek === 'all'
                       ? undefined
                       : {
-                          weekTitle: currentCampaign ? `Week ${currentCampaign.weekNumber}: ${currentCampaign.title}` : undefined,
+                          weekTitle: currentCampaign?.title,
                           dateRange: currentCampaign ? `${currentCampaign.startDate} to ${currentCampaign.endDate}` : undefined,
                           prize: currentCampaign?.prize,
                           weekId: selectedCampaignWeek,
@@ -2266,7 +2266,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       selectedCampaignWeek === 'all'
                         ? undefined
                         : {
-                            weekTitle: currentCampaign ? `Week ${currentCampaign.weekNumber}: ${currentCampaign.title}` : undefined,
+                            weekTitle: currentCampaign?.title,
                             dateRange: currentCampaign ? `${currentCampaign.startDate} to ${currentCampaign.endDate}` : undefined,
                             prize: currentCampaign?.prize,
                             weekId: selectedCampaignWeek,

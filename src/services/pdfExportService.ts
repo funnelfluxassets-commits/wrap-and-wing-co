@@ -828,13 +828,14 @@ export function exportReviewEntriesToPdf(
 
   const isSpecificWeek = Boolean(campaignInfo && campaignInfo.weekId && campaignInfo.weekId !== 'all');
   if (isSpecificWeek) {
-    doc.text(`Weekly Review Contest • ${campaignInfo!.weekTitle || 'Campaign Cohort'}`, margin, 17);
-    doc.setFontSize(7);
+    const rawTitle = campaignInfo!.weekTitle || 'Campaign Cohort';
+    doc.text(`Weekly Review Contest • ${rawTitle}`, margin, 17);
+    doc.setFontSize(7.5);
     doc.setTextColor(161, 161, 170);
     const dateText = campaignInfo!.dateRange ? `Dates: ${campaignInfo!.dateRange}` : '';
     const prizeText = campaignInfo!.prize ? `Prize: ${campaignInfo!.prize}` : '';
     const details = [dateText, prizeText].filter(Boolean).join(' • ');
-    doc.text(details.slice(0, 75), margin, 23);
+    doc.text(details, margin, 23);
   } else {
     doc.text('Weekly Google Review Meal Contest Entries (All-Time Register)', margin, 17);
     doc.setFontSize(7.5);
@@ -858,16 +859,17 @@ export function exportReviewEntriesToPdf(
 
   y = 36;
 
-  // Header
+  // Header Row
   doc.setFillColor(228, 228, 231);
   doc.rect(margin, y, pageWidth - margin * 2, 6.5, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(39, 39, 42);
   doc.text('NAME', margin + 3, y + 4.5);
-  doc.text('WHATSAPP PHONE', margin + 45, y + 4.5);
-  doc.text('FAVOURITE MEAL', margin + 85, y + 4.5);
-  doc.text('STATUS', margin + 140, y + 4.5);
+  doc.text('WHATSAPP PHONE', margin + 44, y + 4.5);
+  doc.text('TILL SLIP', margin + 80, y + 4.5);
+  doc.text('STAR RATING', margin + 112, y + 4.5);
+  doc.text('STATUS', margin + 144, y + 4.5);
   doc.text('DATE', pageWidth - margin - 3, y + 4.5, { align: 'right' });
   y += 7.5;
 
@@ -881,9 +883,10 @@ export function exportReviewEntriesToPdf(
       doc.setFontSize(7.5);
       doc.setTextColor(39, 39, 42);
       doc.text('NAME', margin + 3, y + 4.5);
-      doc.text('WHATSAPP PHONE', margin + 45, y + 4.5);
-      doc.text('FAVOURITE MEAL', margin + 85, y + 4.5);
-      doc.text('STATUS', margin + 140, y + 4.5);
+      doc.text('WHATSAPP PHONE', margin + 44, y + 4.5);
+      doc.text('TILL SLIP', margin + 80, y + 4.5);
+      doc.text('STAR RATING', margin + 112, y + 4.5);
+      doc.text('STATUS', margin + 144, y + 4.5);
       doc.text('DATE', pageWidth - margin - 3, y + 4.5, { align: 'right' });
       y += 7.5;
     }
@@ -897,17 +900,34 @@ export function exportReviewEntriesToPdf(
     doc.setFontSize(7.5);
     doc.setTextColor(24, 24, 27);
     const entryName = entry.fullName || (entry as any).customerName || '-';
-    doc.text(entryName.slice(0, 22), margin + 3, y + 3.5);
+    doc.text(entryName.slice(0, 20), margin + 3, y + 3.5);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(entry.phone || '-', margin + 45, y + 3.5);
-    const entryDetail = (entry as any).favoriteMeal || entry.receiptNumber || entry.comments || '-';
-    doc.text(entryDetail.slice(0, 26), margin + 85, y + 3.5);
+    doc.text((entry.phone || '-').slice(0, 15), margin + 44, y + 3.5);
 
-    const isWinner = entry.status === 'winner';
+    const rawSlip = entry.receiptNumber || (entry as any).favoriteMeal || '-';
+    const slipDisplay = rawSlip !== '-' ? `#${String(rawSlip).replace(/^#+/, '')}` : '-';
+    doc.text(slipDisplay.slice(0, 16), margin + 80, y + 3.5);
+
+    // Star Rating
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(isWinner ? 245 : 113, isWinner ? 158 : 113, isWinner ? 11 : 122);
-    doc.text(isWinner ? 'WINNER' : 'PENDING', margin + 140, y + 3.5);
+    doc.setTextColor(24, 24, 27);
+    const ratingVal = entry.rating || 5;
+    doc.text(`${ratingVal}/5 Stars`, margin + 112, y + 3.5);
+
+    // Status
+    const isWinner = entry.status === 'winner';
+    const isVerified = entry.status === 'verified';
+    if (isWinner) {
+      doc.setTextColor(245, 158, 11);
+      doc.text('WINNER', margin + 144, y + 3.5);
+    } else if (isVerified) {
+      doc.setTextColor(16, 185, 129);
+      doc.text('VERIFIED', margin + 144, y + 3.5);
+    } else {
+      doc.setTextColor(113, 113, 122);
+      doc.text((entry.status || 'PENDING').toUpperCase(), margin + 144, y + 3.5);
+    }
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(113, 113, 122);
