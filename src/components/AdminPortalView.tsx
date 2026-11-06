@@ -2394,6 +2394,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       {filteredReviews.map((e) => {
                         const isUncompleted = e.status === 'uncompleted' || e.status === 'excluded';
                         const isWinner = e.status === 'winner';
+                        const isVerified = e.status === 'verified';
 
                         return (
                           <tr
@@ -2485,16 +2486,41 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   <EyeOff className="w-2.5 h-2.5 text-zinc-500" />
                                   <span>Uncompleted</span>
                                 </span>
+                              ) : isVerified ? (
+                                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-black text-[10px] uppercase flex items-center gap-1 w-max">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                                  <span>Verified</span>
+                                </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase flex items-center gap-1 w-max">
-                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-                                  <span>Eligible</span>
+                                <span className="px-2.5 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 font-bold text-[10px] uppercase flex items-center gap-1 w-max">
+                                  <Clock className="w-2.5 h-2.5 text-yellow-400" />
+                                  <span>Pending</span>
                                 </span>
                               )}
                             </td>
 
                             <td className="py-3.5 px-4 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-1.5">
+                                {!isWinner && !isUncompleted && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const nextStatus: ReviewDrawEntry['status'] = isVerified ? 'pending' : 'verified';
+                                      await updateReviewEntryStatus(e.id, nextStatus);
+                                      setEntries((prev) => prev.map((item) => (item.id === e.id ? { ...item, status: nextStatus } : item)));
+                                    }}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
+                                      isVerified
+                                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/40'
+                                    }`}
+                                    title={isVerified ? 'Click to toggle back to Pending' : 'Confirm & verify this customer review on Google'}
+                                  >
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    <span>{isVerified ? 'Verified ✓' : 'Verify'}</span>
+                                  </button>
+                                )}
+
                                 {isUncompleted ? (
                                   <button
                                     type="button"

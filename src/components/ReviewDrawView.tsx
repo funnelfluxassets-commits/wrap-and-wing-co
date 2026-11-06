@@ -57,6 +57,19 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleOpenGoogle = async () => {
+    setHasClickedGoogle(true);
+    if (submittedEntryId) {
+      try {
+        await updateReviewEntryStatus(submittedEntryId, 'verified');
+        // When they switch back to the browser tab after posting on Google, they see the verified draw ticket!
+        setHasConfirmedPost(true);
+      } catch (err) {
+        console.warn('Could not auto-verify on Google click:', err);
+      }
+    }
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -614,7 +627,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                 href={GOOGLE_REVIEW_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setHasClickedGoogle(true)}
+                onClick={handleOpenGoogle}
                 className="w-full py-5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 active:scale-98 text-white font-black text-base sm:text-lg tracking-wide shadow-2xl shadow-orange-950/80 transition-all flex items-center justify-center gap-3 cursor-pointer ring-4 ring-amber-500/30 animate-bounce"
               >
                 <span>👉 STEP 2: OPEN GOOGLE &amp; POST REVIEW</span>
