@@ -384,6 +384,7 @@ export const DeliveryDriverView: React.FC<DeliveryDriverViewProps> = ({
     if (o.driverName && activeDriver.name && o.driverName.toLowerCase().includes(activeDriver.name.toLowerCase())) return true;
     if ((activeDriver.id === 'DRV-01' || activeDriver.driverNumber === 1) && o.driverName && (o.driverName.toLowerCase().includes('vee') || o.driverName.toLowerCase().includes('vanessa'))) return true;
     if ((activeDriver.id === 'DRV-02' || activeDriver.driverNumber === 2) && o.driverName && (o.driverName.toLowerCase().includes('zweli') || o.driverName.toLowerCase().includes('zwell') || o.driverName.toLowerCase().includes('zwelisha') || o.driverName.toLowerCase().includes('zwali') || o.driverName.toLowerCase().includes('mkhize'))) return true;
+    if ((activeDriver.id === 'DRV-03' || activeDriver.driverNumber === 3) && o.driverName && o.driverName.toLowerCase().includes('nonto')) return true;
     return false;
   };
 

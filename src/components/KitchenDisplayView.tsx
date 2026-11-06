@@ -1307,7 +1307,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
             <div className="p-3.5 bg-zinc-950/70 border border-white/5 rounded-2xl text-xs text-zinc-300 space-y-1">
               <div className="flex justify-between">
                 <span className="text-zinc-500">Customer:</span>
-                <span className="font-bold text-white">{driverModalOrder.customer?.name || 'Customer'} ({driverModalOrder.customer?.phone || 'No cell'})</span>
+                <span className="font-bold text-white">{driverModalOrder.customer?.customerName || 'Customer'} ({driverModalOrder.customer?.phone || 'No cell'})</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Delivery Fee (Driver Payout):</span>
@@ -1315,7 +1315,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-zinc-500">Payment:</span>
-                <span className="font-bold text-zinc-300">{driverModalOrder.paymentMethod === 'cash' ? 'Cash on Delivery' : 'Paid Online'}</span>
+                <span className="font-bold text-zinc-300">{driverModalOrder.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Paid Online'}</span>
               </div>
             </div>
 
@@ -1327,7 +1327,12 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                 {getRegisteredDrivers()
                   .filter((drv) => drv.active !== false)
                   .map((drv) => {
-                    const driverShortName = drv.id === 'DRV-02' || drv.driverNumber === 2 ? 'Zweli' : drv.name;
+                    const isStandIn = drv.id === 'DRV-03' || drv.driverNumber === 3;
+                    const driverShortName = drv.id === 'DRV-02' || drv.driverNumber === 2
+                      ? 'Zweli'
+                      : isStandIn
+                      ? 'Nonto'
+                      : drv.name;
                     return (
                       <button
                         key={drv.id}
@@ -1337,7 +1342,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-[11px] font-black text-white px-2.5 py-0.5 rounded-lg bg-black/60 uppercase tracking-wide">
-                            #{drv.driverNumber} • Sole On-Duty Driver
+                            #{drv.driverNumber} • {isStandIn ? 'Stand-in Driver' : 'On-Duty Driver'}
                           </span>
                           <Truck className="w-5 h-5 text-zinc-950" />
                         </div>
@@ -1345,7 +1350,7 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                           Hand Over &amp; Dispatch with {driverShortName}
                         </div>
                         <div className="text-xs text-zinc-900 font-mono mt-0.5">
-                          {drv.phone} • {drv.vehicleDetails || 'Silver Suzuki Dzire'} ({drv.vehicleReg || 'DF 33 JB ZN'})
+                          {drv.phone} • {drv.vehicleDetails || (isStandIn ? 'Red Haval' : 'Silver Suzuki Dzire')} ({drv.vehicleReg || 'Light Vehicle'})
                         </div>
                       </button>
                     );

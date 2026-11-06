@@ -14,7 +14,7 @@ import { authenticateDriver, setActiveDriverSession } from '../services/driverSe
 
 const VALID_PINS: Record<StaffRole, string[]> = {
   kitchen: ['0099'],
-  driver: ['0011', '1001', '1002'],
+  driver: ['0011', '1001', '1002', '1003'],
   admin: ['3858'],
 };
 
@@ -78,7 +78,7 @@ export const StaffLoginModal: React.FC<StaffLoginModalProps> = ({
     } else {
       setError(
         `Invalid PIN code for ${
-          role === 'kitchen' ? 'Kitchen Display' : role === 'driver' ? 'Delivery Driver (PIN: 1001 / 1002)' : 'Admin Portal'
+          role === 'kitchen' ? 'Kitchen Display' : role === 'driver' ? 'Delivery Driver (PIN: 1002 / 1003)' : 'Admin Portal'
         }. Please try again.`
       );
       setPin('');

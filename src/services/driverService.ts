@@ -14,7 +14,7 @@ const ONBOARDING_PIN_KEY = 'wrap_wing_onboarding_pin';
 // Default onboarding access PIN: 2026
 export const DEFAULT_ONBOARDING_PIN = '2026';
 
-// Default 2 Drivers for Wrap & Wing Co
+// Default Registered Drivers for Wrap & Wing Co
 export const DEFAULT_DRIVERS: DriverProfile[] = [
   {
     id: 'DRV-01',
@@ -56,15 +56,36 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
     onboardingCompleted: true,
     signedAgreementDate: '2026-10-29',
   },
+  {
+    id: 'DRV-03',
+    driverNumber: 3,
+    name: 'Nonto (Stand-in Driver)',
+    phone: '068 886 3892',
+    pin: '1003',
+    vehicleType: 'light_vehicle',
+    vehicleDetails: 'Red Haval',
+    vehicleReg: 'Pending Reg',
+    licenceCode: 'Code 8 / Code B (Light Vehicle)',
+    bankName: 'Not Required (Stand-in Driver)',
+    accountNumber: 'Not Required',
+    accountHolder: 'Nonto',
+    branchCode: 'Not Required',
+    idOrPassportNumber: 'Verified Onboarding',
+    residentialAddress: 'Pinetown / Greater Durban',
+    active: true,
+    onboardingCompleted: true,
+    signedAgreementDate: '2026-11-06',
+  },
 ];
 
 /**
- * Get formatted driver display name (e.g. 'Driver - Zweli' or 'Driver - Vee (Resigned)')
+ * Get formatted driver display name (e.g. 'Driver - Zweli' or 'Driver - Nonto (Stand-in)')
  */
 export function getDriverDisplayName(driver: DriverProfile): string {
+  if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee (Resigned)';
+  if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zweli';
+  if (driver.id === 'DRV-03' || driver.driverNumber === 3) return 'Driver - Nonto (Stand-in)';
   if (driver.onboardingCompleted && driver.name) {
-    if (driver.id === 'DRV-01' || driver.driverNumber === 1) return 'Driver - Vee (Resigned)';
-    if (driver.id === 'DRV-02' || driver.driverNumber === 2) return 'Driver - Zweli';
     const rawName = driver.name.trim();
     const parts = rawName.split(/\s+/);
     const firstName = parts[0].toLowerCase() === 'driver' && parts[1] ? parts.slice(1).join(' ') : parts[0];
@@ -113,23 +134,28 @@ export function getDriverVehicleInfo(
         dName.includes(cleanName) ||
         cleanName.includes(dName) ||
         (d.driverNumber === 1 && (cleanName.includes('vee') || cleanName.includes('vanessa') || cleanName.includes('drv-01') || cleanName.includes('driver 1') || cleanName.includes('driver #1'))) ||
-        (d.driverNumber === 2 && (cleanName.includes('zweli') || cleanName.includes('zwali') || cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('mkhize') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2')))
+        (d.driverNumber === 2 && (cleanName.includes('zweli') || cleanName.includes('zwali') || cleanName.includes('zwell') || cleanName.includes('zwelisha') || cleanName.includes('mkhize') || cleanName.includes('drv-02') || cleanName.includes('driver 2') || cleanName.includes('driver #2'))) ||
+        (d.driverNumber === 3 && (cleanName.includes('nonto') || cleanName.includes('haval') || cleanName.includes('drv-03') || cleanName.includes('driver 3') || cleanName.includes('driver #3')))
       );
     }) || null;
   }
 
-  // Determine driver 1 vs driver 2 (default to on-duty driver Zweli when unassigned)
+  // Determine driver: prioritize matched, fallback to on-duty driver Zweli (DRV-02)
   const isDriver1 = matched
     ? (matched.id === 'DRV-01' || matched.driverNumber === 1)
     : (driverName ? (driverName.toLowerCase().includes('vee') || driverName.toLowerCase().includes('vanessa')) : false);
 
   const resolved = matched || (isDriver1 ? (allDrivers.find((d) => d.id === 'DRV-01') || DEFAULT_DRIVERS[0]) : (allDrivers.find((d) => d.id === 'DRV-02') || DEFAULT_DRIVERS[1]));
   const isD1 = resolved.id === 'DRV-01' || resolved.driverNumber === 1;
+  const isD3 = resolved.id === 'DRV-03' || resolved.driverNumber === 3;
 
   // Real vehicle details:
-  // Driver #1: Vanessa Mbhele (Vee - Inactive) -> Grey Hyundai Grand i10 • BW 55 TF ZN (071 345 7687)
-  // Driver #2: Zwelisha Mkhize (Zweli - Active) -> Silver Suzuki Dzire • DF 33 JB ZN (081 732 4759)
-  const vehicleText = isD1
+  // Driver #1: Vanessa Mbhele (Vee - Inactive) -> Grey Hyundai Grand i10 • BW 55 TF ZN
+  // Driver #2: Zwelisha Mkhize (Zweli - Active) -> Silver Suzuki Dzire • DF 33 JB ZN
+  // Driver #3: Nonto (Stand-in Driver - Active) -> Red Haval • Pending Reg
+  const vehicleText = isD3
+    ? (resolved.vehicleDetails || 'Red Haval')
+    : isD1
     ? (resolved.vehicleDetails && resolved.vehicleDetails !== 'Motorcycle / Scooter' && resolved.vehicleDetails !== 'Pending Reg'
         ? resolved.vehicleDetails
         : 'Grey Hyundai Grand i10')
@@ -137,20 +163,26 @@ export function getDriverVehicleInfo(
         ? resolved.vehicleDetails
         : 'Silver Suzuki Dzire');
 
-  const vehicleReg = isD1
+  const vehicleReg = isD3
+    ? (resolved.vehicleReg || 'Pending Reg')
+    : isD1
     ? (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' ? resolved.vehicleReg : 'BW 55 TF ZN')
     : (resolved.vehicleReg && resolved.vehicleReg !== 'Pending Reg' && resolved.vehicleReg !== 'ND 482-910'
         ? resolved.vehicleReg
         : 'DF 33 JB ZN');
 
-  // Both drivers deliver in cars (Light Vehicle)
+  // All drivers deliver in cars (Light Vehicle)
   const vehicleType: DriverVehicleType = 'light_vehicle';
 
-  const displayName = isD1
+  const displayName = isD3
+    ? 'Driver - Nonto (Stand-in)'
+    : isD1
     ? 'Driver - Vee (Resigned)'
     : 'Driver - Zweli (Zwelisha)';
 
-  const rawPhone = isD1
+  const rawPhone = isD3
+    ? (resolved.phone || '068 886 3892')
+    : isD1
     ? (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '071 345 7687')
     : (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '081 732 4759');
 
@@ -306,6 +338,47 @@ export function getRegisteredDrivers(): DriverProfile[] {
       }
       if (hasUpdates) {
         saveDriverToFirestore(d2);
+      }
+    }
+
+    // Ensure Driver #3 is designated as Nonto (Stand-in Driver), active, with Red Haval vehicle details
+    let d3 = parsed.find((d) => d.id === 'DRV-03' || d.driverNumber === 3);
+    if (!d3) {
+      d3 = DEFAULT_DRIVERS.find((d) => d.id === 'DRV-03')!;
+      parsed.push(d3);
+      hasUpdates = true;
+      saveDriverToFirestore(d3);
+    } else {
+      if (d3.active !== true) {
+        d3.active = true;
+        hasUpdates = true;
+      }
+      if (!d3.name || !d3.name.includes('Nonto')) {
+        d3.name = 'Nonto (Stand-in Driver)';
+        d3.accountHolder = 'Nonto';
+        d3.bankName = 'Not Required (Stand-in Driver)';
+        d3.accountNumber = 'Not Required';
+        d3.branchCode = 'Not Required';
+        d3.onboardingCompleted = true;
+        if (!d3.signedAgreementDate) d3.signedAgreementDate = '2026-11-06';
+        hasUpdates = true;
+      }
+      if (!d3.pin || d3.pin !== '1003') {
+        d3.pin = '1003';
+        hasUpdates = true;
+      }
+      if (!d3.vehicleDetails || !d3.vehicleDetails.toLowerCase().includes('haval')) {
+        d3.vehicleDetails = 'Red Haval';
+        d3.vehicleType = 'light_vehicle';
+        if (!d3.vehicleReg) d3.vehicleReg = 'Pending Reg';
+        hasUpdates = true;
+      }
+      if (!d3.phone) {
+        d3.phone = '068 886 3892';
+        hasUpdates = true;
+      }
+      if (hasUpdates) {
+        saveDriverToFirestore(d3);
       }
     }
 

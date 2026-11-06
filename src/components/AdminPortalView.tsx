@@ -836,6 +836,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     return calculateDriverMetrics('DRV-02', orders);
   }, [orders]);
 
+  const driver3Metrics = useMemo(() => {
+    return calculateDriverMetrics('DRV-03', orders);
+  }, [orders]);
+
   const filteredDeliveryOrders = useMemo(() => {
     const allDelivs = deliveryMetrics.orders;
     const now = new Date();
@@ -4220,11 +4224,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { profile: registeredDrivers.find(d => d.id === 'DRV-02') || DEFAULT_DRIVERS[1], metrics: driver2Metrics },
+                { profile: registeredDrivers.find(d => d.id === 'DRV-03') || DEFAULT_DRIVERS[2], metrics: driver3Metrics },
                 { profile: registeredDrivers.find(d => d.id === 'DRV-01') || DEFAULT_DRIVERS[0], metrics: driver1Metrics }
-              ].map(({ profile, metrics }) => {
+              ].filter(item => Boolean(item.profile)).map(({ profile, metrics }) => {
                 const displayName = getDriverDisplayName(profile as DriverProfile);
                 const hasCompletedOnboarding = profile.onboardingCompleted || (profile.name && profile.name !== `Driver #${profile.driverNumber}`);
                 const periodStats = deliveryTimeframe === 'custom'
@@ -4350,7 +4355,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <div>
                         <span className="text-[10px] uppercase font-bold text-zinc-500 block">Bank &amp; Account</span>
                         <span className="font-mono text-zinc-300">
-                          {profile.bankName ? `${profile.bankName} (${profile.accountNumber || 'Acc Pending'})` : 'Banking Pending'}
+                          {profile.bankName?.includes('Not Required')
+                            ? 'Not Required (Stand-in)'
+                            : profile.bankName
+                            ? `${profile.bankName} (${profile.accountNumber || 'Acc Pending'})`
+                            : 'Banking Pending'}
                         </span>
                       </div>
                       <div>
@@ -4433,6 +4442,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 >
                   <option value="all">All Drivers</option>
                   <option value="DRV-02">Driver #2 (Zweli - Active)</option>
+                  <option value="DRV-03">Driver #3 (Nonto - Stand-in)</option>
                   <option value="DRV-01">Driver #1 (Vee - Resigned / Inactive)</option>
                   <option value="unassigned">Unassigned</option>
                 </select>
