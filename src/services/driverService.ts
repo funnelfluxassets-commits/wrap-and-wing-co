@@ -60,7 +60,7 @@ export const DEFAULT_DRIVERS: DriverProfile[] = [
     id: 'DRV-03',
     driverNumber: 3,
     name: 'Nonto (Stand-in Driver)',
-    phone: '068 886 3892',
+    phone: '062 623 8449',
     pin: '1003',
     vehicleType: 'light_vehicle',
     vehicleDetails: 'Red Haval',
@@ -181,7 +181,7 @@ export function getDriverVehicleInfo(
     : 'Driver - Zweli (Zwelisha)';
 
   const rawPhone = isD3
-    ? (resolved.phone || '068 886 3892')
+    ? (resolved.phone && resolved.phone !== '068 886 3892' ? resolved.phone : '062 623 8449')
     : isD1
     ? (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '071 345 7687')
     : (resolved.phone && resolved.phone !== '+27 68 886 3892' ? resolved.phone : '081 732 4759');
@@ -373,8 +373,8 @@ export function getRegisteredDrivers(): DriverProfile[] {
         if (!d3.vehicleReg) d3.vehicleReg = 'Pending Reg';
         hasUpdates = true;
       }
-      if (!d3.phone) {
-        d3.phone = '068 886 3892';
+      if (!d3.phone || d3.phone === '068 886 3892') {
+        d3.phone = '062 623 8449';
         hasUpdates = true;
       }
       if (hasUpdates) {

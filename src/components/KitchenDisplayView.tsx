@@ -322,13 +322,15 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
     }
   };
 
-  const handleAssignAndDispatch = (driverId: string | null, driverName: string | null) => {
+  const handleAssignAndDispatch = (driverId: string | null, driverName: string | null, shouldDispatch: boolean = true) => {
     if (!driverModalOrder) return;
     const targetId = driverModalOrder.orderId;
     if (driverId) {
       assignOrderDriverByAdmin(targetId, driverId, driverName);
     }
-    handleStatusChange(targetId, 'dispatched');
+    if (shouldDispatch) {
+      handleStatusChange(targetId, 'dispatched');
+    }
     setDriverModalOrder(null);
     setOrders(getAllOrders().filter((o) => !isTestOrder(o)));
   };
@@ -854,13 +856,29 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                               <DeliveryMotorbikeIcon className="w-2.5 h-2.5 shrink-0" />
                               <span>DELIVERY</span>
                               {order.driverName ? (
-                                <span className="ml-1 px-1.5 py-0.5 bg-black/40 text-white rounded text-[9px] font-black">
-                                  {order.driverName}
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDriverModalOrder(order);
+                                  }}
+                                  className="ml-1 px-1.5 py-0.5 bg-black/40 hover:bg-black/80 text-white rounded text-[9px] font-black cursor-pointer transition-colors"
+                                  title="Click to reassign driver"
+                                >
+                                  {order.driverName} ✎
+                                </button>
                               ) : (
-                                <span className="ml-1 px-1.5 py-0.5 bg-black/40 text-amber-200 rounded text-[9px] font-bold">
-                                  Unclaimed
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDriverModalOrder(order);
+                                  }}
+                                  className="ml-1 px-1.5 py-0.5 bg-black/40 hover:bg-black/80 text-amber-200 rounded text-[9px] font-bold cursor-pointer transition-colors"
+                                  title="Click to assign driver"
+                                >
+                                  Unclaimed ✎
+                                </button>
                               )}
                             </>
                           ) : (
@@ -1171,42 +1189,54 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                     )}
 
                     {order.status === 'ready' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isDelivery) {
-                            handleHandToDriverClick(order);
-                          } else {
-                            handleStatusChange(order.orderId, 'completed');
-                          }
-                        }}
-                        className={`w-full py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
-                          isDelivery
-                            ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
-                            : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
-                        }`}
-                      >
-                        {isDelivery ? (
-                          <>
-                            <Truck className="w-4 h-4 text-white" />
-                            <span>
-                              {order.driverName
-                                ? `3. HAND TO ${order.driverName.toUpperCase()} (OUT FOR DELIVERY)`
-                                : '3. HAND TO DRIVER (OUT FOR DELIVERY)'}
-                            </span>
-                          </>
-                        ) : order.orderMode === 'dine-in' ? (
-                          <>
-                            <Utensils className="w-4 h-4 text-zinc-950" />
-                            <span>3. SERVE TO TABLE {order.tableNumber || order.customer?.tableNumber || ''} (COMPLETE)</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4 text-zinc-950" />
-                            <span>3. HAND OVER TO CUSTOMER (COMPLETE)</span>
-                          </>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isDelivery) {
+                              handleHandToDriverClick(order);
+                            } else {
+                              handleStatusChange(order.orderId, 'completed');
+                            }
+                          }}
+                          className={`flex-1 py-3 rounded-2xl font-black text-xs sm:text-sm tracking-wide shadow-lg transition-transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer ${
+                            isDelivery
+                              ? 'bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white shadow-orange-950/60'
+                              : 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 shadow-amber-950/60'
+                          }`}
+                        >
+                          {isDelivery ? (
+                            <>
+                              <Truck className="w-4 h-4 text-white" />
+                              <span>
+                                {order.driverName
+                                  ? `3. HAND TO ${order.driverName.toUpperCase()} (OUT FOR DELIVERY)`
+                                  : '3. HAND TO DRIVER (OUT FOR DELIVERY)'}
+                              </span>
+                            </>
+                          ) : order.orderMode === 'dine-in' ? (
+                            <>
+                              <Utensils className="w-4 h-4 text-zinc-950" />
+                              <span>3. SERVE TO TABLE {order.tableNumber || order.customer?.tableNumber || ''} (COMPLETE)</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-zinc-950" />
+                              <span>3. HAND OVER TO CUSTOMER (COMPLETE)</span>
+                            </>
+                          )}
+                        </button>
+                        {isDelivery && (
+                          <button
+                            type="button"
+                            onClick={() => setDriverModalOrder(order)}
+                            className="px-3 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-bold text-xs border border-white/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+                            title="Change or reassign delivery driver"
+                          >
+                            Switch Driver
+                          </button>
                         )}
-                      </button>
+                      </div>
                     )}
 
                     {order.status === 'dispatched' && (
@@ -1334,25 +1364,43 @@ export const KitchenDisplayView: React.FC<KitchenDisplayViewProps> = ({
                       ? 'Nonto'
                       : drv.name;
                     return (
-                      <button
+                      <div
                         key={drv.id}
-                        type="button"
-                        onClick={() => handleAssignAndDispatch(drv.id, driverShortName)}
-                        className="p-4 rounded-2xl bg-gradient-to-br from-amber-600 to-yellow-500 hover:from-amber-500 hover:to-yellow-400 text-zinc-950 font-black border border-amber-400 text-left transition-all hover:scale-[1.01] shadow-xl group cursor-pointer"
+                        className="p-4 rounded-2xl bg-gradient-to-br from-amber-600 to-yellow-500 text-zinc-950 font-black border border-amber-400 text-left shadow-xl space-y-3"
                       >
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between">
                           <span className="text-[11px] font-black text-white px-2.5 py-0.5 rounded-lg bg-black/60 uppercase tracking-wide">
                             #{drv.driverNumber} • {isStandIn ? 'Stand-in Driver' : 'On-Duty Driver'}
                           </span>
                           <Truck className="w-5 h-5 text-zinc-950" />
                         </div>
-                        <div className="text-xl font-black text-zinc-950">
-                          Hand Over &amp; Dispatch with {driverShortName}
+                        <div>
+                          <div className="text-xl font-black text-zinc-950">
+                            {driverShortName} ({drv.vehicleDetails || (isStandIn ? 'Red Haval' : 'Silver Suzuki Dzire')})
+                          </div>
+                          <div className="text-xs text-zinc-900 font-mono mt-0.5">
+                            {drv.phone} • {drv.vehicleReg || 'Light Vehicle'}
+                          </div>
                         </div>
-                        <div className="text-xs text-zinc-900 font-mono mt-0.5">
-                          {drv.phone} • {drv.vehicleDetails || (isStandIn ? 'Red Haval' : 'Silver Suzuki Dzire')} ({drv.vehicleReg || 'Light Vehicle'})
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => handleAssignAndDispatch(drv.id, getDriverDisplayName(drv), true)}
+                            className="flex-1 py-2.5 px-3 rounded-xl bg-zinc-950 hover:bg-black text-white text-xs font-black shadow-md cursor-pointer transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <Truck className="w-3.5 h-3.5" />
+                            <span>Hand Over &amp; Dispatch</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleAssignAndDispatch(drv.id, getDriverDisplayName(drv), false)}
+                            className="py-2.5 px-3 rounded-xl bg-white/40 hover:bg-white/60 text-zinc-950 text-xs font-black cursor-pointer transition-colors"
+                            title="Assign to this driver without marking as dispatched yet"
+                          >
+                            Assign Only
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
               </div>
