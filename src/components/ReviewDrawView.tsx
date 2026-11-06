@@ -42,32 +42,19 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
   const [copied, setCopied] = useState(false);
   const [hasClickedGoogle, setHasClickedGoogle] = useState(false);
   const [hasConfirmedPost, setHasConfirmedPost] = useState(false);
-  const [confirmingPost, setConfirmingPost] = useState(false);
-
-  const handleConfirmGooglePost = async () => {
-    if (!submittedEntryId) return;
-    setConfirmingPost(true);
-    try {
-      await updateReviewEntryStatus(submittedEntryId, 'verified');
-    } catch (err) {
-      console.warn('Could not update status to verified in cloud:', err);
-    }
-    setHasConfirmedPost(true);
-    setConfirmingPost(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   const handleOpenGoogle = async () => {
     setHasClickedGoogle(true);
     if (submittedEntryId) {
       try {
         await updateReviewEntryStatus(submittedEntryId, 'verified');
-        // When they switch back to the browser tab after posting on Google, they see the verified draw ticket!
-        setHasConfirmedPost(true);
       } catch (err) {
         console.warn('Could not auto-verify on Google click:', err);
       }
     }
+    // Set confirmed state so customer sees their locked-in draw ticket
+    setHasConfirmedPost(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
 
@@ -635,7 +622,7 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
               </a>
 
               <p className="text-xs text-zinc-400">
-                Opens directly to Wrap and Wing Co on Google Maps
+                Tapping above opens Wrap and Wing Co on Google Maps and locks in your ticket!
               </p>
 
               {/* Visual Guidance on Google Reviews Tab */}
@@ -661,31 +648,6 @@ export const ReviewDrawView: React.FC<ReviewDrawViewProps> = ({ onNavigate }) =>
                   3. Paste your feedback (if copied) and tap <strong className="text-white">"Post"</strong>!
                 </p>
               </div>
-            </div>
-
-            {/* ── CONFIRMATION / LOCK IN BUTTON ── */}
-            <div className="p-5 rounded-2xl bg-zinc-900 border-2 border-emerald-500/40 text-center space-y-3 max-w-xl mx-auto">
-              <div className="text-xs font-bold text-zinc-300">
-                Already posted your review on Google?
-              </div>
-              <button
-                type="button"
-                onClick={handleConfirmGooglePost}
-                disabled={confirmingPost}
-                className="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-98 text-white font-black text-sm sm:text-base tracking-wide shadow-lg shadow-emerald-950/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {confirmingPost ? (
-                  <span>Verifying Ticket...</span>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-5 h-5 text-white" />
-                    <span>✅ I've Posted My Google Review — Lock In My Ticket!</span>
-                  </>
-                )}
-              </button>
-              <p className="text-[11px] text-zinc-400">
-                Locks in your entry ticket so our team can verify it for the Sunday meal draw.
-              </p>
             </div>
 
             {/* WhatsApp Fallback */}

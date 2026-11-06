@@ -2501,26 +2501,6 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
                             <td className="py-3.5 px-4 text-right whitespace-nowrap">
                               <div className="flex items-center justify-end gap-1.5">
-                                {!isWinner && !isUncompleted && (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const nextStatus: ReviewDrawEntry['status'] = isVerified ? 'pending' : 'verified';
-                                      await updateReviewEntryStatus(e.id, nextStatus);
-                                      setEntries((prev) => prev.map((item) => (item.id === e.id ? { ...item, status: nextStatus } : item)));
-                                    }}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm ${
-                                      isVerified
-                                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
-                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/40'
-                                    }`}
-                                    title={isVerified ? 'Click to toggle back to Pending' : 'Confirm & verify this customer review on Google'}
-                                  >
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    <span>{isVerified ? 'Verified ✓' : 'Verify'}</span>
-                                  </button>
-                                )}
-
                                 {isUncompleted ? (
                                   <button
                                     type="button"
